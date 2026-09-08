@@ -19,7 +19,6 @@
     (replyRequested)="setReplyParent($event)"
     (imageRequested)="openImage($event)"
     (captchaChanged)="captcha.set($event)"
-    (errorChanged)="error.set($event)"
     (submitted)="handleSubmitted()"
   ></app-comment-list>
   @if (error()) {
@@ -30,7 +29,6 @@
       [captcha]="captcha()"
       [parentId]="replyParentId"
       (captchaChanged)="captcha.set($event)"
-      (errorChanged)="error.set($event)"
       (submitted)="handleSubmitted()"
     ></app-comment-form>
   }

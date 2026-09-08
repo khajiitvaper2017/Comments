@@ -25,22 +25,25 @@ public sealed class TextPolicy : ITextPolicy
             throw new ValidationException("Text is required and must be at most 5000 characters.");
         if (Regex.IsMatch(input, "<\\s*(script|style|iframe|img|object|form)|on\\w+\\s*=|javascript:",
                 RegexOptions.IgnoreCase)) throw new ValidationException("Unsupported or unsafe HTML.");
+        if (Regex.IsMatch(input, "<[^>]*$") ||
+            Regex.IsMatch(input, "</?\\s*(a|code|i|strong)\\b[^>]*$", RegexOptions.IgnoreCase))
+            throw new ValidationException("Invalid XHTML.");
         var allowed = Regex.Replace(input, "</?(a|code|i|strong)(?:\\s+[^>]*)?>", "", RegexOptions.IgnoreCase);
         if (allowed.Contains('<') || allowed.Contains('>'))
-            throw new ValidationException("Only a, code, i, and strong tags are allowed.");
+            throw new ValidationException("Invalid XHTML.");
         var stack = new Stack<string>();
         foreach (Match m in Regex.Matches(input, "<(/?)(a|code|i|strong)(?:\\s+[^>]*)?/?>", RegexOptions.IgnoreCase))
             if (m.Groups[1].Value == "/")
             {
                 if (stack.Count == 0 || stack.Pop() != m.Groups[2].Value.ToLowerInvariant())
-                    throw new ValidationException("HTML tags must be correctly closed.");
+                    throw new ValidationException("Invalid XHTML.");
             }
             else if (!m.Value.EndsWith("/>"))
             {
                 stack.Push(m.Groups[2].Value.ToLowerInvariant());
             }
 
-        if (stack.Count > 0) throw new ValidationException("HTML tags must be correctly closed.");
+        if (stack.Count > 0) throw new ValidationException("Invalid XHTML.");
         return input;
     }
 }
@@ -118,7 +121,7 @@ public sealed class CommentService(
     {
         if (!Regex.IsMatch(r.UserName.Trim(), "^[A-Za-z0-9]+$") || r.UserName.Length > 100)
             throw new ValidationException("User Name must contain only Latin letters and digits.");
-        if (!Regex.IsMatch(r.Email, "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"))
+        if (!Regex.IsMatch(r.Email, "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$"))
             throw new ValidationException("A valid e-mail is required.");
         _ = NormalizeHomePage(r.HomePage);
     }

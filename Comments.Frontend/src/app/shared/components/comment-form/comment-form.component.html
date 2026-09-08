@@ -31,7 +31,14 @@
       </label>
       <label
         >E-mail *
-        <input type="email" name="email" #email="ngModel" [(ngModel)]="form.email" required />
+        <input
+          type="email"
+          name="email"
+          #email="ngModel"
+          [(ngModel)]="form.email"
+          required
+          pattern="^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"
+        />
         @if ((submittedForm || email.touched) && email.invalid) {
           <span class="form-error"> Enter a valid e-mail address. </span>
         }
@@ -132,6 +139,9 @@
         <input type="file" accept=".jpg,.jpeg,.gif,.png,.txt" (change)="chooseFile($event)"
       /></label>
     </div>
+    @if (formError) {
+      <p class="form-error form-error-block" role="alert">{{ formError }}</p>
+    }
     <button class="submit-button" type="submit">Post comment</button>
   </form>
 </section>

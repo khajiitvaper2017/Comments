@@ -62,6 +62,7 @@ export class CommentFormComponent {
   captchaError = '';
   submittedForm = false;
   captchaLoading = false;
+  formError = '';
 
   refreshCaptcha() {
     this.captchaError = '';
@@ -82,7 +83,16 @@ export class CommentFormComponent {
     this.captchaError = '';
   }
   chooseFile(event: Event) {
-    this.file = (event.target as HTMLInputElement).files?.[0];
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (file?.name.toLowerCase().endsWith('.txt') && file.size > 100 * 1024) {
+      this.file = undefined;
+      input.value = '';
+      this.formError = 'TXT files must be no larger than 100 KB.';
+      return;
+    }
+    this.formError = '';
+    this.file = file;
   }
   insertTag(open: string, close = '') {
     const textarea = this.textInput?.nativeElement;
@@ -103,6 +113,13 @@ export class CommentFormComponent {
     this.insertTag('<a href="https://example.com" title="Link">', '</a>');
   }
   setTextMode(mode: 'code' | 'preview') {
+    if (mode === 'preview') {
+      const markupError = this.validateMarkup();
+      if (markupError) {
+        this.formError = markupError;
+        return;
+      }
+    }
     this.textMode = mode;
     if (mode === 'code') {
       queueMicrotask(() => this.textInput?.nativeElement.focus());
@@ -116,9 +133,17 @@ export class CommentFormComponent {
         commentForm?.form.markAllAsTouched();
         return;
       }
+      if (this.file?.name.toLowerCase().endsWith('.txt') && this.file.size > 100 * 1024) return;
+      const markupError = this.validateMarkup();
+      if (markupError) {
+        this.formError = markupError;
+        return;
+      }
+      this.formError = '';
       this.openCaptcha();
       return;
     }
+    this.formError = '';
     if (!this.captcha) return;
     if (!this.form.captchaAnswer.trim()) {
       this.captchaError = 'Enter the CAPTCHA code.';
@@ -141,6 +166,7 @@ export class CommentFormComponent {
           this.submittedForm = false;
           this.showCaptcha = false;
           this.captchaError = '';
+          this.formError = '';
           this.refreshCaptcha();
           this.submitted.emit();
         },
@@ -150,12 +176,35 @@ export class CommentFormComponent {
               ? error.error
               : error.error?.error || error.error?.title || 'Could not submit comment.';
           this.errorChanged.emit(message);
+          this.formError = message;
           if (message.toLowerCase().includes('captcha')) {
             this.form.captchaAnswer = '';
             this.refreshCaptcha();
             this.captchaError = message;
+          } else {
+            this.showCaptcha = false;
           }
         },
       );
+  }
+
+  private validateMarkup() {
+    const tagPattern = /<\/?(a|code|i|strong)(?:\s+[^>]*)?\/?/gi;
+    const completeTagPattern = /<\/?(a|code|i|strong)(?:\s+[^>]*)?\s*\/?>/gi;
+    const remaining = this.form.text.replace(completeTagPattern, '');
+    if (/[<>]/.test(remaining)) return 'Invalid XHTML.';
+
+    const stack: string[] = [];
+    for (const match of this.form.text.matchAll(tagPattern)) {
+      const tag = match[1].toLowerCase();
+      const isClosing = match[0].startsWith('</');
+      const isSelfClosing = match[0].endsWith('/>');
+      if (isClosing) {
+        if (stack.pop() !== tag) return 'Invalid XHTML.';
+      } else if (!isSelfClosing) {
+        stack.push(tag);
+      }
+    }
+    return stack.length ? 'Invalid XHTML.' : '';
   }
 }
