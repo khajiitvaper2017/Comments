@@ -1,5 +1,8 @@
-using Comments.Application;
-using Comments.Infrastructure;
+using Comments.Application.Abstractions;
+using Comments.Infrastructure.Exceptions;
+using Comments.Infrastructure.Options;
+using Comments.Infrastructure.Persistence;
+using Comments.Infrastructure.Services;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,7 +11,8 @@ builder.Services.Configure<StorageOptions>(builder.Configuration.GetSection("Sto
 builder.Services.AddDbContext<CommentsDbContext>(o =>
     o.UseSqlServer(builder.Configuration.GetConnectionString("Comments")));
 builder.Services.AddSingleton<ICaptchaService, CaptchaService>();
-builder.Services.AddScoped<ITextPolicy, TextPolicy>();
+builder.Services.AddScoped<ITextValidationService, TextValidationService>();
+builder.Services.AddScoped<IAttachmentStorageService, AttachmentStorageService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddHealthChecks();
 builder.Services.AddControllers();

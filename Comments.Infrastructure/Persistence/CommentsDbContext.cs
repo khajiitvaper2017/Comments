@@ -1,6 +1,7 @@
-using Comments.Domain;
+using Comments.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 
-namespace Comments.Infrastructure;
+namespace Comments.Infrastructure.Persistence;
 
 public sealed class CommentsDbContext(DbContextOptions<CommentsDbContext> options) : DbContext(options)
 {
