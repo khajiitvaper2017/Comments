@@ -104,7 +104,7 @@ public sealed class CommentService(
         var c = new Comment
         {
             ParentId = r.ParentId, RootId = parent?.RootId ?? Guid.Empty, UserName = r.UserName.Trim(),
-            Email = r.Email.Trim(), HomePage = string.IsNullOrWhiteSpace(r.HomePage) ? null : r.HomePage.Trim(),
+            Email = r.Email.Trim(), HomePage = NormalizeHomePage(r.HomePage),
             RawText = r.Text, SanitizedText = text, IpAddress = ip, UserAgent = agent
         };
         if (parent is null) c.RootId = c.Id;
@@ -120,9 +120,18 @@ public sealed class CommentService(
             throw new ValidationException("User Name must contain only Latin letters and digits.");
         if (!Regex.IsMatch(r.Email, "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"))
             throw new ValidationException("A valid e-mail is required.");
-        if (!string.IsNullOrWhiteSpace(r.HomePage) && (!Uri.TryCreate(r.HomePage, UriKind.Absolute, out var u) ||
-                                                       u.Scheme is not ("http" or "https")))
+        _ = NormalizeHomePage(r.HomePage);
+    }
+
+    private static string? NormalizeHomePage(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        var normalized = value.Trim();
+        if (!normalized.Contains("://", StringComparison.Ordinal)) normalized = "https://" + normalized;
+        if (!Uri.TryCreate(normalized, UriKind.Absolute, out var uri) ||
+            uri.Scheme is not ("http" or "https") || string.IsNullOrWhiteSpace(uri.Host))
             throw new ValidationException("Home page must be a valid HTTP(S) URL.");
+        return uri.ToString();
     }
 
     private async Task<Attachment> Save(AttachmentInput f, CancellationToken ct)
