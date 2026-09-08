@@ -46,8 +46,14 @@
           >{{ homePageLabel(comment.homePage) }}</a
         >
       </div>
-      <button class="reply-button" type="button" (click)="replyRequested.emit(comment.id)">
-        Reply
+      <button
+        class="reply-button"
+        type="button"
+        title="Reply to this comment"
+        aria-label="Reply to this comment"
+        (click)="replyRequested.emit(comment.id)"
+      >
+        <ng-icon name="lucideReply" size="1rem" aria-hidden="true" />
       </button>
     </header>
     <div class="comment-body" [innerHTML]="comment.text"></div>
@@ -64,7 +70,6 @@
             [alt]="attachment.fileName"
             loading="lazy"
           />
-          <span>{{ attachment.fileName }}</span>
         </button>
         <ng-template #fileAttachment
           ><a [href]="'/api/attachments/' + attachment.id" target="_blank" rel="noopener"

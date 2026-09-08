@@ -53,11 +53,21 @@ export class CommentsPageComponent implements OnInit {
   setReplyParent(id: string) {
     this.replyParentId = id;
     this.showComposer.set(false);
-    document.querySelector('textarea')?.focus();
+    this.scrollToComposer();
   }
   openComposer() {
     this.replyParentId = '';
     this.showComposer.set(true);
+    this.scrollToComposer();
+  }
+  private scrollToComposer() {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        const composer = document.querySelector<HTMLElement>('.composer');
+        composer?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        composer?.querySelector<HTMLTextAreaElement>('textarea')?.focus();
+      });
+    });
   }
   handleSubmitted() {
     this.error.set('');

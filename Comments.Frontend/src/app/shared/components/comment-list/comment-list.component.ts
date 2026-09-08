@@ -1,5 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideReply } from '@ng-icons/lucide';
 import { CommentItem } from '@app/core/models/comment.models';
 import { Captcha } from '@app/core/models/comment.models';
 import { CommentFormComponent } from '@app/shared/components/comment-form/comment-form.component';
@@ -7,7 +9,8 @@ import { CommentFormComponent } from '@app/shared/components/comment-form/commen
 @Component({
   selector: 'app-comment-list',
   standalone: true,
-  imports: [CommonModule, CommentFormComponent],
+  imports: [CommonModule, CommentFormComponent, NgIcon],
+  providers: [provideIcons({ lucideReply })],
   templateUrl: './comment-list.component.html',
 })
 export class CommentListComponent {

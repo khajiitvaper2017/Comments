@@ -14,32 +14,85 @@
         <input name="userName" [(ngModel)]="form.userName" required pattern="[A-Za-z0-9]+"
       /></label>
       <label>E-mail * <input type="email" name="email" [(ngModel)]="form.email" required /></label>
-      <label>Home page <input type="url" name="homePage" [(ngModel)]="form.homePage" /></label>
+      <label>Home page <input type="text" name="homePage" [(ngModel)]="form.homePage" /></label>
     </div>
-    <label
-      >Text *
+    <div class="text-field">
+      <label for="comment-text">Text *</label>
+      <div class="text-toolbar">
+        <div class="format-toolbar" *ngIf="textMode === 'code'" aria-label="Formatting toolbar">
+          <span>Format:</span>
+          <button type="button" title="Bold" (click)="insertTag('<strong>', '</strong>')">
+            <strong>B</strong>
+          </button>
+          <button type="button" title="Italic" (click)="insertTag('<i>', '</i>')">
+            <i>I</i>
+          </button>
+          <button type="button" title="Code" (click)="insertTag('<code>', '</code>')">
+            &lt;/&gt;
+          </button>
+          <button type="button" title="Link" (click)="insertLink()">Link</button>
+        </div>
+        <div class="text-mode-switch" role="group" aria-label="Text display mode">
+          <button
+            type="button"
+            title="Edit code"
+            aria-label="Edit code"
+            [class.active]="textMode === 'code'"
+            (click)="setTextMode('code')"
+          >
+            <ng-icon name="lucideCode2" size="1.1rem" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            title="Preview text"
+            aria-label="Preview text"
+            [class.active]="textMode === 'preview'"
+            (click)="setTextMode('preview')"
+          >
+            <ng-icon name="lucideEye" size="1.1rem" aria-hidden="true" />
+          </button>
+        </div>
+      </div>
       <textarea
+        *ngIf="textMode === 'code'"
+        #textInput
+        id="comment-text"
         name="text"
         [(ngModel)]="form.text"
         required
         maxlength="5000"
         placeholder="Write your comment..."
       ></textarea>
-    </label>
+      <div
+        *ngIf="textMode === 'preview'"
+        class="text-preview"
+        role="button"
+        tabindex="0"
+        aria-label="Click to edit comment text"
+        title="Click to edit"
+        (click)="setTextMode('code')"
+        (keydown.enter)="setTextMode('code')"
+        (keydown.space)="$event.preventDefault(); setTextMode('code')"
+        [innerHTML]="form.text || 'Nothing to preview yet.'"
+      ></div>
+    </div>
     <div class="form-bottom">
       <label
         class="file-field"
         title="JPG, JPEG, GIF, and PNG images are resized to a maximum of 320 × 240 px. TXT files must be no larger than 100 KB."
-        >Attachment
+        ><span class="file-label"
+          ><ng-icon name="lucidePaperclip" size="1rem" aria-hidden="true" /> Attachment</span
+        >
         <input type="file" accept=".jpg,.jpeg,.gif,.png,.txt" (change)="chooseFile($event)"
       /></label>
       <div class="captcha" *ngIf="captcha as currentCaptcha">
         <img [src]="currentCaptcha.imageDataUrl" alt="CAPTCHA challenge" /><button
           class="text-button"
           type="button"
+          title="Get a new CAPTCHA code"
           (click)="refreshCaptcha()"
         >
-          New code</button
+          <ng-icon name="lucideRefreshCw" size="0.95rem" aria-hidden="true" /> New code</button
         ><input
           name="captchaAnswer"
           [(ngModel)]="form.captchaAnswer"
