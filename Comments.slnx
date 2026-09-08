@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="Comments.Domain/Comments.Domain.csproj" />
+  <Project Path="Comments.Application/Comments.Application.csproj" />
+  <Project Path="Comments.Infrastructure/Comments.Infrastructure.csproj" />
+  <Project Path="Comments.Api/Comments.Api.csproj" />
+  <Project Path="Comments.Frontend/Comments.Frontend.esproj"><Build /><Deploy /></Project>
+</Solution>

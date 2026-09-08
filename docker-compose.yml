@@ -1,0 +1,27 @@
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${COMMENTS_DB_PASSWORD:?Set COMMENTS_DB_PASSWORD before starting Docker Compose}"
+    ports: ["1433:1433"]
+    volumes: [comments-db:/var/opt/mssql]
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$${MSSQL_SA_PASSWORD}\" -C -Q \"SELECT 1\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+  app:
+    build: .
+    environment:
+      ConnectionStrings__Comments: "Server=db,1433;Database=Comments;User Id=sa;Password=${COMMENTS_DB_PASSWORD};TrustServerCertificate=True"
+      Storage__Root: "/data/uploads"
+    ports: ["8080:8080"]
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes: [comments-files:/data]
+volumes:
+  comments-db:
+  comments-files:

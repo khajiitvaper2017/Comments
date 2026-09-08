@@ -1,0 +1,97 @@
+<main>
+  <h1>Comments</h1>
+  <section>
+    <div class="toolbar">
+      <h2>Discussion</h2>
+      <button (click)="changeSort('userName')">User name</button
+      ><button (click)="changeSort('email')">E-mail</button
+      ><button (click)="changeSort('createdAt')">Newest</button>
+    </div>
+    <p *ngIf="!comments().length">No comments yet.</p>
+    <table *ngIf="comments().length">
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Comment</th>
+          <th>Created</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <ng-container *ngFor="let c of comments(); trackBy: track"
+          ><ng-template
+            [ngTemplateOutlet]="row"
+            [ngTemplateOutletContext]="{ comment: c, depth: 0 }"
+          ></ng-template
+        ></ng-container>
+      </tbody>
+    </table>
+    <div class="pager" *ngIf="total > 25">
+      <button [disabled]="page === 1" (click)="page = page - 1; load()">Previous</button> Page
+      {{ page }}
+      <button [disabled]="page * 25 >= total" (click)="page = page + 1; load()">Next</button>
+    </div>
+  </section>
+  <p class="error" *ngIf="error()">{{ error() }}</p>
+  <section class="composer">
+    <h2>Leave a comment</h2>
+    <form (ngSubmit)="submit()">
+      <div class="fields">
+        <label
+          >User Name
+          <input
+            name="userName"
+            [(ngModel)]="form.userName"
+            required
+            pattern="[A-Za-z0-9]+" /></label
+        ><label>E-mail <input type="email" name="email" [(ngModel)]="form.email" required /></label
+        ><label>Home page <input type="url" name="homePage" [(ngModel)]="form.homePage" /></label>
+      </div>
+      <label
+        >Text
+        <textarea name="text" [(ngModel)]="form.text" required maxlength="5000"></textarea></label
+      ><label
+        >Attachment
+        <input type="file" accept=".jpg,.jpeg,.gif,.png,.txt" (change)="chooseFile($event)"
+      /></label>
+      <div class="captcha" *ngIf="captcha() as c">
+        <img [src]="c.imageDataUrl" alt="CAPTCHA" /><button
+          type="button"
+          (click)="refreshCaptcha()"
+        >
+          Refresh</button
+        ><input
+          name="captchaAnswer"
+          [(ngModel)]="form.captchaAnswer"
+          placeholder="CAPTCHA"
+          required
+        />
+      </div>
+      <button type="submit">Post comment</button>
+    </form>
+  </section>
+</main>
+<ng-template #row let-c="comment" let-depth="depth">
+  <tr>
+    <td [style.padding-left.px]="12 + depth * 24">
+      <strong>{{ c.userName }}</strong
+      ><br /><small>{{ c.email }}</small>
+    </td>
+    <td>
+      <div [innerHTML]="c.text"></div>
+      <a *ngFor="let a of c.attachments" [href]="'/api/attachments/' + a.id" target="_blank"
+        >📎 {{ a.fileName }}</a
+      >
+    </td>
+    <td>{{ c.createdAtUtc | date: 'short' }}</td>
+    <td>
+      <button (click)="reply(c.id)">Reply</button>
+    </td>
+  </tr>
+  <ng-container *ngFor="let child of c.replies">
+    <ng-template
+      [ngTemplateOutlet]="row"
+      [ngTemplateOutletContext]="{ comment: child, depth: depth + 1 }"
+    ></ng-template>
+  </ng-container>
+</ng-template>

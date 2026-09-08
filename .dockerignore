@@ -1,0 +1,13 @@
+.git
+.scaffold-backup
+.vs
+**/bin
+**/obj
+**/node_modules
+**/dist
+**/.angular
+Comments.Storage
+App_Data
+.env
+*.user
+*.suo
