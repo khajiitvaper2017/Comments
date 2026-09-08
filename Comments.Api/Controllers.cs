@@ -91,6 +91,9 @@ public sealed class AttachmentsController(
             path = migratedPath;
         }
 
-        return PhysicalFile(path, a.ContentType, a.OriginalName, true);
+        if (a.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+            return PhysicalFile(path, a.ContentType, enableRangeProcessing: true);
+
+        return PhysicalFile(path, a.ContentType, a.OriginalName, enableRangeProcessing: true);
     }
 }

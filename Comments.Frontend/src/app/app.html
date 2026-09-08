@@ -95,22 +95,30 @@
         <span>{{ c.createdAtUtc | date: 'dd.MM.yy HH:mm' }}</span>
       </div>
       <div class="comment-actions">
-        <a *ngIf="c.homePage" [href]="c.homePage" target="_blank" rel="noopener" title="Home page"
-          >↗</a
-        >
-        <button type="button" title="Reply" (click)="reply(c.id)">↩</button>
         <button type="button" title="Reply to comment" (click)="reply(c.id)">Reply</button>
       </div>
     </header>
+    <a *ngIf="c.homePage" class="homepage" [href]="c.homePage" target="_blank" rel="noopener">{{
+      c.homePage
+    }}</a>
     <div class="comment-body" [innerHTML]="c.text"></div>
     <div class="attachments" *ngIf="c.attachments.length">
-      <a
-        *ngFor="let a of c.attachments"
-        [href]="'/api/attachments/' + a.id"
-        target="_blank"
-        rel="noopener"
-        >📎 {{ a.fileName }}</a
-      >
+      <ng-container *ngFor="let a of c.attachments">
+        <button
+          *ngIf="a.contentType.startsWith('image/'); else fileAttachment"
+          class="image-attachment"
+          type="button"
+          (click)="openImage(a.id, a.fileName)"
+        >
+          <img [src]="'/api/attachments/' + a.id" [alt]="a.fileName" loading="lazy" />
+          <span>{{ a.fileName }}</span>
+        </button>
+        <ng-template #fileAttachment
+          ><a [href]="'/api/attachments/' + a.id" target="_blank" rel="noopener"
+            >📎 {{ a.fileName }}</a
+          ></ng-template
+        >
+      </ng-container>
     </div>
     <ng-container *ngFor="let child of c.replies">
       <ng-template
@@ -120,3 +128,25 @@
     </ng-container>
   </article>
 </ng-template>
+
+<div
+  class="lightbox"
+  *ngIf="selectedImage() as image"
+  (click)="closeImage()"
+  role="dialog"
+  aria-modal="true"
+  [attr.aria-label]="image.name"
+>
+  <div class="lightbox-toolbar" (click)="$event.stopPropagation()">
+    <button type="button" (click)="zoomImage(-0.25)" [disabled]="imageScale() === 1">−</button>
+    <span>{{ imageScale() * 100 | number: '1.0-0' }}%</span>
+    <button type="button" (click)="zoomImage(0.25)" [disabled]="imageScale() === 3">+</button>
+    <button type="button" (click)="closeImage()" aria-label="Close image">×</button>
+  </div>
+  <img
+    [src]="image.url"
+    [alt]="image.name"
+    [style.transform]="'scale(' + imageScale() + ')'"
+    (click)="$event.stopPropagation()"
+  />
+</div>

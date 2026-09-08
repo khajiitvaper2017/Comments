@@ -143,6 +143,13 @@ button {
 .comment-body a {
   color: #356da9;
 }
+.homepage {
+  display: inline-block;
+  padding: 0.35rem 0.75rem 0;
+  color: #356da9;
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
 .attachments {
   display: flex;
   flex-wrap: wrap;
@@ -152,6 +159,62 @@ button {
 .attachments a {
   color: #587fac;
   font-size: 0.82rem;
+}
+.image-attachment {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #587fac;
+  text-align: left;
+}
+.image-attachment img {
+  display: block;
+  max-width: 320px;
+  max-height: 240px;
+  border: 1px solid #d4deea;
+  border-radius: 4px;
+  object-fit: contain;
+}
+.lightbox {
+  position: fixed;
+  z-index: 10;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  overflow: auto;
+  background: rgba(12, 24, 42, 0.82);
+  cursor: zoom-out;
+}
+.lightbox img {
+  width: min(90vw, 1200px);
+  max-width: none;
+  max-height: 90vh;
+  border-radius: 6px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  cursor: default;
+}
+.lightbox-toolbar {
+  position: absolute;
+  top: 1rem;
+  right: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #fff;
+}
+.lightbox-toolbar button {
+  min-width: 2rem;
+  color: #fff;
+  font-size: 1.3rem;
+}
+.lightbox-toolbar button:last-child {
+  margin-left: 0.5rem;
+  font-size: 2rem;
+  line-height: 1;
 }
 .composer {
   margin: 2rem 0 3rem;

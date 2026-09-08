@@ -29,6 +29,8 @@ interface Comment {
 export class App implements OnInit {
   comments = signal<Comment[]>([]);
   captcha = signal<{ id: string; imageDataUrl: string } | null>(null);
+  selectedImage = signal<{ url: string; name: string } | null>(null);
+  imageScale = signal(1);
   error = signal('');
   page = 1;
   total = 0;
@@ -109,6 +111,16 @@ export class App implements OnInit {
   reply(id: string) {
     this.form.parentId = id;
     document.querySelector('textarea')?.focus();
+  }
+  openImage(id: string, name: string) {
+    this.imageScale.set(1);
+    this.selectedImage.set({ url: `/api/attachments/${id}`, name });
+  }
+  closeImage() {
+    this.selectedImage.set(null);
+  }
+  zoomImage(amount: number) {
+    this.imageScale.update((scale) => Math.min(3, Math.max(1, scale + amount)));
   }
   track(_: number, c: Comment) {
     return c.id;
