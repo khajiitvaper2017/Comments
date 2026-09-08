@@ -37,6 +37,6 @@ export class ImageLightboxComponent implements OnChanges {
   close() {
     if (this.isClosing) return;
     this.isClosing = true;
-    window.setTimeout(() => this.closed.emit(), 180);
+    window.setTimeout(() => this.closed.emit(), 120);
   }
 }

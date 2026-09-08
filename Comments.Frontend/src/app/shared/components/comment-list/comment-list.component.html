@@ -14,20 +14,26 @@
       <button [class.active]="sort === 'email'" (click)="sortChanged.emit('email')">E-mail</button>
     </div>
   </div>
-  <p class="empty" *ngIf="!comments.length">No comments yet. Start the discussion below.</p>
-  <div class="comment-list" *ngIf="comments.length">
-    <ng-container *ngFor="let comment of comments; trackBy: track">
-      <ng-template
-        [ngTemplateOutlet]="row"
-        [ngTemplateOutletContext]="{ comment, depth: 0 }"
-      ></ng-template>
-    </ng-container>
-  </div>
-  <div class="pager" *ngIf="total > 25">
-    <button [disabled]="page === 1" (click)="pageChanged.emit(page - 1)">Previous</button>
-    <span>Page {{ page }}</span>
-    <button [disabled]="page * 25 >= total" (click)="pageChanged.emit(page + 1)">Next</button>
-  </div>
+  @if (!comments.length) {
+    <p class="empty">No comments yet. Start the discussion below.</p>
+  }
+  @if (comments.length) {
+    <div class="comment-list">
+      @for (comment of comments; track comment.id) {
+        <ng-template
+          [ngTemplateOutlet]="row"
+          [ngTemplateOutletContext]="{ comment, depth: 0 }"
+        ></ng-template>
+      }
+    </div>
+  }
+  @if (total > 25) {
+    <div class="pager">
+      <button [disabled]="page === 1" (click)="pageChanged.emit(page - 1)">Previous</button>
+      <span>Page {{ page }}</span>
+      <button [disabled]="page * 25 >= total" (click)="pageChanged.emit(page + 1)">Next</button>
+    </div>
+  }
 </section>
 
 <ng-template #row let-comment="comment" let-depth="depth">
@@ -37,14 +43,11 @@
       <div class="identity">
         <strong>{{ comment.userName }}</strong>
         <span>{{ comment.createdAtUtc | date: 'dd.MM.yy HH:mm' }}</span>
-        <a
-          *ngIf="comment.homePage"
-          class="homepage"
-          [href]="comment.homePage"
-          target="_blank"
-          rel="noopener"
-          >{{ homePageLabel(comment.homePage) }}</a
-        >
+        @if (comment.homePage) {
+          <a class="homepage" [href]="comment.homePage" target="_blank" rel="noopener">{{
+            homePageLabel(comment.homePage)
+          }}</a>
+        }
       </div>
       <button
         class="reply-button"
@@ -57,46 +60,46 @@
       </button>
     </header>
     <div class="comment-body" [innerHTML]="comment.text"></div>
-    <div class="attachments" *ngIf="comment.attachments.length">
-      <ng-container *ngFor="let attachment of comment.attachments">
-        <button
-          *ngIf="attachment.contentType.startsWith('image/'); else fileAttachment"
-          class="image-attachment"
-          type="button"
-          (click)="imageRequested.emit({ id: attachment.id, name: attachment.fileName })"
-        >
-          <img
-            [src]="'/api/attachments/' + attachment.id"
-            [alt]="attachment.fileName"
-            loading="lazy"
-          />
-        </button>
-        <ng-template #fileAttachment
-          ><a [href]="'/api/attachments/' + attachment.id" target="_blank" rel="noopener"
-            >📎 {{ attachment.fileName }}</a
-          ></ng-template
-        >
-      </ng-container>
-    </div>
-    <article
-      class="comment reply reply-composer"
-      *ngIf="replyParentId === comment.id"
-      [style.--depth]="depth + 1"
-    >
-      <app-comment-form
-        [captcha]="captcha"
-        [parentId]="comment.id"
-        [replyToName]="comment.userName"
-        (captchaChanged)="captchaChanged.emit($event)"
-        (errorChanged)="errorChanged.emit($event)"
-        (submitted)="submitted.emit()"
-      ></app-comment-form>
-    </article>
-    <ng-container *ngFor="let child of comment.replies">
+    @if (comment.attachments.length) {
+      <div class="attachments">
+        @for (attachment of comment.attachments; track attachment.id) {
+          @if (attachment.contentType.startsWith('image/')) {
+            <button
+              class="image-attachment"
+              type="button"
+              (click)="imageRequested.emit({ id: attachment.id, name: attachment.fileName })"
+            >
+              <img
+                [src]="'/api/attachments/' + attachment.id"
+                [alt]="attachment.fileName"
+                loading="lazy"
+              />
+            </button>
+          } @else {
+            <a [href]="'/api/attachments/' + attachment.id" target="_blank" rel="noopener"
+              >📎 {{ attachment.fileName }}</a
+            >
+          }
+        }
+      </div>
+    }
+    @if (replyParentId === comment.id) {
+      <article class="comment reply reply-composer" [style.--depth]="depth + 1">
+        <app-comment-form
+          [captcha]="captcha"
+          [parentId]="comment.id"
+          [replyToName]="comment.userName"
+          (captchaChanged)="captchaChanged.emit($event)"
+          (errorChanged)="errorChanged.emit($event)"
+          (submitted)="submitted.emit()"
+        ></app-comment-form>
+      </article>
+    }
+    @for (child of comment.replies; track child.id) {
       <ng-template
         [ngTemplateOutlet]="row"
         [ngTemplateOutletContext]="{ comment: child, depth: depth + 1 }"
       ></ng-template>
-    </ng-container>
+    }
   </article>
 </ng-template>

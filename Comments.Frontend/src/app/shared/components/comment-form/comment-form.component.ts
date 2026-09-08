@@ -8,9 +8,17 @@ import {
   ViewChild,
   inject,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, NgForm } from '@angular/forms';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideCode2, lucideEye, lucidePaperclip, lucideRefreshCw } from '@ng-icons/lucide';
+import {
+  lucideBold,
+  lucideCode2,
+  lucideEye,
+  lucideItalic,
+  lucideLink,
+  lucidePaperclip,
+  lucideRefreshCw,
+} from '@ng-icons/lucide';
 import { CommentApiService } from '@app/core/services/comment-api.service';
 import { Captcha, CommentFormValue } from '@app/core/models/comment.models';
 
@@ -18,7 +26,17 @@ import { Captcha, CommentFormValue } from '@app/core/models/comment.models';
   selector: 'app-comment-form',
   standalone: true,
   imports: [CommonModule, FormsModule, NgIcon],
-  providers: [provideIcons({ lucideCode2, lucideEye, lucidePaperclip, lucideRefreshCw })],
+  providers: [
+    provideIcons({
+      lucideBold,
+      lucideCode2,
+      lucideEye,
+      lucideItalic,
+      lucideLink,
+      lucidePaperclip,
+      lucideRefreshCw,
+    }),
+  ],
   templateUrl: './comment-form.component.html',
 })
 export class CommentFormComponent {
@@ -40,9 +58,28 @@ export class CommentFormComponent {
   };
   file?: File;
   textMode: 'code' | 'preview' = 'code';
+  showCaptcha = false;
+  captchaError = '';
+  submittedForm = false;
+  captchaLoading = false;
 
   refreshCaptcha() {
-    this.api.getCaptcha().subscribe((captcha) => this.captchaChanged.emit(captcha));
+    this.captchaError = '';
+    this.captchaLoading = true;
+    this.api.getCaptcha().subscribe((captcha) => {
+      this.captchaLoading = false;
+      this.captchaChanged.emit(captcha);
+    });
+  }
+  openCaptcha() {
+    this.captchaError = '';
+    this.form.captchaAnswer = '';
+    this.showCaptcha = true;
+    this.refreshCaptcha();
+  }
+  closeCaptcha() {
+    this.showCaptcha = false;
+    this.captchaError = '';
   }
   chooseFile(event: Event) {
     this.file = (event.target as HTMLInputElement).files?.[0];
@@ -71,9 +108,22 @@ export class CommentFormComponent {
       queueMicrotask(() => this.textInput?.nativeElement.focus());
     }
   }
-  submit() {
+  submit(commentForm?: NgForm) {
     this.errorChanged.emit('');
+    if (!this.showCaptcha) {
+      this.submittedForm = true;
+      if (!commentForm || commentForm.invalid) {
+        commentForm?.form.markAllAsTouched();
+        return;
+      }
+      this.openCaptcha();
+      return;
+    }
     if (!this.captcha) return;
+    if (!this.form.captchaAnswer.trim()) {
+      this.captchaError = 'Enter the CAPTCHA code.';
+      return;
+    }
     this.api
       .createComment({ ...this.form, parentId: this.parentId }, this.captcha.id, this.file)
       .subscribe(
@@ -88,6 +138,9 @@ export class CommentFormComponent {
           };
           this.file = undefined;
           this.textMode = 'code';
+          this.submittedForm = false;
+          this.showCaptcha = false;
+          this.captchaError = '';
           this.refreshCaptcha();
           this.submitted.emit();
         },
@@ -100,6 +153,7 @@ export class CommentFormComponent {
           if (message.toLowerCase().includes('captcha')) {
             this.form.captchaAnswer = '';
             this.refreshCaptcha();
+            this.captchaError = message;
           }
         },
       );

@@ -7,31 +7,71 @@
     </div>
     <span class="required-note">Required fields marked *</span>
   </div>
-  <form (ngSubmit)="submit()">
+  <form #commentForm="ngForm" (ngSubmit)="submit(commentForm)">
     <div class="fields">
       <label
         >User Name *
-        <input name="userName" [(ngModel)]="form.userName" required pattern="[A-Za-z0-9]+"
-      /></label>
-      <label>E-mail * <input type="email" name="email" [(ngModel)]="form.email" required /></label>
+        <input
+          name="userName"
+          #userName="ngModel"
+          [(ngModel)]="form.userName"
+          required
+          pattern="[A-Za-z0-9]+"
+        />
+        @if ((submittedForm || userName.touched) && userName.invalid) {
+          <span class="form-error">
+            @if (userName.errors?.['required']) {
+              User Name is required.
+            }
+            @if (userName.errors?.['pattern']) {
+              Use only Latin letters and digits.
+            }
+          </span>
+        }
+      </label>
+      <label
+        >E-mail *
+        <input type="email" name="email" #email="ngModel" [(ngModel)]="form.email" required />
+        @if ((submittedForm || email.touched) && email.invalid) {
+          <span class="form-error"> Enter a valid e-mail address. </span>
+        }
+      </label>
       <label>Home page <input type="text" name="homePage" [(ngModel)]="form.homePage" /></label>
     </div>
     <div class="text-field">
       <label for="comment-text">Text *</label>
       <div class="text-toolbar">
-        <div class="format-toolbar" *ngIf="textMode === 'code'" aria-label="Formatting toolbar">
-          <span>Format:</span>
-          <button type="button" title="Bold" (click)="insertTag('<strong>', '</strong>')">
-            <strong>B</strong>
-          </button>
-          <button type="button" title="Italic" (click)="insertTag('<i>', '</i>')">
-            <i>I</i>
-          </button>
-          <button type="button" title="Code" (click)="insertTag('<code>', '</code>')">
-            &lt;/&gt;
-          </button>
-          <button type="button" title="Link" (click)="insertLink()">Link</button>
-        </div>
+        @if (textMode === 'code') {
+          <div class="format-toolbar" aria-label="Formatting toolbar">
+            <button
+              type="button"
+              title="Bold"
+              aria-label="Bold"
+              (click)="insertTag('<strong>', '</strong>')"
+            >
+              <ng-icon name="lucideBold" size="1rem" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              title="Italic"
+              aria-label="Italic"
+              (click)="insertTag('<i>', '</i>')"
+            >
+              <ng-icon name="lucideItalic" size="1rem" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              title="Code"
+              aria-label="Code"
+              (click)="insertTag('<code>', '</code>')"
+            >
+              <ng-icon name="lucideCode2" size="1rem" aria-hidden="true" />
+            </button>
+            <button type="button" title="Link" aria-label="Link" (click)="insertLink()">
+              <ng-icon name="lucideLink" size="1rem" aria-hidden="true" />
+            </button>
+          </div>
+        }
         <div class="text-mode-switch" role="group" aria-label="Text display mode">
           <button
             type="button"
@@ -53,28 +93,34 @@
           </button>
         </div>
       </div>
-      <textarea
-        *ngIf="textMode === 'code'"
-        #textInput
-        id="comment-text"
-        name="text"
-        [(ngModel)]="form.text"
-        required
-        maxlength="5000"
-        placeholder="Write your comment..."
-      ></textarea>
-      <div
-        *ngIf="textMode === 'preview'"
-        class="text-preview"
-        role="button"
-        tabindex="0"
-        aria-label="Click to edit comment text"
-        title="Click to edit"
-        (click)="setTextMode('code')"
-        (keydown.enter)="setTextMode('code')"
-        (keydown.space)="$event.preventDefault(); setTextMode('code')"
-        [innerHTML]="form.text || 'Nothing to preview yet.'"
-      ></div>
+      @if (textMode === 'code') {
+        <textarea
+          #textInput
+          id="comment-text"
+          name="text"
+          #text="ngModel"
+          [(ngModel)]="form.text"
+          required
+          maxlength="5000"
+          placeholder="Write your comment..."
+        ></textarea>
+        @if ((submittedForm || text.touched) && text.invalid) {
+          <span class="form-error"> Text is required. </span>
+        }
+      }
+      @if (textMode === 'preview') {
+        <div
+          class="text-preview"
+          role="button"
+          tabindex="0"
+          aria-label="Click to edit comment text"
+          title="Click to edit"
+          (click)="setTextMode('code')"
+          (keydown.enter)="setTextMode('code')"
+          (keydown.space)="$event.preventDefault(); setTextMode('code')"
+          [innerHTML]="form.text || 'Nothing to preview yet.'"
+        ></div>
+      }
     </div>
     <div class="form-bottom">
       <label
@@ -85,22 +131,49 @@
         >
         <input type="file" accept=".jpg,.jpeg,.gif,.png,.txt" (change)="chooseFile($event)"
       /></label>
-      <div class="captcha" *ngIf="captcha as currentCaptcha">
-        <img [src]="currentCaptcha.imageDataUrl" alt="CAPTCHA challenge" /><button
-          class="text-button"
-          type="button"
-          title="Get a new CAPTCHA code"
-          (click)="refreshCaptcha()"
-        >
-          <ng-icon name="lucideRefreshCw" size="0.95rem" aria-hidden="true" /> New code</button
-        ><input
-          name="captchaAnswer"
-          [(ngModel)]="form.captchaAnswer"
-          placeholder="Enter code *"
-          required
-        />
-      </div>
     </div>
     <button class="submit-button" type="submit">Post comment</button>
   </form>
 </section>
+@if (showCaptcha) {
+  <div class="captcha-modal" role="presentation" (click)="closeCaptcha()">
+    <section
+      class="captcha-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="captcha-title"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="section-heading">
+        <h2 id="captcha-title">Verify you are human</h2>
+        <button type="button" class="text-button" (click)="closeCaptcha()">Cancel</button>
+      </div>
+      <p>Enter the code shown below to post your comment.</p>
+      @if (captcha; as currentCaptcha) {
+        <div class="captcha">
+          <img [src]="currentCaptcha.imageDataUrl" alt="CAPTCHA challenge" /><button
+            class="text-button"
+            type="button"
+            title="Get a new CAPTCHA code"
+            (click)="refreshCaptcha()"
+            [disabled]="captchaLoading"
+          >
+            <ng-icon name="lucideRefreshCw" size="0.95rem" aria-hidden="true" /> New code</button
+          ><input
+            name="captchaAnswer"
+            [(ngModel)]="form.captchaAnswer"
+            placeholder="Enter code *"
+            [disabled]="captchaLoading"
+            (keyup.enter)="submit()"
+          />
+        </div>
+      }
+      @if (captchaError) {
+        <p class="captcha-error" role="alert">{{ captchaError }}</p>
+      }
+      <button class="submit-button" type="button" [disabled]="captchaLoading" (click)="submit()">
+        Verify and post
+      </button>
+    </section>
+  </div>
+}

@@ -1,63 +1,64 @@
-<div
-  class="lightbox"
-  *ngIf="image"
-  [class.is-closing]="isClosing"
-  (click)="close()"
-  (wheel)="onWheel($event)"
-  role="dialog"
-  aria-modal="true"
-  [attr.aria-label]="image.name"
->
+@if (image; as currentImage) {
   <div
-    class="lightbox-toolbar"
-    (click)="$event.stopPropagation()"
-    (wheel)="$event.stopPropagation()"
-  >
-    <button
-      class="icon-button"
-      type="button"
-      title="Zoom out"
-      aria-label="Zoom out"
-      (click)="zoom(-0.25)"
-      [disabled]="scale === 0.25"
-    >
-      <ng-icon name="lucideMinus" size="1.1rem" aria-hidden="true" />
-    </button>
-    <span>{{ scale * 100 | number: '1.0-0' }}%</span>
-    <button
-      class="icon-button"
-      type="button"
-      title="Zoom in"
-      aria-label="Zoom in"
-      (click)="zoom(0.25)"
-      [disabled]="scale === 3"
-    >
-      <ng-icon name="lucidePlus" size="1.1rem" aria-hidden="true" />
-    </button>
-    <a
-      class="lightbox-download"
-      [href]="image.url"
-      [download]="image.name"
-      title="Download image"
-      aria-label="Download image"
-      (click)="$event.stopPropagation()"
-      ><ng-icon name="lucideDownload" size="1rem" aria-hidden="true"
-    /></a>
-    <button
-      class="icon-button close-button"
-      type="button"
-      title="Close image"
-      aria-label="Close image"
-      (click)="$event.stopPropagation(); close()"
-    >
-      <ng-icon name="lucideX" size="1.35rem" aria-hidden="true" />
-    </button>
-  </div>
-  <img
-    [src]="image.url"
-    [alt]="image.name"
-    [style.transform]="'scale(' + scale + ')'"
-    (click)="$event.stopPropagation()"
+    class="lightbox"
+    [class.is-closing]="isClosing"
+    (click)="close()"
     (wheel)="onWheel($event)"
-  />
-</div>
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-label]="currentImage.name"
+  >
+    <div
+      class="lightbox-toolbar"
+      (click)="$event.stopPropagation()"
+      (wheel)="$event.stopPropagation()"
+    >
+      <button
+        class="icon-button"
+        type="button"
+        title="Zoom out"
+        aria-label="Zoom out"
+        (click)="zoom(-0.25)"
+        [disabled]="scale === 0.25"
+      >
+        <ng-icon name="lucideMinus" size="1.1rem" aria-hidden="true" />
+      </button>
+      <span>{{ scale * 100 | number: '1.0-0' }}%</span>
+      <button
+        class="icon-button"
+        type="button"
+        title="Zoom in"
+        aria-label="Zoom in"
+        (click)="zoom(0.25)"
+        [disabled]="scale === 3"
+      >
+        <ng-icon name="lucidePlus" size="1.1rem" aria-hidden="true" />
+      </button>
+      <a
+        class="lightbox-download"
+        [href]="currentImage.url"
+        [download]="currentImage.name"
+        title="Download image"
+        aria-label="Download image"
+        (click)="$event.stopPropagation()"
+        ><ng-icon name="lucideDownload" size="1rem" aria-hidden="true"
+      /></a>
+      <button
+        class="icon-button close-button"
+        type="button"
+        title="Close image"
+        aria-label="Close image"
+        (click)="$event.stopPropagation(); close()"
+      >
+        <ng-icon name="lucideX" size="1.35rem" aria-hidden="true" />
+      </button>
+    </div>
+    <img
+      [src]="currentImage.url"
+      [alt]="currentImage.name"
+      [style.transform]="'scale(' + scale + ')'"
+      (click)="$event.stopPropagation()"
+      (wheel)="onWheel($event)"
+    />
+  </div>
+}

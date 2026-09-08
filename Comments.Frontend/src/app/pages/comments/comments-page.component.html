@@ -22,14 +22,17 @@
     (errorChanged)="error.set($event)"
     (submitted)="handleSubmitted()"
   ></app-comment-list>
-  <p class="error" *ngIf="error()" role="alert">{{ error() }}</p>
-  <app-comment-form
-    *ngIf="showComposer()"
-    [captcha]="captcha()"
-    [parentId]="replyParentId"
-    (captchaChanged)="captcha.set($event)"
-    (errorChanged)="error.set($event)"
-    (submitted)="handleSubmitted()"
-  ></app-comment-form>
+  @if (error()) {
+    <p class="error" role="alert">{{ error() }}</p>
+  }
+  @if (showComposer()) {
+    <app-comment-form
+      [captcha]="captcha()"
+      [parentId]="replyParentId"
+      (captchaChanged)="captcha.set($event)"
+      (errorChanged)="error.set($event)"
+      (submitted)="handleSubmitted()"
+    ></app-comment-form>
+  }
 </main>
 <app-image-lightbox [image]="selectedImage()" (closed)="closeImage()"></app-image-lightbox>

@@ -295,6 +295,10 @@ form,
 }
 .fields {
   grid-template-columns: repeat(3, 1fr);
+  align-items: start;
+}
+.fields > label {
+  align-content: start;
 }
 .text-field {
   gap: 0.35rem;
@@ -305,6 +309,11 @@ label {
   color: var(--color-text);
   font-size: 0.82rem;
   font-weight: 700;
+}
+.form-error {
+  color: #a62e2e;
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 input,
 textarea {
@@ -346,13 +355,13 @@ textarea {
 .text-toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 1rem;
   margin-top: 0.15rem;
 }
 .text-mode-switch {
   display: flex;
   width: fit-content;
+  margin-left: auto;
   border: 1px solid var(--color-border-strong);
   border-radius: 5px;
   overflow: hidden;
@@ -425,6 +434,12 @@ textarea {
   font-weight: 600;
 }
 .format-toolbar button {
+  display: grid;
+  width: 2.35rem;
+  height: 2rem;
+  flex: 0 0 2.35rem;
+  place-items: center;
+  padding: 0;
   font-weight: 600;
 }
 .form-bottom {
@@ -471,6 +486,76 @@ textarea {
 .submit-button:hover {
   background: #2d6097;
 }
+.captcha-modal {
+  position: fixed;
+  z-index: 20;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(12, 24, 42, 0.5);
+  animation: captcha-fade-in 160ms ease-out both;
+}
+.captcha-dialog {
+  width: min(100%, 430px);
+  padding: 1.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  box-shadow: 0 16px 40px rgba(12, 24, 42, 0.2);
+  animation: captcha-dialog-in 180ms ease-out both;
+}
+.captcha-dialog .section-heading {
+  margin-bottom: 0.5rem;
+}
+.captcha-dialog .section-heading h2 {
+  font-size: 1.1rem;
+}
+.captcha-dialog > p {
+  margin: 0 0 1rem;
+  color: var(--color-muted);
+  font-size: 0.85rem;
+}
+.captcha-dialog .captcha {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  align-items: center;
+  column-gap: 0.75rem;
+  row-gap: 0.75rem;
+}
+.captcha-dialog .captcha .text-button {
+  justify-self: start;
+}
+.captcha-dialog .captcha input {
+  grid-column: 1;
+  width: 135px;
+}
+.captcha-dialog .submit-button {
+  margin-top: 0.75rem;
+}
+.captcha-error {
+  margin: 0.75rem 0 0 !important;
+  color: #a62e2e !important;
+  font-weight: 700;
+}
+@keyframes captcha-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes captcha-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
 
 /* Lightbox */
 .lightbox {
@@ -483,7 +568,7 @@ textarea {
   overflow: auto;
   background: rgba(12, 24, 42, 0.82);
   cursor: zoom-out;
-  animation: lightbox-fade-in 180ms ease-out both;
+  animation: lightbox-fade-in 120ms ease-out both;
   overscroll-behavior: contain;
   will-change: opacity;
 }
@@ -494,18 +579,18 @@ textarea {
   border-radius: 6px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
   cursor: default;
-  animation: lightbox-image-in 180ms ease-out both;
-  transition: transform 140ms cubic-bezier(0.22, 1, 0.36, 1);
+  animation: lightbox-image-in 120ms ease-out both;
+  transition: transform 90ms cubic-bezier(0.22, 1, 0.36, 1);
   transform-origin: center;
   touch-action: none;
   will-change: transform, opacity;
 }
 .lightbox.is-closing {
   pointer-events: none;
-  animation: lightbox-fade-out 180ms ease-in both;
+  animation: lightbox-fade-out 120ms ease-in both;
 }
 .lightbox.is-closing img {
-  animation: lightbox-image-out 180ms ease-in both;
+  animation: lightbox-image-out 120ms ease-in both;
 }
 .lightbox-toolbar {
   position: absolute;
