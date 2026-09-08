@@ -119,6 +119,16 @@ export class App implements OnInit {
   closeImage() {
     this.selectedImage.set(null);
   }
+  homePageLabel(value: string) {
+    try {
+      return new URL(value).hostname.replace(/^www\./i, '');
+    } catch {
+      return value
+        .replace(/^https?:\/\//i, '')
+        .split('/')[0]
+        .replace(/^www\./i, '');
+    }
+  }
   zoomImage(amount: number) {
     this.imageScale.update((scale) => Math.min(3, Math.max(0.25, scale + amount)));
   }

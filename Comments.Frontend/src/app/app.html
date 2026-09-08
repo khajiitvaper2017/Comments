@@ -93,14 +93,14 @@
       <div class="identity">
         <strong>{{ c.userName }}</strong>
         <span>{{ c.createdAtUtc | date: 'dd.MM.yy HH:mm' }}</span>
+        <a *ngIf="c.homePage" class="homepage" [href]="c.homePage" target="_blank" rel="noopener">{{
+          homePageLabel(c.homePage)
+        }}</a>
       </div>
       <div class="comment-actions">
         <button type="button" title="Reply to comment" (click)="reply(c.id)">Reply</button>
       </div>
     </header>
-    <a *ngIf="c.homePage" class="homepage" [href]="c.homePage" target="_blank" rel="noopener">{{
-      c.homePage
-    }}</a>
     <div class="comment-body" [innerHTML]="c.text"></div>
     <div class="attachments" *ngIf="c.attachments.length">
       <ng-container *ngFor="let a of c.attachments">
