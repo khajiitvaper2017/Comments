@@ -120,7 +120,11 @@ export class App implements OnInit {
     this.selectedImage.set(null);
   }
   zoomImage(amount: number) {
-    this.imageScale.update((scale) => Math.min(3, Math.max(1, scale + amount)));
+    this.imageScale.update((scale) => Math.min(3, Math.max(0.25, scale + amount)));
+  }
+  zoomWithWheel(event: WheelEvent) {
+    event.preventDefault();
+    this.zoomImage(event.deltaY < 0 ? 0.25 : -0.25);
   }
   track(_: number, c: Comment) {
     return c.id;

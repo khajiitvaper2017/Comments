@@ -133,12 +133,13 @@
   class="lightbox"
   *ngIf="selectedImage() as image"
   (click)="closeImage()"
+  (wheel)="zoomWithWheel($event)"
   role="dialog"
   aria-modal="true"
   [attr.aria-label]="image.name"
 >
   <div class="lightbox-toolbar" (click)="$event.stopPropagation()">
-    <button type="button" (click)="zoomImage(-0.25)" [disabled]="imageScale() === 1">−</button>
+    <button type="button" (click)="zoomImage(-0.25)" [disabled]="imageScale() === 0.25">−</button>
     <span>{{ imageScale() * 100 | number: '1.0-0' }}%</span>
     <button type="button" (click)="zoomImage(0.25)" [disabled]="imageScale() === 3">+</button>
     <button type="button" (click)="closeImage()" aria-label="Close image">×</button>

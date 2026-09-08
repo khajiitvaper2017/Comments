@@ -190,8 +190,8 @@ button {
   cursor: zoom-out;
 }
 .lightbox img {
-  width: min(90vw, 1200px);
-  max-width: none;
+  width: auto;
+  max-width: 90vw;
   max-height: 90vh;
   border-radius: 6px;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
