@@ -2,6 +2,7 @@ using Comments.Application;
 using Comments.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace Comments.Api;
 
@@ -67,13 +68,29 @@ public sealed class CreateCommentForm
 [ApiController]
 [Route("api/attachments")]
 [ApiExplorerSettings(IgnoreApi = true)]
-public sealed class AttachmentsController(CommentsDbContext db) : ControllerBase
+public sealed class AttachmentsController(
+    CommentsDbContext db,
+    IOptions<StorageOptions> storage,
+    IWebHostEnvironment environment) : ControllerBase
 {
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> Get(Guid id, CancellationToken ct)
     {
         var a = await db.Attachments.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, ct);
-        if (a is null || !System.IO.File.Exists(a.StorageReference)) return NotFound();
-        return PhysicalFile(a.StorageReference, a.ContentType, a.OriginalName, true);
+        if (a is null) return NotFound();
+
+        var path = a.StorageReference;
+        if (!System.IO.File.Exists(path))
+        {
+            var migratedPath = Path.GetFullPath(Path.Combine(
+                environment.ContentRootPath, storage.Value.Root, a.StoredName));
+            if (!System.IO.File.Exists(migratedPath)) return NotFound();
+
+            a.StorageReference = migratedPath;
+            await db.SaveChangesAsync(ct);
+            path = migratedPath;
+        }
+
+        return PhysicalFile(path, a.ContentType, a.OriginalName, true);
     }
 }
