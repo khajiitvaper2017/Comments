@@ -1,0 +1,35 @@
+<main>
+  <header class="page-header">
+    <div>
+      <p class="eyebrow">Community discussion</p>
+    </div>
+    <button class="leave-comment-button" type="button" (click)="openComposer()">
+      Leave comment
+    </button>
+  </header>
+  <app-comment-list
+    [comments]="comments()"
+    [total]="total"
+    [page]="page"
+    [sort]="sort"
+    [captcha]="captcha()"
+    [replyParentId]="replyParentId"
+    (sortChanged)="changeSort($event)"
+    (pageChanged)="changePage($event)"
+    (replyRequested)="setReplyParent($event)"
+    (imageRequested)="openImage($event)"
+    (captchaChanged)="captcha.set($event)"
+    (errorChanged)="error.set($event)"
+    (submitted)="handleSubmitted()"
+  ></app-comment-list>
+  <p class="error" *ngIf="error()" role="alert">{{ error() }}</p>
+  <app-comment-form
+    *ngIf="showComposer()"
+    [captcha]="captcha()"
+    [parentId]="replyParentId"
+    (captchaChanged)="captcha.set($event)"
+    (errorChanged)="error.set($event)"
+    (submitted)="handleSubmitted()"
+  ></app-comment-form>
+</main>
+<app-image-lightbox [image]="selectedImage()" (closed)="closeImage()"></app-image-lightbox>

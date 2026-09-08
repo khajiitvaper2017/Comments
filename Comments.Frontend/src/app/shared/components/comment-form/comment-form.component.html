@@ -1,0 +1,53 @@
+<section class="composer" aria-labelledby="composer-title">
+  <div class="section-heading">
+    <div>
+      <h2 id="composer-title">
+        {{ replyToName ? 'Leave a reply to ' + replyToName + "'s comment" : 'Leave a comment' }}
+      </h2>
+    </div>
+    <span class="required-note">Required fields marked *</span>
+  </div>
+  <form (ngSubmit)="submit()">
+    <div class="fields">
+      <label
+        >User Name *
+        <input name="userName" [(ngModel)]="form.userName" required pattern="[A-Za-z0-9]+"
+      /></label>
+      <label>E-mail * <input type="email" name="email" [(ngModel)]="form.email" required /></label>
+      <label>Home page <input type="url" name="homePage" [(ngModel)]="form.homePage" /></label>
+    </div>
+    <label
+      >Text *
+      <textarea
+        name="text"
+        [(ngModel)]="form.text"
+        required
+        maxlength="5000"
+        placeholder="Write your comment..."
+      ></textarea>
+    </label>
+    <div class="form-bottom">
+      <label
+        class="file-field"
+        title="JPG, JPEG, GIF, and PNG images are resized to a maximum of 320 × 240 px. TXT files must be no larger than 100 KB."
+        >Attachment
+        <input type="file" accept=".jpg,.jpeg,.gif,.png,.txt" (change)="chooseFile($event)"
+      /></label>
+      <div class="captcha" *ngIf="captcha as currentCaptcha">
+        <img [src]="currentCaptcha.imageDataUrl" alt="CAPTCHA challenge" /><button
+          class="text-button"
+          type="button"
+          (click)="refreshCaptcha()"
+        >
+          New code</button
+        ><input
+          name="captchaAnswer"
+          [(ngModel)]="form.captchaAnswer"
+          placeholder="Enter code *"
+          required
+        />
+      </div>
+    </div>
+    <button class="submit-button" type="submit">Post comment</button>
+  </form>
+</section>

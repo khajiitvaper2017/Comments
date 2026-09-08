@@ -1,0 +1,32 @@
+import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import {
+  Captcha,
+  CommentFormValue,
+  CommentItem,
+  CommentPage,
+} from '@app/core/models/comment.models';
+
+@Injectable({ providedIn: 'root' })
+export class CommentApiService {
+  private readonly http = inject(HttpClient);
+
+  getCaptcha() {
+    return this.http.get<Captcha>('/api/captcha');
+  }
+
+  getComments(page: number, sort: string, descending: boolean) {
+    return this.http.get<CommentPage>(
+      `/api/comments?page=${page}&sort=${sort}&descending=${descending}`,
+    );
+  }
+
+  createComment(value: CommentFormValue, captchaId: string, file?: File) {
+    const data = new FormData();
+    Object.entries({ ...value, captchaId, parentId: value.parentId || '' }).forEach(([key, item]) =>
+      data.append(key, item),
+    );
+    if (file) data.append('attachments', file);
+    return this.http.post<CommentItem>('/api/comments', data);
+  }
+}
