@@ -1,20 +1,19 @@
 using System.Text.RegularExpressions;
 using Comments.Application.Abstractions;
 using Comments.Infrastructure.Exceptions;
+using Ganss.Xss;
 
 namespace Comments.Infrastructure.Services;
 
 public sealed class TextValidationService : ITextValidationService
 {
     private const string AllowedTags = "a|code|i|strong";
+    private static readonly HtmlSanitizer Sanitizer = CreateSanitizer();
 
     public string SanitizeAndValidate(string input)
     {
         if (string.IsNullOrWhiteSpace(input) || input.Length > 5000)
             throw new ValidationException("Text is required and must be at most 5000 characters.");
-        if (Regex.IsMatch(input, "<\\s*(script|style|iframe|img|object|form)|on\\w+\\s*=|javascript:",
-                RegexOptions.IgnoreCase))
-            throw new ValidationException("Unsupported or unsafe HTML.");
         if (Regex.IsMatch(input, "<[^>]*$") ||
             Regex.IsMatch(input, "</?\\s*(a|code|i|strong)\\b[^>]*$", RegexOptions.IgnoreCase))
             throw new ValidationException("Invalid XHTML.");
@@ -37,6 +36,18 @@ public sealed class TextValidationService : ITextValidationService
             }
 
         if (stack.Count > 0) throw new ValidationException("Invalid XHTML.");
-        return input;
+        return Sanitizer.Sanitize(input);
+    }
+
+    private static HtmlSanitizer CreateSanitizer()
+    {
+        var sanitizer = new HtmlSanitizer();
+        sanitizer.AllowedTags.Clear();
+        sanitizer.AllowedTags.UnionWith(["a", "code", "i", "strong"]);
+        sanitizer.AllowedAttributes.Clear();
+        sanitizer.AllowedAttributes.UnionWith(["href", "title"]);
+        sanitizer.AllowedSchemes.Clear();
+        sanitizer.AllowedSchemes.UnionWith(["http", "https"]);
+        return sanitizer;
     }
 }
