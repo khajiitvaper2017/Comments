@@ -861,6 +861,36 @@ textarea {
 .lightbox-toolbar .close-button {
   pointer-events: auto;
 }
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  min-height: 5rem;
+  color: #5c7190;
+}
+.loading-spinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 1rem;
+  border: 2px solid #cbd9ea;
+  border-top-color: #2f6fb2;
+  border-radius: 50%;
+  animation: loading-spin 0.7s linear infinite;
+}
+.loading-spinner-light {
+  width: 0.9rem;
+  height: 0.9rem;
+  flex-basis: 0.9rem;
+  border-color: rgba(255, 255, 255, 0.45);
+  border-top-color: #fff;
+}
+@keyframes loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 @keyframes lightbox-fade-in {
   from {
     opacity: 0;

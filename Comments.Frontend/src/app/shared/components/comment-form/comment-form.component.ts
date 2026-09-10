@@ -22,6 +22,7 @@ import {
 } from '@ng-icons/lucide';
 import { CommentApiService } from '@app/core/services/comment-api.service';
 import { Captcha, CommentFormValue } from '@app/core/models/comment.models';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-comment-form',
@@ -64,6 +65,7 @@ export class CommentFormComponent {
   captchaError = '';
   submittedForm = false;
   captchaLoading = false;
+  isSubmitting = false;
   formError = '';
   homePageError = '';
 
@@ -154,14 +156,18 @@ export class CommentFormComponent {
     }
     this.formError = '';
     if (!this.captcha) return;
+    if (this.isSubmitting) return;
     if (!this.form.captchaAnswer.trim()) {
       this.captchaError = 'Enter the CAPTCHA code.';
       return;
     }
+    this.isSubmitting = true;
     this.api
       .createComment({ ...this.form, parentId: this.parentId }, this.captcha.id, this.file)
+      .pipe(finalize(() => (this.isSubmitting = false)))
       .subscribe(
         () => {
+          this.isSubmitting = false;
           this.form = {
             userName: '',
             email: '',

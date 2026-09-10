@@ -196,8 +196,18 @@
       @if (captchaError) {
         <p class="captcha-error" role="alert">{{ captchaError }}</p>
       }
-      <button class="submit-button" type="button" [disabled]="captchaLoading" (click)="submit()">
-        Verify and post
+      <button
+        class="submit-button"
+        type="button"
+        [disabled]="captchaLoading || isSubmitting"
+        (click)="submit()"
+      >
+        @if (isSubmitting) {
+          <span class="loading-spinner loading-spinner-light" aria-hidden="true"></span>
+          Posting...
+        } @else {
+          Verify and post
+        }
       </button>
     </section>
   </div>

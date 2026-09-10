@@ -7,6 +7,12 @@
       Leave comment
     </button>
   </header>
+  @if (loading()) {
+    <div class="loading-state" role="status" aria-live="polite">
+      <span class="loading-spinner" aria-hidden="true"></span>
+      <span>Loading comments...</span>
+    </div>
+  }
   <app-comment-list
     [comments]="comments()"
     [total]="total"

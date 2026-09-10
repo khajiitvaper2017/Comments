@@ -5,6 +5,7 @@ import { CommentFormComponent } from '@app/shared/components/comment-form/commen
 import { CommentListComponent } from '@app/shared/components/comment-list/comment-list.component';
 import { ImageLightboxComponent } from '@app/shared/components/image-lightbox/image-lightbox.component';
 import { TextPreviewComponent } from '@app/shared/components/text-preview/text-preview.component';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-comments-page',
@@ -24,6 +25,7 @@ export class CommentsPageComponent implements OnInit {
   selectedImage = signal<{ url: string; name: string } | null>(null);
   selectedText = signal<{ name: string; content: string } | null>(null);
   error = signal('');
+  loading = signal(false);
   page = 1;
   total = 0;
   sort = 'createdAt';
@@ -38,13 +40,17 @@ export class CommentsPageComponent implements OnInit {
     this.api.getCaptcha().subscribe((captcha) => this.captcha.set(captcha));
   }
   loadComments() {
-    this.api.getComments(this.page, this.sort, this.descending).subscribe(
-      (result) => {
-        this.comments.set(result.items);
-        this.total = result.totalCount;
-      },
-      () => this.error.set('Could not load comments.'),
-    );
+    this.loading.set(true);
+    this.api
+      .getComments(this.page, this.sort, this.descending)
+      .pipe(finalize(() => this.loading.set(false)))
+      .subscribe({
+        next: (result) => {
+          this.comments.set(result.items);
+          this.total = result.totalCount;
+        },
+        error: () => this.error.set('Could not load comments.'),
+      });
   }
   changeSort(sort: string) {
     this.descending = this.sort === sort ? !this.descending : sort === 'createdAt';
