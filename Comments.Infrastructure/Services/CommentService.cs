@@ -29,9 +29,22 @@ public sealed class CommentService(
         };
         var total = await query.CountAsync(ct);
         var roots = await query.Skip((page - 1) * 25).Take(25).Include(x => x.Attachments).ToListAsync(ct);
-        var all = await db.Comments.AsNoTracking().Where(x => !x.IsDeleted).Include(x => x.Attachments)
-            .OrderBy(x => x.CreatedAtUtc).ToListAsync(ct);
-        return new CommentPageDto(roots.Select(x => Map(x, all)).ToList(), page, 25, total, sort, descending);
+        var rootIds = roots.Select(x => x.Id).ToArray();
+        var replies = rootIds.Length == 0
+            ? []
+            : await db.Comments.AsNoTracking()
+                .Where(x => !x.IsDeleted && x.ParentId != null && rootIds.Contains(x.RootId))
+                .Include(x => x.Attachments)
+                .OrderBy(x => x.CreatedAtUtc)
+                .ToListAsync(ct);
+        var commentsForPage = roots.Concat(replies).ToList();
+        return new CommentPageDto(
+            roots.Select(x => Map(x, commentsForPage)).ToList(),
+            page,
+            25,
+            total,
+            sort,
+            descending);
     }
 
     public async Task<CommentDto> CreateAsync(CreateCommentRequest request,
