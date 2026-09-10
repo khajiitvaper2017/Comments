@@ -12,6 +12,8 @@ public sealed class OutboxDispatcher(
     RabbitMqPublisher publisher,
     ILogger<OutboxDispatcher> logger) : BackgroundService
 {
+    private const int MaxAttempts = 10;
+
     /// <summary>Publishes committed outbox messages and marks them after successful delivery.</summary>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -23,6 +25,7 @@ public sealed class OutboxDispatcher(
                 var db = scope.ServiceProvider.GetRequiredService<CommentsDbContext>();
                 var messages = await db.OutboxMessages
                     .Where(x => x.ProcessedAtUtc == null)
+                    .Where(x => x.DeadLetteredAtUtc == null)
                     .OrderBy(x => x.OccurredAtUtc)
                     .Take(25)
                     .ToListAsync(stoppingToken);
@@ -44,7 +47,17 @@ public sealed class OutboxDispatcher(
                     {
                         message.AttemptCount++;
                         message.LastError = exception.Message[..Math.Min(2000, exception.Message.Length)];
-                        logger.LogError(exception, "Could not publish outbox message {MessageId}.", message.Id);
+                        if (message.AttemptCount >= MaxAttempts)
+                        {
+                            message.DeadLetteredAtUtc = DateTime.UtcNow;
+                            logger.LogCritical(exception,
+                                "Outbox message {MessageId} was dead-lettered after {Attempts} attempts.",
+                                message.Id, message.AttemptCount);
+                        }
+                        else
+                        {
+                            logger.LogError(exception, "Could not publish outbox message {MessageId}.", message.Id);
+                        }
                     }
 
                 await db.SaveChangesAsync(stoppingToken);

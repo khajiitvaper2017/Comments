@@ -52,7 +52,8 @@ CREATE TABLE IF NOT EXISTS `OutboxMessages` (
     `OccurredAtUtc` datetime(6) NOT NULL,
     `AttemptCount` int NOT NULL,
     `ProcessedAtUtc` datetime(6) NULL,
+    `DeadLetteredAtUtc` datetime(6) NULL,
     `LastError` varchar(2000) NULL,
     CONSTRAINT `PK_OutboxMessages` PRIMARY KEY (`Id`),
-    INDEX `IX_OutboxMessages_ProcessedAtUtc_OccurredAtUtc` (`ProcessedAtUtc`, `OccurredAtUtc`)
+    INDEX `IX_OutboxMessages_ProcessedAtUtc_DeadLetteredAtUtc_OccurredAtUtc` (`ProcessedAtUtc`, `DeadLetteredAtUtc`, `OccurredAtUtc`)
 ) ENGINE=InnoDB;

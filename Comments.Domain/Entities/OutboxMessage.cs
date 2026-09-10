@@ -8,5 +8,6 @@ public sealed class OutboxMessage
     public DateTime OccurredAtUtc { get; set; } = DateTime.UtcNow;
     public int AttemptCount { get; set; }
     public DateTime? ProcessedAtUtc { get; set; }
+    public DateTime? DeadLetteredAtUtc { get; set; }
     public string? LastError { get; set; }
 }

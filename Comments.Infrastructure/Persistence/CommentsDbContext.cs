@@ -41,6 +41,6 @@ public sealed class CommentsDbContext(DbContextOptions<CommentsDbContext> option
         o.Property(x => x.Type).HasMaxLength(200).IsRequired();
         o.Property(x => x.Payload).IsRequired();
         o.Property(x => x.LastError).HasMaxLength(2000);
-        o.HasIndex(x => new { x.ProcessedAtUtc, x.OccurredAtUtc });
+        o.HasIndex(x => new { x.ProcessedAtUtc, x.DeadLetteredAtUtc, x.OccurredAtUtc });
     }
 }
