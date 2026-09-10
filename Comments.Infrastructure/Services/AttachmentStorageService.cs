@@ -10,7 +10,8 @@ using SixLabors.ImageSharp.Processing;
 
 namespace Comments.Infrastructure.Services;
 
-public sealed class AttachmentStorageService(IOptions<StorageOptions> options, IHostEnvironment env) : IAttachmentStorageService
+public sealed class AttachmentStorageService(IOptions<StorageOptions> options, IHostEnvironment env)
+    : IAttachmentStorageService
 {
     public async Task<Attachment> SaveAsync(AttachmentInput input, CancellationToken ct)
     {

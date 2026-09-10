@@ -1,5 +1,5 @@
-using Comments.Application.Abstractions;
 using Comments.Api.Middleware;
+using Comments.Application.Abstractions;
 using Comments.Infrastructure.Exceptions;
 using Comments.Infrastructure.Options;
 using Comments.Infrastructure.Persistence;
