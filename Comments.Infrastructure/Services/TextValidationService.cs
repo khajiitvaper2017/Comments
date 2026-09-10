@@ -7,11 +7,14 @@ namespace Comments.Infrastructure.Services;
 
 public sealed class TextValidationService : ITextValidationService
 {
+    // This policy is shared by the client-facing validation and the server sanitizer.
     private const string AllowedTags = "a|code|i|strong";
     private static readonly HtmlSanitizer Sanitizer = CreateSanitizer();
 
     public string SanitizeAndValidate(string input)
     {
+        // Check the markup shape before sanitizing so malformed input is rejected,
+        // rather than silently rewritten into a different comment.
         if (string.IsNullOrWhiteSpace(input) || input.Length > 5000)
             throw new ValidationException("Text is required and must be at most 5000 characters.");
         if (Regex.IsMatch(input, "<[^>]*$") ||
@@ -41,6 +44,7 @@ public sealed class TextValidationService : ITextValidationService
 
     private static HtmlSanitizer CreateSanitizer()
     {
+        // Allow only the tags and link attributes supported by the comment editor.
         var sanitizer = new HtmlSanitizer();
         sanitizer.AllowedTags.Clear();
         sanitizer.AllowedTags.UnionWith(["a", "code", "i", "strong"]);

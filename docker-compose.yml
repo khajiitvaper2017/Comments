@@ -26,11 +26,33 @@ services:
       timeout: 5s
       retries: 20
       start_period: 20s
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports: ["15672:15672"]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
   app:
     build: .
     environment:
       ConnectionStrings__Comments: "Server=db,1433;Database=Comments;User Id=sa;Password=${COMMENTS_DB_PASSWORD};TrustServerCertificate=True"
       Storage__Root: "/data/uploads"
+      ConnectionStrings__Redis: "redis:6379"
+      RabbitMq__Host: "rabbitmq"
+      RabbitMq__User: "guest"
+      RabbitMq__Password: "guest"
       Logging__LogLevel__Default: "Warning"
       Logging__LogLevel__Microsoft.AspNetCore: "Warning"
       Logging__LogLevel__Microsoft.EntityFrameworkCore: "Warning"
@@ -44,6 +66,10 @@ services:
       start_period: 10s
     depends_on:
       db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     volumes: [comments-files:/data]
   frontend:

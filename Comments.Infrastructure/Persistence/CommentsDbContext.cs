@@ -7,6 +7,7 @@ public sealed class CommentsDbContext(DbContextOptions<CommentsDbContext> option
 {
     public DbSet<Comment> Comments => Set<Comment>();
     public DbSet<Attachment> Attachments => Set<Attachment>();
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -31,7 +32,15 @@ public sealed class CommentsDbContext(DbContextOptions<CommentsDbContext> option
         a.Property(x => x.StoredName).HasMaxLength(255).IsRequired();
         a.Property(x => x.ContentType).HasMaxLength(100).IsRequired();
         a.Property(x => x.StorageReference).HasMaxLength(500).IsRequired();
+        a.Property(x => x.ProcessingStatus).HasConversion<string>().HasMaxLength(32).IsRequired();
         a.HasOne(x => x.Comment).WithMany(x => x.Attachments).HasForeignKey(x => x.CommentId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        var o = b.Entity<OutboxMessage>();
+        o.HasKey(x => x.Id);
+        o.Property(x => x.Type).HasMaxLength(200).IsRequired();
+        o.Property(x => x.Payload).IsRequired();
+        o.Property(x => x.LastError).HasMaxLength(2000);
+        o.HasIndex(x => new { x.ProcessedAtUtc, x.OccurredAtUtc });
     }
 }

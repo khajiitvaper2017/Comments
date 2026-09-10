@@ -1,4 +1,5 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
+import { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
 import { CommentApiService } from '@app/core/services/comment-api.service';
 import { Captcha, CommentItem } from '@app/core/models/comment.models';
 import { CommentFormComponent } from '@app/shared/components/comment-form/comment-form.component';
@@ -18,7 +19,7 @@ import { finalize } from 'rxjs';
   ],
   templateUrl: './comments-page.component.html',
 })
-export class CommentsPageComponent implements OnInit {
+export class CommentsPageComponent implements OnInit, OnDestroy {
   private readonly api = inject(CommentApiService);
   comments = signal<CommentItem[]>([]);
   captcha = signal<Captcha | null>(null);
@@ -26,6 +27,10 @@ export class CommentsPageComponent implements OnInit {
   selectedText = signal<{ name: string; content: string } | null>(null);
   error = signal('');
   loading = signal(false);
+  private readonly hub: HubConnection = new HubConnectionBuilder()
+    .withUrl('/hubs/discussions')
+    .withAutomaticReconnect()
+    .build();
   page = 1;
   total = 0;
   sort = 'createdAt';
@@ -34,7 +39,13 @@ export class CommentsPageComponent implements OnInit {
   showComposer = signal(false);
   ngOnInit() {
     this.refreshCaptcha();
+    this.hub.on('commentChanged', () => this.loadComments());
+    void this.hub.start().catch(() => undefined);
     this.loadComments();
+  }
+
+  ngOnDestroy() {
+    void this.hub.stop();
   }
   refreshCaptcha() {
     this.api.getCaptcha().subscribe((captcha) => this.captcha.set(captcha));
@@ -52,6 +63,7 @@ export class CommentsPageComponent implements OnInit {
         error: () => this.error.set('Could not load comments.'),
       });
   }
+
   changeSort(sort: string) {
     this.descending = this.sort === sort ? !this.descending : sort === 'createdAt';
     this.sort = sort;

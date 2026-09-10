@@ -11,6 +11,7 @@ public sealed class Attachment
     public required string StorageReference { get; set; }
     public int? Width { get; set; }
     public int? Height { get; set; }
+    public AttachmentProcessingStatus ProcessingStatus { get; set; } = AttachmentProcessingStatus.Pending;
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public Comment Comment { get; set; } = null!;
 }

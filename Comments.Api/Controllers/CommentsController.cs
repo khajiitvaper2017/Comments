@@ -28,6 +28,7 @@ public sealed class CommentsController(ICommentService service) : ControllerBase
     [HttpPost]
     public async Task<ActionResult<CommentDto>> Post([FromForm] CreateCommentFormModel formModel, CancellationToken ct)
     {
+        // Read uploads into application data objects before passing them across the API boundary.
         var files = new List<AttachmentInput>();
         foreach (var file in formModel.Attachments ?? [])
         {

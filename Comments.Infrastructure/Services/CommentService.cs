@@ -1,7 +1,10 @@
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using Comments.Application.Abstractions;
 using Comments.Application.Data;
 using Comments.Application.DTOs;
+using Comments.Application.Events;
+using Comments.Application.Jobs;
 using Comments.Application.Requests;
 using Comments.Domain.Entities;
 using Comments.Infrastructure.Exceptions;
@@ -14,12 +17,17 @@ public sealed class CommentService(
     CommentsDbContext db,
     ITextValidationService validationService,
     ICaptchaService captcha,
-    IAttachmentStorageService attachments) : ICommentService
+    IAttachmentStorageService attachments,
+    ICommentCache cache) : ICommentService
 {
+    /// <summary>Loads one page of root comments together with their replies.</summary>
     public async Task<CommentPageDto> GetRootsAsync(int page, string sort, bool descending, CancellationToken ct)
     {
+        // Cache the complete page because the frontend needs the roots and replies together.
         page = Math.Max(1, page);
         sort = new[] { "userName", "email", "createdAt" }.Contains(sort) ? sort : "createdAt";
+        var cached = await cache.GetAsync(page, sort, descending, ct);
+        if (cached is not null) return cached;
         var query = db.Comments.AsNoTracking().Where(x => x.ParentId == null && !x.IsDeleted);
         query = sort switch
         {
@@ -38,18 +46,22 @@ public sealed class CommentService(
                 .OrderBy(x => x.CreatedAtUtc)
                 .ToListAsync(ct);
         var commentsForPage = roots.Concat(replies).ToList();
-        return new CommentPageDto(
+        var result = new CommentPageDto(
             roots.Select(x => Map(x, commentsForPage)).ToList(),
             page,
             25,
             total,
             sort,
             descending);
+        await cache.SetAsync(page, sort, descending, result, ct);
+        return result;
     }
 
     public async Task<CommentDto> CreateAsync(CreateCommentRequest request,
         IReadOnlyList<AttachmentInput> files, string? ip, string? agent, CancellationToken ct)
     {
+        // Files are stored before the transaction so the database row can reference their paths;
+        // image conversion is deferred to the attachment queue.
         Validate(request);
         if (!captcha.Verify(request.CaptchaId, request.CaptchaAnswer))
             throw new ValidationException("CAPTCHA is invalid or expired.");
@@ -72,9 +84,30 @@ public sealed class CommentService(
         };
         if (parent is null) comment.RootId = comment.Id;
         foreach (var file in files) comment.Attachments.Add(await attachments.SaveAsync(file, ct));
+
+        // The comment and its outbox messages must commit or roll back together.
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
         db.Comments.Add(comment);
+        if (comment.ParentId is null)
+            AddOutbox(new CommentCreated(comment.Id, comment.CreatedAtUtc));
+        else
+            AddOutbox(new ReplyCreated(comment.Id, comment.ParentId.Value, comment.CreatedAtUtc));
+        foreach (var attachment in comment.Attachments.Where(x =>
+                     x.ProcessingStatus == AttachmentProcessingStatus.Pending))
+            AddOutbox(new ProcessAttachment(attachment.Id));
         await db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
         return Map(comment, [comment]);
+    }
+
+    private void AddOutbox<T>(T message)
+    {
+        // The dispatcher publishes this serialized application message after the transaction commits.
+        db.OutboxMessages.Add(new OutboxMessage
+        {
+            Type = typeof(T).Name,
+            Payload = JsonSerializer.Serialize(message)
+        });
     }
 
     private static void Validate(CreateCommentRequest request)
