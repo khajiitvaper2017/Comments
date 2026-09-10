@@ -1,0 +1,146 @@
+<div class="comments-table-wrap">
+  <table class="comments-table">
+    <thead>
+      <tr>
+        <th scope="col">
+          <button
+            [class.active]="sort === 'userName'"
+            type="button"
+            (click)="sortChanged.emit('userName')"
+          >
+            User Name
+            @if (sort === 'userName') {
+              {{ descending ? '↓' : '↑' }}
+            }
+          </button>
+        </th>
+        <th scope="col">
+          <button
+            [class.active]="sort === 'email'"
+            type="button"
+            (click)="sortChanged.emit('email')"
+          >
+            E-mail
+            @if (sort === 'email') {
+              {{ descending ? '↓' : '↑' }}
+            }
+          </button>
+        </th>
+        <th scope="col">
+          <button
+            [class.active]="sort === 'createdAt'"
+            type="button"
+            (click)="sortChanged.emit('createdAt')"
+          >
+            Date added
+            @if (sort === 'createdAt') {
+              {{ descending ? '↓' : '↑' }}
+            }
+          </button>
+        </th>
+        <th scope="col">Comment</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (comment of comments; track comment.id) {
+        <tr class="root-comment-row">
+          <td>{{ comment.userName }}</td>
+          <td>{{ comment.email }}</td>
+          <td>{{ comment.createdAtUtc | date: 'dd.MM.yy HH:mm' }}</td>
+          <td class="comment-table-content">
+            @if (comment.homePage) {
+              <a class="homepage" [href]="comment.homePage" target="_blank" rel="noopener">
+                {{ comment.homePage | homePageLabel }}
+              </a>
+            }
+            <div class="comment-body" [innerHTML]="comment.text"></div>
+            @if (comment.attachments.length) {
+              <div class="attachments">
+                @for (attachment of comment.attachments; track attachment.id) {
+                  @if (attachment.contentType.startsWith('image/')) {
+                    <button
+                      class="image-attachment"
+                      type="button"
+                      [attr.aria-label]="'Open ' + attachment.fileName"
+                      (click)="
+                        imageRequested.emit({ id: attachment.id, name: attachment.fileName })
+                      "
+                    >
+                      <img
+                        [src]="'/api/attachments/' + attachment.id"
+                        [alt]="attachment.fileName"
+                        loading="lazy"
+                      />
+                    </button>
+                  } @else {
+                    <a [href]="'/api/attachments/' + attachment.id" target="_blank" rel="noopener"
+                      >📎 {{ attachment.fileName }}</a
+                    >
+                  }
+                }
+              </div>
+            }
+            <div class="table-comment-actions">
+              @if (comment.replies.length) {
+                <button
+                  class="table-replies-toggle"
+                  type="button"
+                  [class.expanded]="repliesAreVisible(comment.id)"
+                  [title]="repliesAreVisible(comment.id) ? 'Hide replies' : 'Show replies'"
+                  [attr.aria-label]="
+                    repliesAreVisible(comment.id) ? 'Hide replies' : 'Show replies'
+                  "
+                  [attr.aria-expanded]="repliesAreVisible(comment.id)"
+                  [attr.aria-controls]="'replies-' + comment.id"
+                  (click)="toggleReplies(comment.id)"
+                >
+                  <ng-icon name="lucideChevronDown" size="1rem" aria-hidden="true" />
+                </button>
+              }
+              <button
+                class="reply-button"
+                type="button"
+                title="Reply to this comment"
+                aria-label="Reply to this comment"
+                (click)="replyRequested.emit(comment.id)"
+              >
+                <ng-icon name="lucideReply" size="1rem" aria-hidden="true" />
+              </button>
+            </div>
+          </td>
+        </tr>
+        @if (repliesAreVisible(comment.id)) {
+          <tr class="root-thread-row" [id]="'replies-' + comment.id">
+            <td colspan="4">
+              @if (replyParentId === comment.id) {
+                <article class="comment reply reply-composer" [style.--depth]="1">
+                  <app-comment-form
+                    [captcha]="captcha"
+                    [parentId]="comment.id"
+                    [replyToName]="comment.userName"
+                    (captchaChanged)="captchaChanged.emit($event)"
+                    (errorChanged)="errorChanged.emit($event)"
+                    (submitted)="submitted.emit()"
+                    (cancelled)="cancelled.emit()"
+                  ></app-comment-form>
+                </article>
+              }
+              <app-comment-cards
+                [comments]="comment.replies"
+                [captcha]="captcha"
+                [replyParentId]="replyParentId"
+                [baseDepth]="1"
+                (replyRequested)="replyRequested.emit($event)"
+                (imageRequested)="imageRequested.emit($event)"
+                (captchaChanged)="captchaChanged.emit($event)"
+                (errorChanged)="errorChanged.emit($event)"
+                (submitted)="submitted.emit()"
+                (cancelled)="cancelled.emit()"
+              ></app-comment-cards>
+            </td>
+          </tr>
+        }
+      }
+    </tbody>
+  </table>
+</div>

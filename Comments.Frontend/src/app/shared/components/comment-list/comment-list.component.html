@@ -1,105 +1,105 @@
 <section class="discussion" aria-labelledby="discussion-title">
   <div class="discussion-heading">
-    <h2 id="discussion-title">
-      Comments <span>{{ total }}</span>
-    </h2>
-    <div class="sorter" aria-label="Sort comments">
-      <span>Sort by</span>
-      <button [class.active]="sort === 'createdAt'" (click)="sortChanged.emit('createdAt')">
-        Newest
-      </button>
-      <button [class.active]="sort === 'userName'" (click)="sortChanged.emit('userName')">
-        Name
-      </button>
-      <button [class.active]="sort === 'email'" (click)="sortChanged.emit('email')">E-mail</button>
+    <h2 id="discussion-title">Comments</h2>
+    <div class="discussion-controls">
+      @if (viewMode === 'cards') {
+        <div class="sorter" aria-label="Sort comments">
+          <span>Sort by</span>
+          <button
+            type="button"
+            [class.active]="sort === 'createdAt'"
+            (click)="sortChanged.emit('createdAt')"
+          >
+            Date
+            @if (sort === 'createdAt') {
+              {{ descending ? '↓' : '↑' }}
+            }
+          </button>
+          <button
+            type="button"
+            [class.active]="sort === 'userName'"
+            (click)="sortChanged.emit('userName')"
+          >
+            Name
+            @if (sort === 'userName') {
+              {{ descending ? '↓' : '↑' }}
+            }
+          </button>
+          <button
+            type="button"
+            [class.active]="sort === 'email'"
+            (click)="sortChanged.emit('email')"
+          >
+            E-mail
+            @if (sort === 'email') {
+              {{ descending ? '↓' : '↑' }}
+            }
+          </button>
+        </div>
+      }
+      <div class="view-switch" role="group" aria-label="Comment view">
+        <button
+          type="button"
+          title="Card view"
+          aria-label="Card view"
+          [class.active]="viewMode === 'cards'"
+          (click)="setViewMode('cards')"
+        >
+          <ng-icon name="lucideList" size="1rem" aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          title="Table view"
+          aria-label="Table view"
+          [class.active]="viewMode === 'table'"
+          (click)="setViewMode('table')"
+        >
+          <ng-icon name="lucideTable2" size="1rem" aria-hidden="true" />
+        </button>
+      </div>
     </div>
   </div>
+
   @if (!comments.length) {
     <p class="empty">No comments yet. Start the discussion below.</p>
+  } @else if (viewMode === 'cards') {
+    <app-comment-cards
+      [comments]="comments"
+      [captcha]="captcha"
+      [replyParentId]="replyParentId"
+      (replyRequested)="replyRequested.emit($event)"
+      (imageRequested)="imageRequested.emit($event)"
+      (captchaChanged)="captchaChanged.emit($event)"
+      (errorChanged)="errorChanged.emit($event)"
+      (submitted)="submitted.emit()"
+      (cancelled)="cancelled.emit()"
+    />
+  } @else {
+    <app-comment-table
+      [comments]="comments"
+      [sort]="sort"
+      [descending]="descending"
+      [captcha]="captcha"
+      [replyParentId]="replyParentId"
+      (sortChanged)="sortChanged.emit($event)"
+      (replyRequested)="replyRequested.emit($event)"
+      (imageRequested)="imageRequested.emit($event)"
+      (captchaChanged)="captchaChanged.emit($event)"
+      (errorChanged)="errorChanged.emit($event)"
+      (submitted)="submitted.emit()"
+      (cancelled)="cancelled.emit()"
+    />
   }
-  @if (comments.length) {
-    <div class="comment-list">
-      @for (comment of comments; track comment.id) {
-        <ng-template
-          [ngTemplateOutlet]="row"
-          [ngTemplateOutletContext]="{ comment, depth: 0 }"
-        ></ng-template>
-      }
-    </div>
-  }
+
   @if (total > 25) {
     <div class="pager">
-      <button [disabled]="page === 1" (click)="pageChanged.emit(page - 1)">Previous</button>
+      <button type="button" [disabled]="page === 1" (click)="pageChanged.emit(page - 1)">
+        Previous
+      </button>
       <span>Page {{ page }}</span>
-      <button [disabled]="page * 25 >= total" (click)="pageChanged.emit(page + 1)">Next</button>
+      <button type="button" [disabled]="page * 25 >= total" (click)="pageChanged.emit(page + 1)">
+        Next
+      </button>
     </div>
   }
 </section>
-
-<ng-template #row let-comment="comment" let-depth="depth">
-  <article class="comment" [class.reply]="depth > 0" [style.--depth]="depth">
-    <header class="comment-header">
-      <div class="avatar" aria-hidden="true">{{ comment.userName.charAt(0).toUpperCase() }}</div>
-      <div class="identity">
-        <strong>{{ comment.userName }}</strong>
-        <span>{{ comment.createdAtUtc | date: 'dd.MM.yy HH:mm' }}</span>
-        @if (comment.homePage) {
-          <a class="homepage" [href]="comment.homePage" target="_blank" rel="noopener">{{
-            homePageLabel(comment.homePage)
-          }}</a>
-        }
-      </div>
-      <button
-        class="reply-button"
-        type="button"
-        title="Reply to this comment"
-        aria-label="Reply to this comment"
-        (click)="replyRequested.emit(comment.id)"
-      >
-        <ng-icon name="lucideReply" size="1rem" aria-hidden="true" />
-      </button>
-    </header>
-    <div class="comment-body" [innerHTML]="comment.text"></div>
-    @if (comment.attachments.length) {
-      <div class="attachments">
-        @for (attachment of comment.attachments; track attachment.id) {
-          @if (attachment.contentType.startsWith('image/')) {
-            <button
-              class="image-attachment"
-              type="button"
-              (click)="imageRequested.emit({ id: attachment.id, name: attachment.fileName })"
-            >
-              <img
-                [src]="'/api/attachments/' + attachment.id"
-                [alt]="attachment.fileName"
-                loading="lazy"
-              />
-            </button>
-          } @else {
-            <a [href]="'/api/attachments/' + attachment.id" target="_blank" rel="noopener"
-              >📎 {{ attachment.fileName }}</a
-            >
-          }
-        }
-      </div>
-    }
-    @if (replyParentId === comment.id) {
-      <article class="comment reply reply-composer" [style.--depth]="depth + 1">
-        <app-comment-form
-          [captcha]="captcha"
-          [parentId]="comment.id"
-          [replyToName]="comment.userName"
-          (captchaChanged)="captchaChanged.emit($event)"
-          (errorChanged)="errorChanged.emit($event)"
-          (submitted)="submitted.emit()"
-        ></app-comment-form>
-      </article>
-    }
-    @for (child of comment.replies; track child.id) {
-      <ng-template
-        [ngTemplateOutlet]="row"
-        [ngTemplateOutletContext]="{ comment: child, depth: depth + 1 }"
-      ></ng-template>
-    }
-  </article>
-</ng-template>

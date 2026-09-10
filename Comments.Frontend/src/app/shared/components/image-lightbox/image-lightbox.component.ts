@@ -1,5 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  HostListener,
+  Input,
+  OnChanges,
+  Output,
+  SimpleChanges,
+} from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideDownload, lucideMinus, lucidePlus, lucideX } from '@ng-icons/lucide';
 
@@ -12,7 +20,7 @@ import { lucideDownload, lucideMinus, lucidePlus, lucideX } from '@ng-icons/luci
 })
 export class ImageLightboxComponent implements OnChanges {
   @Input() image: { url: string; name: string } | null = null;
-  @Output() closed = new EventEmitter<void>();
+  @Output() readonly closed = new EventEmitter<void>();
   scale = 1;
   isClosing = false;
 
@@ -32,6 +40,11 @@ export class ImageLightboxComponent implements OnChanges {
     event.stopPropagation();
     const factor = Math.exp(-event.deltaY * 0.0015);
     this.scale = Math.min(3, Math.max(0.25, this.scale * factor));
+  }
+
+  @HostListener('document:keydown.escape')
+  closeWithEscape() {
+    if (this.image) this.close();
   }
 
   close() {

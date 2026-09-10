@@ -4,6 +4,7 @@
     [class.is-closing]="isClosing"
     (click)="close()"
     (wheel)="onWheel($event)"
+    tabindex="-1"
     role="dialog"
     aria-modal="true"
     [attr.aria-label]="currentImage.name"

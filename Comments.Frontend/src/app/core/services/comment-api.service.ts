@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import {
   Captcha,
@@ -16,9 +16,11 @@ export class CommentApiService {
   }
 
   getComments(page: number, sort: string, descending: boolean) {
-    return this.http.get<CommentPage>(
-      `/api/comments?page=${page}&sort=${sort}&descending=${descending}`,
-    );
+    const params = new HttpParams()
+      .set('page', page)
+      .set('sort', sort)
+      .set('descending', descending);
+    return this.http.get<CommentPage>('/api/comments', { params });
   }
 
   createComment(value: CommentFormValue, captchaId: string, file?: File) {

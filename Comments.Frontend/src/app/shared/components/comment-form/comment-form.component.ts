@@ -44,9 +44,10 @@ export class CommentFormComponent {
   @Input() captcha: Captcha | null = null;
   @Input() parentId = '';
   @Input() replyToName = '';
-  @Output() submitted = new EventEmitter<void>();
-  @Output() captchaChanged = new EventEmitter<Captcha>();
-  @Output() errorChanged = new EventEmitter<string>();
+  @Output() readonly submitted = new EventEmitter<void>();
+  @Output() readonly cancelled = new EventEmitter<void>();
+  @Output() readonly captchaChanged = new EventEmitter<Captcha>();
+  @Output() readonly errorChanged = new EventEmitter<string>();
   private readonly api = inject(CommentApiService);
   form: CommentFormValue = {
     userName: '',

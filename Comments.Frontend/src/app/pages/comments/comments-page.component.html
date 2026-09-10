@@ -12,6 +12,7 @@
     [total]="total"
     [page]="page"
     [sort]="sort"
+    [descending]="descending"
     [captcha]="captcha()"
     [replyParentId]="replyParentId"
     (sortChanged)="changeSort($event)"
@@ -19,7 +20,9 @@
     (replyRequested)="setReplyParent($event)"
     (imageRequested)="openImage($event)"
     (captchaChanged)="captcha.set($event)"
+    (errorChanged)="error.set($event)"
     (submitted)="handleSubmitted()"
+    (cancelled)="cancelComposer()"
   ></app-comment-list>
   @if (error()) {
     <p class="error" role="alert">{{ error() }}</p>
@@ -29,7 +32,9 @@
       [captcha]="captcha()"
       [parentId]="replyParentId"
       (captchaChanged)="captcha.set($event)"
+      (errorChanged)="error.set($event)"
       (submitted)="handleSubmitted()"
+      (cancelled)="cancelComposer()"
     ></app-comment-form>
   }
 </main>

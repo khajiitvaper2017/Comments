@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommentApiService } from '@app/core/services/comment-api.service';
 import { Captcha, CommentItem } from '@app/core/models/comment.models';
@@ -9,7 +8,7 @@ import { ImageLightboxComponent } from '@app/shared/components/image-lightbox/im
 @Component({
   selector: 'app-comments-page',
   standalone: true,
-  imports: [CommonModule, CommentListComponent, CommentFormComponent, ImageLightboxComponent],
+  imports: [CommentListComponent, CommentFormComponent, ImageLightboxComponent],
   templateUrl: './comments-page.component.html',
 })
 export class CommentsPageComponent implements OnInit {
@@ -59,6 +58,11 @@ export class CommentsPageComponent implements OnInit {
     this.replyParentId = '';
     this.showComposer.set(true);
     this.scrollToComposer();
+  }
+  cancelComposer() {
+    this.replyParentId = '';
+    this.showComposer.set(false);
+    this.error.set('');
   }
   private scrollToComposer() {
     window.requestAnimationFrame(() => {
