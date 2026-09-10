@@ -19,10 +19,18 @@ builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddHealthChecks();
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+builder.Services.AddSwaggerGen(options =>
+    options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, "Comments.Api.xml")));
 
 var app = builder.Build();
 
 app.UseMiddleware<SecurityHeadersMiddleware>();
+app.UseSwagger(options => options.RouteTemplate = "api/{documentName}.json");
+app.UseSwaggerUI(options =>
+{
+    options.RoutePrefix = "api";
+    options.SwaggerEndpoint("/api/v1.json", "Comments API");
+});
 
 if (!app.Environment.IsDevelopment())
     app.UseHsts();

@@ -70,6 +70,8 @@ Local uploaded files are stored in `Comments.Storage/uploads`.
 
 The ASP.NET Core API is served by the `Comments.Api` project. The Angular frontend uses the `/api` endpoints below:
 
+Interactive Swagger documentation is available at [http://localhost:8080/api/](http://localhost:8080/api/). The OpenAPI document is available at `/api/v1.json`.
+
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
 | `GET` | `/api/comments?page=1&sort=createdAt&descending=true` | Get a page of root comments. Supported sorting fields are `createdAt`, `userName`, and `email`. |

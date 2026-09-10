@@ -12,6 +12,11 @@ namespace Comments.Api.Controllers;
 [Route("api/comments")]
 public sealed class CommentsController(ICommentService service) : ControllerBase
 {
+    /// <summary>Returns a paginated and sorted list of root comments.</summary>
+    /// <param name="page">The one-based page number.</param>
+    /// <param name="sort">The sort field: createdAt, userName, or email.</param>
+    /// <param name="descending">Whether to sort in descending order.</param>
+    /// <param name="ct">The cancellation token for the request.</param>
     [HttpGet]
     public Task<CommentPageDto> Get([FromQuery] int page = 1, [FromQuery] string sort = "createdAt",
         [FromQuery] bool descending = true, CancellationToken ct = default)
@@ -19,6 +24,7 @@ public sealed class CommentsController(ICommentService service) : ControllerBase
         return service.GetRootsAsync(page, sort, descending, ct);
     }
 
+    /// <summary>Creates a comment or reply, with optional attachments.</summary>
     [HttpPost]
     public async Task<ActionResult<CommentDto>> Post([FromForm] CreateCommentFormModel formModel, CancellationToken ct)
     {

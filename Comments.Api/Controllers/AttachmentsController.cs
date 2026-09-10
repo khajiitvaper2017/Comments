@@ -8,12 +8,14 @@ namespace Comments.Api.Controllers;
 
 [ApiController]
 [Route("api/attachments")]
-[ApiExplorerSettings(IgnoreApi = true)]
 public sealed class AttachmentsController(
     CommentsDbContext db,
     IOptions<StorageOptions> storage,
     IWebHostEnvironment environment) : ControllerBase
 {
+    /// <summary>Returns an uploaded image for inline display or downloads another attachment.</summary>
+    /// <param name="id">The attachment identifier.</param>
+    /// <param name="ct">The cancellation token for the request.</param>
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> Get(Guid id, CancellationToken ct)
     {

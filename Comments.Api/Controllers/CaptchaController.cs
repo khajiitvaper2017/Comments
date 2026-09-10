@@ -8,6 +8,7 @@ namespace Comments.Api.Controllers;
 [Route("api/captcha")]
 public sealed class CaptchaController(ICaptchaService service) : ControllerBase
 {
+    /// <summary>Creates a CAPTCHA challenge for comment submission.</summary>
     [HttpGet]
     public CaptchaDto Get()
     {
