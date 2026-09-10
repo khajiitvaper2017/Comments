@@ -183,7 +183,6 @@ export class CommentFormComponent {
           this.captchaError = '';
           this.formError = '';
           this.homePageError = '';
-          this.refreshCaptcha();
           this.submitted.emit();
         },
         (error: HttpErrorResponse) => {

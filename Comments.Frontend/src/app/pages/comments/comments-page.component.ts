@@ -38,7 +38,6 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
   replyParentId = '';
   showComposer = signal(false);
   ngOnInit() {
-    this.refreshCaptcha();
     this.hub.on('commentChanged', () => this.loadComments());
     void this.hub.start().catch(() => undefined);
     this.loadComments();
@@ -46,9 +45,6 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     void this.hub.stop();
-  }
-  refreshCaptcha() {
-    this.api.getCaptcha().subscribe((captcha) => this.captcha.set(captcha));
   }
   loadComments() {
     this.loading.set(true);
