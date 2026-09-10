@@ -111,7 +111,7 @@
           maxlength="5000"
           placeholder="Write your comment..."
         ></textarea>
-        @if ((submittedForm || text.touched) && text.invalid) {
+        @if (submittedForm && text.invalid) {
           <span class="form-error"> Text is required. </span>
         }
       }
