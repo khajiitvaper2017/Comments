@@ -637,6 +637,80 @@ textarea {
 .cancel-button:hover {
   background: var(--color-action-soft);
 }
+.text-attachment {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-link);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+.text-attachment:hover {
+  text-decoration: underline;
+}
+.text-preview-modal {
+  position: fixed;
+  z-index: 11;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: rgba(12, 24, 42, 0.72);
+  animation: lightbox-fade-in 120ms ease-out both;
+}
+.text-preview-dialog {
+  display: grid;
+  width: min(900px, 100%);
+  height: min(760px, 90vh);
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--color-surface);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+.text-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+}
+.text-preview-header h2 {
+  margin: 0;
+  overflow: hidden;
+  color: var(--color-heading);
+  font-size: 0.95rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.text-preview-close {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 2.25rem;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 5px;
+  background: var(--color-surface-soft);
+  color: var(--color-action-strong);
+}
+.text-preview-close:hover {
+  background: var(--color-action-soft);
+}
+.text-preview-dialog pre {
+  min-height: 0;
+  margin: 0;
+  padding: 1rem;
+  overflow: auto;
+  overscroll-behavior: contain;
+  color: var(--color-text);
+  font: 0.85rem/1.55 monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
 .captcha-modal {
   position: fixed;
   z-index: 20;
@@ -753,41 +827,39 @@ textarea {
   gap: 0.4rem;
   color: #fff;
 }
-.lightbox-toolbar button {
-  min-width: 2rem;
-  color: #fff;
-  font-size: 1.3rem;
-}
-.lightbox-toolbar .icon-button {
+.lightbox-toolbar button,
+.lightbox-toolbar .lightbox-download {
   display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 2.25rem;
   place-items: center;
-  padding: 0.25rem;
-}
-.lightbox-download {
-  padding: 0.35rem 0.55rem;
-  padding: 0.35rem 0.55rem;
+  padding: 0;
   border: 1px solid rgba(255, 255, 255, 0.65);
   border-radius: 4px;
+  background: transparent;
   color: #fff;
-  font-size: 0.8rem;
-  text-decoration: none;
+  font-size: 1rem;
+  line-height: 1;
 }
-.lightbox-download {
-  display: inline-flex;
-  align-items: center;
+.lightbox-toolbar > span {
+  display: grid;
+  width: 3.5rem;
+  height: 2.25rem;
+  place-items: center;
+  color: #fff;
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
 }
-.lightbox-download:hover {
+.lightbox-toolbar button:hover,
+.lightbox-toolbar .lightbox-download:hover {
   background: rgba(255, 255, 255, 0.14);
 }
-.lightbox-toolbar button:last-child {
-  margin-left: 0.5rem;
-  font-size: 2rem;
-  line-height: 1;
+.lightbox-toolbar button:disabled {
+  background: transparent;
 }
 .lightbox-toolbar .close-button {
   pointer-events: auto;
-  margin-left: 0.5rem;
-  font-size: 1rem;
 }
 @keyframes lightbox-fade-in {
   from {

@@ -15,6 +15,10 @@ export class CommentApiService {
     return this.http.get<Captcha>('/api/captcha');
   }
 
+  getAttachmentText(id: string) {
+    return this.http.get(`/api/attachments/${id}`, { responseType: 'text' });
+  }
+
   getComments(page: number, sort: string, descending: boolean) {
     const params = new HttpParams()
       .set('page', page)

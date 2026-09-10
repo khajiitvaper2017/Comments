@@ -73,9 +73,13 @@
                       />
                     </button>
                   } @else {
-                    <a [href]="'/api/attachments/' + attachment.id" target="_blank" rel="noopener"
-                      >📎 {{ attachment.fileName }}</a
+                    <button
+                      class="text-attachment"
+                      type="button"
+                      (click)="textRequested.emit({ id: attachment.id, name: attachment.fileName })"
                     >
+                      📎 {{ attachment.fileName }}
+                    </button>
                   }
                 }
               </div>
@@ -132,6 +136,7 @@
                 [baseDepth]="1"
                 (replyRequested)="replyRequested.emit($event)"
                 (imageRequested)="imageRequested.emit($event)"
+                (textRequested)="textRequested.emit($event)"
                 (captchaChanged)="captchaChanged.emit($event)"
                 (errorChanged)="errorChanged.emit($event)"
                 (submitted)="submitted.emit()"

@@ -47,9 +47,13 @@
               />
             </button>
           } @else {
-            <a [href]="'/api/attachments/' + attachment.id" target="_blank" rel="noopener"
-              >📎 {{ attachment.fileName }}</a
+            <button
+              class="text-attachment"
+              type="button"
+              (click)="textRequested.emit({ id: attachment.id, name: attachment.fileName })"
             >
+              📎 {{ attachment.fileName }}
+            </button>
           }
         }
       </div>

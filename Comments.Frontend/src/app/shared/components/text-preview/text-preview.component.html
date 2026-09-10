@@ -1,0 +1,25 @@
+@if (text; as currentText) {
+  <div class="text-preview-modal" role="presentation" (click)="closed.emit()">
+    <section
+      class="text-preview-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="text-preview-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="text-preview-header">
+        <h2 id="text-preview-title">{{ currentText.name }}</h2>
+        <button
+          type="button"
+          class="text-preview-close"
+          title="Close text preview"
+          aria-label="Close text preview"
+          (click)="closed.emit()"
+        >
+          <ng-icon name="lucideX" size="1.2rem" aria-hidden="true" />
+        </button>
+      </header>
+      <pre>{{ currentText.content }}</pre>
+    </section>
+  </div>
+}

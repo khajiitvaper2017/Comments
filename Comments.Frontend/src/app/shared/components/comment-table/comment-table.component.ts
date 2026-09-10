@@ -23,6 +23,7 @@ export class CommentTableComponent {
   @Output() readonly sortChanged = new EventEmitter<string>();
   @Output() readonly replyRequested = new EventEmitter<string>();
   @Output() readonly imageRequested = new EventEmitter<{ id: string; name: string }>();
+  @Output() readonly textRequested = new EventEmitter<{ id: string; name: string }>();
   @Output() readonly captchaChanged = new EventEmitter<Captcha>();
   @Output() readonly errorChanged = new EventEmitter<string>();
   @Output() readonly submitted = new EventEmitter<void>();

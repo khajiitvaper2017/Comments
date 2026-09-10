@@ -35,6 +35,6 @@ public sealed class AttachmentsController(
         if (a.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
             return PhysicalFile(path, a.ContentType, true);
 
-        return PhysicalFile(path, a.ContentType, true);
+        return PhysicalFile(path, a.ContentType, a.OriginalName, true);
     }
 }

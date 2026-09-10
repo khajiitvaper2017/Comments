@@ -19,6 +19,7 @@
     (pageChanged)="changePage($event)"
     (replyRequested)="setReplyParent($event)"
     (imageRequested)="openImage($event)"
+    (textRequested)="openText($event)"
     (captchaChanged)="captcha.set($event)"
     (errorChanged)="error.set($event)"
     (submitted)="handleSubmitted()"
@@ -39,3 +40,4 @@
   }
 </main>
 <app-image-lightbox [image]="selectedImage()" (closed)="closeImage()"></app-image-lightbox>
+<app-text-preview [text]="selectedText()" (closed)="closeText()"></app-text-preview>
