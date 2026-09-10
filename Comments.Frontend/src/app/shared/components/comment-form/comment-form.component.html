@@ -43,7 +43,19 @@
           <span class="form-error"> Enter a valid e-mail address. </span>
         }
       </label>
-      <label>Home page <input type="text" name="homePage" [(ngModel)]="form.homePage" /></label>
+      <label
+        >Home page
+        <input
+          type="text"
+          name="homePage"
+          #homePage="ngModel"
+          [(ngModel)]="form.homePage"
+          (ngModelChange)="onHomePageChange($event)"
+        />
+        @if ((submittedForm || homePage.touched) && homePageError) {
+          <span class="form-error">{{ homePageError }}</span>
+        }
+      </label>
     </div>
     <div class="text-field">
       <label for="comment-text">Text *</label>

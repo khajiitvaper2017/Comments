@@ -64,6 +64,11 @@ export class CommentFormComponent {
   submittedForm = false;
   captchaLoading = false;
   formError = '';
+  homePageError = '';
+
+  onHomePageChange(value: string) {
+    this.homePageError = this.getHomePageError(value);
+  }
 
   refreshCaptcha() {
     this.captchaError = '';
@@ -134,6 +139,8 @@ export class CommentFormComponent {
         commentForm?.form.markAllAsTouched();
         return;
       }
+      this.homePageError = this.getHomePageError(this.form.homePage);
+      if (this.homePageError) return;
       if (this.file?.name.toLowerCase().endsWith('.txt') && this.file.size > 100 * 1024) return;
       const markupError = this.validateMarkup();
       if (markupError) {
@@ -168,6 +175,7 @@ export class CommentFormComponent {
           this.showCaptcha = false;
           this.captchaError = '';
           this.formError = '';
+          this.homePageError = '';
           this.refreshCaptcha();
           this.submitted.emit();
         },
@@ -207,5 +215,21 @@ export class CommentFormComponent {
       }
     }
     return stack.length ? 'Invalid XHTML.' : '';
+  }
+
+  private getHomePageError(value: string) {
+    const trimmed = value.trim();
+    if (!trimmed) return '';
+
+    const normalized = trimmed.includes('://') ? trimmed : `https://${trimmed}`;
+    try {
+      const url = new URL(normalized);
+      if (!['http:', 'https:'].includes(url.protocol) || !url.hostname)
+        return 'Home page must be a valid HTTP(S) URL.';
+    } catch {
+      return 'Home page must be a valid HTTP(S) URL.';
+    }
+
+    return '';
   }
 }
