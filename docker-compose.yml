@@ -6,8 +6,22 @@ services:
       MSSQL_SA_PASSWORD: "${COMMENTS_DB_PASSWORD:?Set COMMENTS_DB_PASSWORD before starting Docker Compose}"
     ports: ["1433:1433"]
     volumes: [comments-db:/var/opt/mssql]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$${MSSQL_SA_PASSWORD}\" -C -Q \"SELECT 1\" || exit 1"]
+      test:
+        - CMD-SHELL
+        - >
+          if ! state=$$(/opt/mssql-tools18/bin/sqlcmd -S localhost -d master -U sa
+          -P "$${MSSQL_SA_PASSWORD}" -C -h -1 -W -Q
+          "SET NOCOUNT ON; SELECT state_desc FROM sys.databases WHERE name = N'Comments'"); then exit 1; fi;
+          if [ -z "$$state" ]; then exit 0; fi;
+          [ "$$state" = "ONLINE" ] || exit 1;
+          /opt/mssql-tools18/bin/sqlcmd -S localhost -d Comments -U sa
+          -P "$${MSSQL_SA_PASSWORD}" -C -b -Q "SELECT 1" || exit 1
       interval: 10s
       timeout: 5s
       retries: 20
@@ -17,11 +31,27 @@ services:
     environment:
       ConnectionStrings__Comments: "Server=db,1433;Database=Comments;User Id=sa;Password=${COMMENTS_DB_PASSWORD};TrustServerCertificate=True"
       Storage__Root: "/data/uploads"
-    ports: ["8080:8080"]
+      Logging__LogLevel__Default: "Warning"
+      Logging__LogLevel__Microsoft.AspNetCore: "Warning"
+      Logging__LogLevel__Microsoft.EntityFrameworkCore: "Warning"
+      Logging__LogLevel__Microsoft.Hosting.Lifetime: "Information"
+    expose: ["8080"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://localhost:8080/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
     depends_on:
       db:
         condition: service_healthy
     volumes: [comments-files:/data]
+  frontend:
+    build: ./Comments.Frontend
+    ports: ["8080:80"]
+    depends_on:
+      app:
+        condition: service_healthy
 volumes:
   comments-db:
   comments-files:

@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import {
   Component,
   ElementRef,
@@ -179,11 +180,13 @@ export class CommentFormComponent {
           this.refreshCaptcha();
           this.submitted.emit();
         },
-        (error) => {
+        (error: HttpErrorResponse) => {
           const message =
-            typeof error.error === 'string'
-              ? error.error
-              : error.error?.error || error.error?.title || 'Could not submit comment.';
+            error.status === 413
+              ? 'The attachment is too large. Please choose a smaller file.'
+              : typeof error.error === 'string'
+                ? 'Could not submit comment.'
+                : error.error?.error || error.error?.title || 'Could not submit comment.';
           this.errorChanged.emit(message);
           this.formError = message;
           if (message.toLowerCase().includes('captcha')) {
