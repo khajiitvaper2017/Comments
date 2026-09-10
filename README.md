@@ -105,11 +105,4 @@ npm run lint
 npm run build
 ```
 
-To regenerate the checked-in SQL schema script after creating a migration:
-
-```powershell
-dotnet ef migrations script `
-  --project .\Comments.Infrastructure `
-  --startup-project .\Comments.Api `
-  --output .\schema.sql
-```
+`schema.sql` is a MySQL-compatible schema script for replicating the database in MySQL. It is maintained separately from the SQL Server EF Core migrations used by the application.
