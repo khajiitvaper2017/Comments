@@ -44,6 +44,19 @@ services:
       interval: 5s
       timeout: 5s
       retries: 20
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.1.2
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    volumes: [comments-search:/usr/share/elasticsearch/data]
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail --silent http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
   app:
     build: .
     environment:
@@ -53,13 +66,15 @@ services:
       RabbitMq__Host: "rabbitmq"
       RabbitMq__User: "guest"
       RabbitMq__Password: "guest"
+      Elasticsearch__Uri: "http://elasticsearch:9200"
+      Elasticsearch__Index: "comments"
       Logging__LogLevel__Default: "Warning"
       Logging__LogLevel__Microsoft.AspNetCore: "Warning"
       Logging__LogLevel__Microsoft.EntityFrameworkCore: "Warning"
       Logging__LogLevel__Microsoft.Hosting.Lifetime: "Information"
     expose: ["8080"]
     healthcheck:
-      test: ["CMD-SHELL", "curl --fail --silent http://localhost:8080/health || exit 1"]
+      test: ["CMD-SHELL", "bash -c ':</dev/tcp/127.0.0.1/8080'"]
       interval: 5s
       timeout: 3s
       retries: 20
@@ -71,6 +86,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
     volumes: [comments-files:/data]
   frontend:
     build: ./Comments.Frontend
@@ -81,3 +98,4 @@ services:
 volumes:
   comments-db:
   comments-files:
+  comments-search:

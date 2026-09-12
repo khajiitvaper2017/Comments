@@ -6,6 +6,7 @@
 **/node_modules
 **/dist
 **/.angular
+Comments.Frontend
 Comments.Storage
 App_Data
 .env
