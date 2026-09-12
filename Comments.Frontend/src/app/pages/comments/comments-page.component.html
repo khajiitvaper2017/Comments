@@ -1,12 +1,31 @@
 <main>
   <header class="page-header">
     <div>
-      <p class="eyebrow">Community discussion</p>
+      <p class="eyebrow">
+        <a routerLink="/">Community discussion</a>
+      </p>
     </div>
     <button class="leave-comment-button" type="button" (click)="openComposer()">
       Leave comment
     </button>
   </header>
+  <form class="search-bar" (ngSubmit)="search()">
+    <label for="comment-search">
+      <span>Search</span>
+      <input
+        id="comment-search"
+        name="searchQuery"
+        [(ngModel)]="searchQuery"
+        placeholder="Search text or user name"
+      />
+    </label>
+    <button class="submit-button" type="submit" [disabled]="searchLoading()">
+      {{ searchLoading() ? 'Searching...' : 'Search' }}
+    </button>
+    @if (searchActive()) {
+      <span class="search-results-count">{{ total }} results</span>
+    }
+  </form>
   @if (loading()) {
     <div class="loading-state" role="status" aria-live="polite">
       <span class="loading-spinner" aria-hidden="true"></span>
@@ -16,21 +35,29 @@
   <app-comment-list
     [comments]="comments()"
     [total]="total"
+    [totalReplyCount]="totalReplyCount"
     [page]="page"
+    [pageSize]="pageSize"
     [sort]="sort"
     [descending]="descending"
+    [searchMode]="searchActive()"
+    [highlightTerm]="searchActive() ? activeSearchQuery : ''"
+    [viewMode]="viewMode"
     [captcha]="captcha()"
     [replyParentId]="replyParentId"
     (sortChanged)="changeSort($event)"
     (pageChanged)="changePage($event)"
+    (viewModeChanged)="changeViewMode($event)"
     (replyRequested)="setReplyParent($event)"
+    (loadRepliesRequested)="loadReplies($event)"
     (imageRequested)="openImage($event)"
     (textRequested)="openText($event)"
     (captchaChanged)="captcha.set($event)"
     (errorChanged)="error.set($event)"
     (submitted)="handleSubmitted()"
     (cancelled)="cancelComposer()"
-  ></app-comment-list>
+  >
+  </app-comment-list>
   @if (error()) {
     <p class="error" role="alert">{{ error() }}</p>
   }
@@ -42,7 +69,8 @@
       (errorChanged)="error.set($event)"
       (submitted)="handleSubmitted()"
       (cancelled)="cancelComposer()"
-    ></app-comment-form>
+    >
+    </app-comment-form>
   }
 </main>
 <app-image-lightbox [image]="selectedImage()" (closed)="closeImage()"></app-image-lightbox>

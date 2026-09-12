@@ -16,15 +16,21 @@ import { CommentTableComponent } from '@app/shared/components/comment-table/comm
 export class CommentListComponent {
   @Input() comments: CommentItem[] = [];
   @Input() total = 0;
+  @Input() totalReplyCount = 0;
   @Input() page = 1;
+  @Input() pageSize = 25;
   @Input() sort = 'createdAt';
   @Input() descending = true;
+  @Input() searchMode = false;
+  @Input() highlightTerm = '';
+  @Input() viewMode: 'cards' | 'table' = 'cards';
   @Input() captcha: Captcha | null = null;
   @Input() replyParentId = '';
-  viewMode: 'cards' | 'table' = 'cards';
   @Output() readonly sortChanged = new EventEmitter<string>();
   @Output() readonly pageChanged = new EventEmitter<number>();
+  @Output() readonly viewModeChanged = new EventEmitter<'cards' | 'table'>();
   @Output() readonly replyRequested = new EventEmitter<string>();
+  @Output() readonly loadRepliesRequested = new EventEmitter<string>();
   @Output() readonly imageRequested = new EventEmitter<{ id: string; name: string }>();
   @Output() readonly textRequested = new EventEmitter<{ id: string; name: string }>();
   @Output() readonly captchaChanged = new EventEmitter<Captcha>();
@@ -34,10 +40,31 @@ export class CommentListComponent {
 
   protected setViewMode(mode: 'cards' | 'table') {
     this.viewMode = mode;
+    this.viewModeChanged.emit(mode);
   }
 
   protected get replyCount(): number {
     return this.comments.reduce((count, comment) => count + this.countReplies(comment.replies), 0);
+  }
+
+  protected get pageCount(): number {
+    return Math.max(1, Math.ceil(this.total / Math.max(1, this.pageSize)));
+  }
+
+  protected get pageItems(): Array<number | 'ellipsis'> {
+    const lastPage = this.pageCount;
+    if (lastPage <= 7) return Array.from({ length: lastPage }, (_, index) => index + 1);
+
+    const items: Array<number | 'ellipsis'> = [1];
+    if (this.page > 3) items.push('ellipsis');
+
+    const firstVisible = Math.max(2, this.page - 1);
+    const lastVisible = Math.min(lastPage - 1, this.page + 1);
+    for (let current = firstVisible; current <= lastVisible; current++) items.push(current);
+
+    if (lastVisible < lastPage - 1) items.push('ellipsis');
+    items.push(lastPage);
+    return items;
   }
 
   private countReplies(replies: CommentItem[]): number {

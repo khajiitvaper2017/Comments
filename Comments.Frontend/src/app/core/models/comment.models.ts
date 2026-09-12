@@ -15,6 +15,9 @@ export interface CommentItem {
   createdAtUtc: string;
   attachments: Attachment[];
   replies: CommentItem[];
+  replyCount: number;
+  hasMoreReplies?: boolean;
+  isSearchMatch?: boolean;
 }
 
 export interface CommentPage {
@@ -24,6 +27,7 @@ export interface CommentPage {
   totalCount: number;
   sort: string;
   descending: boolean;
+  totalReplyCount: number;
 }
 
 export interface Captcha {

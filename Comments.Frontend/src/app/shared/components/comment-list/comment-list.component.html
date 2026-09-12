@@ -2,7 +2,7 @@
   <div class="discussion-heading">
     <h2 id="discussion-title">Comments</h2>
     <div class="discussion-controls">
-      @if (viewMode === 'cards') {
+      @if (viewMode === 'cards' && !searchMode) {
         <div class="sorter" aria-label="Sort comments">
           <span>Sort by</span>
           <button
@@ -67,7 +67,9 @@
       [comments]="comments"
       [captcha]="captcha"
       [replyParentId]="replyParentId"
+      [highlightTerm]="highlightTerm"
       (replyRequested)="replyRequested.emit($event)"
+      (loadRepliesRequested)="loadRepliesRequested.emit($event)"
       (imageRequested)="imageRequested.emit($event)"
       (textRequested)="textRequested.emit($event)"
       (captchaChanged)="captchaChanged.emit($event)"
@@ -82,8 +84,10 @@
       [descending]="descending"
       [captcha]="captcha"
       [replyParentId]="replyParentId"
+      [highlightTerm]="highlightTerm"
       (sortChanged)="sortChanged.emit($event)"
       (replyRequested)="replyRequested.emit($event)"
+      (loadRepliesRequested)="loadRepliesRequested.emit($event)"
       (imageRequested)="imageRequested.emit($event)"
       (textRequested)="textRequested.emit($event)"
       (captchaChanged)="captchaChanged.emit($event)"
@@ -93,15 +97,39 @@
     />
   }
 
-  @if (total > 25) {
-    <div class="pager">
-      <button type="button" [disabled]="page === 1" (click)="pageChanged.emit(page - 1)">
-        Previous
-      </button>
-      <span>Page {{ page }}</span>
-      <button type="button" [disabled]="page * 25 >= total" (click)="pageChanged.emit(page + 1)">
-        Next
-      </button>
-    </div>
-  }
+  <div class="discussion-footer">
+    @if (total > pageSize) {
+      <div class="pager">
+        <button type="button" [disabled]="page === 1" (click)="pageChanged.emit(page - 1)">
+          Previous
+        </button>
+        <nav class="page-numbers" aria-label="Comment pages">
+          @for (item of pageItems; track $index) {
+            @if (item === 'ellipsis') {
+              <span class="page-ellipsis" aria-hidden="true">…</span>
+            } @else {
+              <button
+                type="button"
+                [class.active]="item === page"
+                [attr.aria-current]="item === page ? 'page' : null"
+                (click)="pageChanged.emit(item)"
+              >
+                {{ item }}
+              </button>
+            }
+          }
+        </nav>
+        <button type="button" [disabled]="page >= pageCount" (click)="pageChanged.emit(page + 1)">
+          Next
+        </button>
+      </div>
+    }
+    <p class="discussion-counts" aria-label="Discussion pagination">
+      <span>{{ comments.length }} comments on this page</span>
+      <span>{{ replyCount }} replies on this page</span>
+      <span>{{ total }} total comments</span>
+      <span>{{ totalReplyCount }} total replies</span>
+      <span>Page {{ page }} of {{ pageCount }}</span>
+    </p>
+  </div>
 </section>

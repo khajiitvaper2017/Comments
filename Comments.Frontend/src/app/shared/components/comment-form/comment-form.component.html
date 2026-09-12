@@ -9,8 +9,8 @@
   </div>
   <form #commentForm="ngForm" (ngSubmit)="submit(commentForm)">
     <div class="fields">
-      <label
-        >User Name *
+      <label>
+        User Name *
         <input
           name="userName"
           #userName="ngModel"
@@ -29,8 +29,8 @@
           </span>
         }
       </label>
-      <label
-        >E-mail *
+      <label>
+        E-mail *
         <input
           type="email"
           name="email"
@@ -43,8 +43,8 @@
           <span class="form-error"> Enter a valid e-mail address. </span>
         }
       </label>
-      <label
-        >Home page
+      <label>
+        Home page
         <input
           type="text"
           name="homePage"
@@ -145,11 +145,12 @@
       <label
         class="file-field"
         title="JPG, JPEG, GIF, and PNG images are resized to a maximum of 320 × 240 px. TXT files must be no larger than 100 KB."
-        ><span class="file-label"
-          ><ng-icon name="lucidePaperclip" size="1rem" aria-hidden="true" /> Attachment</span
-        >
-        <input type="file" accept=".jpg,.jpeg,.gif,.png,.txt" (change)="chooseFile($event)"
-      /></label>
+      >
+        <span class="file-label">
+          <ng-icon name="lucidePaperclip" size="1rem" aria-hidden="true" /> Attachment
+        </span>
+        <input type="file" accept=".jpg,.jpeg,.gif,.png,.txt" (change)="chooseFile($event)" />
+      </label>
     </div>
     @if (formError) {
       <p class="form-error form-error-block" role="alert">{{ formError }}</p>
@@ -176,15 +177,17 @@
       <p>Enter the code shown below to post your comment.</p>
       @if (captcha; as currentCaptcha) {
         <div class="captcha">
-          <img [src]="currentCaptcha.imageDataUrl" alt="CAPTCHA challenge" /><button
+          <img [src]="currentCaptcha.imageDataUrl" alt="CAPTCHA challenge" />
+          <button
             class="text-button"
             type="button"
             title="Get a new CAPTCHA code"
             (click)="refreshCaptcha()"
             [disabled]="captchaLoading"
           >
-            <ng-icon name="lucideRefreshCw" size="0.95rem" aria-hidden="true" /> New code</button
-          ><input
+            <ng-icon name="lucideRefreshCw" size="0.95rem" aria-hidden="true" /> New code
+          </button>
+          <input
             name="captchaAnswer"
             [(ngModel)]="form.captchaAnswer"
             placeholder="Enter code *"

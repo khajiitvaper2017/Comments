@@ -39,21 +39,30 @@
           </button>
         </th>
         <th scope="col">Comment</th>
+        <th scope="col" aria-label="Actions"></th>
       </tr>
     </thead>
     <tbody>
       @for (comment of comments; track comment.id) {
         <tr class="root-comment-row">
-          <td>{{ comment.userName }}</td>
+          <td [innerHTML]="comment.userName | highlightSearch: highlightTerm"></td>
           <td>{{ comment.email }}</td>
           <td>{{ comment.createdAtUtc | date: 'dd.MM.yy HH:mm' }}</td>
           <td class="comment-table-content">
+            @if (comment.replyCount) {
+              <span class="reply-count">
+                {{ comment.replyCount }} {{ comment.replyCount === 1 ? 'reply' : 'replies' }}
+              </span>
+            }
             @if (comment.homePage) {
               <a class="homepage" [href]="comment.homePage" target="_blank" rel="noopener">
                 {{ comment.homePage | homePageLabel }}
               </a>
             }
-            <div class="comment-body" [innerHTML]="comment.text"></div>
+            <div
+              class="comment-body"
+              [innerHTML]="comment.text | highlightSearch: highlightTerm"
+            ></div>
             @if (comment.attachments.length) {
               <div class="attachments">
                 @for (attachment of comment.attachments; track attachment.id) {
@@ -84,38 +93,42 @@
                 }
               </div>
             }
-            <div class="table-comment-actions">
-              @if (comment.replies.length) {
-                <button
-                  class="table-replies-toggle"
-                  type="button"
-                  [class.expanded]="repliesAreVisible(comment.id)"
-                  [title]="repliesAreVisible(comment.id) ? 'Hide replies' : 'Show replies'"
-                  [attr.aria-label]="
-                    repliesAreVisible(comment.id) ? 'Hide replies' : 'Show replies'
-                  "
-                  [attr.aria-expanded]="repliesAreVisible(comment.id)"
-                  [attr.aria-controls]="'replies-' + comment.id"
-                  (click)="toggleReplies(comment.id)"
-                >
-                  <ng-icon name="lucideChevronDown" size="1rem" aria-hidden="true" />
-                </button>
-              }
+          </td>
+          <td class="table-comment-actions">
+            @if (comment.replies.length || comment.hasMoreReplies) {
               <button
-                class="reply-button"
+                class="reply-toggle"
                 type="button"
-                title="Reply to this comment"
-                aria-label="Reply to this comment"
-                (click)="replyRequested.emit(comment.id)"
+                [class.expanded]="repliesAreVisible(comment.id)"
+                [title]="repliesAreVisible(comment.id) ? 'Hide replies' : 'Show replies'"
+                [attr.aria-label]="
+                  comment.replyCount +
+                  ' ' +
+                  (comment.replyCount === 1 ? 'reply' : 'replies') +
+                  '. ' +
+                  (repliesAreVisible(comment.id) ? 'Hide replies' : 'Show replies')
+                "
+                [attr.aria-expanded]="repliesAreVisible(comment.id)"
+                [attr.aria-controls]="'replies-' + comment.id"
+                (click)="toggleOrLoadReplies(comment)"
               >
-                <ng-icon name="lucideReply" size="1rem" aria-hidden="true" />
+                <ng-icon name="lucideChevronDown" size="1rem" aria-hidden="true" />
               </button>
-            </div>
+            }
+            <button
+              class="reply-button"
+              type="button"
+              title="Reply to this comment"
+              aria-label="Reply to this comment"
+              (click)="replyRequested.emit(comment.id)"
+            >
+              <ng-icon name="lucideReply" size="1rem" aria-hidden="true" />
+            </button>
           </td>
         </tr>
         @if (repliesAreVisible(comment.id)) {
           <tr class="root-thread-row" [id]="'replies-' + comment.id">
-            <td colspan="4">
+            <td colspan="5">
               @if (replyParentId === comment.id) {
                 <article class="comment reply reply-composer" [style.--depth]="1">
                   <app-comment-form
@@ -126,7 +139,8 @@
                     (errorChanged)="errorChanged.emit($event)"
                     (submitted)="submitted.emit()"
                     (cancelled)="cancelled.emit()"
-                  ></app-comment-form>
+                  >
+                  </app-comment-form>
                 </article>
               }
               <app-comment-cards
@@ -134,14 +148,17 @@
                 [captcha]="captcha"
                 [replyParentId]="replyParentId"
                 [baseDepth]="1"
+                [highlightTerm]="highlightTerm"
                 (replyRequested)="replyRequested.emit($event)"
+                (loadRepliesRequested)="loadRepliesRequested.emit($event)"
                 (imageRequested)="imageRequested.emit($event)"
                 (textRequested)="textRequested.emit($event)"
                 (captchaChanged)="captchaChanged.emit($event)"
                 (errorChanged)="errorChanged.emit($event)"
                 (submitted)="submitted.emit()"
                 (cancelled)="cancelled.emit()"
-              ></app-comment-cards>
+              >
+              </app-comment-cards>
             </td>
           </tr>
         }

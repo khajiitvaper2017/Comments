@@ -27,6 +27,15 @@ export class CommentApiService {
     return this.http.get<CommentPage>('/api/comments', { params });
   }
 
+  getReplies(parentId: string) {
+    return this.http.get<CommentItem[]>(`/api/comments/${parentId}/replies`);
+  }
+
+  searchComments(query: string, page = 1) {
+    const params = new HttpParams().set('q', query).set('page', page);
+    return this.http.get<CommentPage>('/api/search', { params });
+  }
+
   createComment(value: CommentFormValue, captchaId: string, file?: File) {
     const data = new FormData();
     Object.entries({ ...value, captchaId, parentId: value.parentId || '' }).forEach(([key, item]) =>

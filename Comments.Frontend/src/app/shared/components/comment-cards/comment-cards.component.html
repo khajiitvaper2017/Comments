@@ -1,9 +1,7 @@
 <div class="comment-list">
   @for (comment of comments; track comment.id) {
-    <ng-template
-      [ngTemplateOutlet]="row"
-      [ngTemplateOutletContext]="{ comment, depth: baseDepth }"
-    ></ng-template>
+    <ng-template [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ comment, depth: baseDepth }">
+    </ng-template>
   }
 </div>
 
@@ -12,14 +10,40 @@
     <header class="comment-header">
       <div class="avatar" aria-hidden="true">{{ comment.userName.charAt(0).toUpperCase() }}</div>
       <div class="identity">
-        <strong>{{ comment.userName }}</strong>
+        <strong [innerHTML]="comment.userName | highlightSearch: highlightTerm"></strong>
         <span>{{ comment.createdAtUtc | date: 'dd.MM.yy HH:mm' }}</span>
+        @if (comment.replyCount) {
+          <span class="reply-count">
+            {{ comment.replyCount }} {{ comment.replyCount === 1 ? 'reply' : 'replies' }}
+          </span>
+        }
         @if (comment.homePage) {
           <a class="homepage" [href]="comment.homePage" target="_blank" rel="noopener">
             {{ comment.homePage | homePageLabel }}
           </a>
         }
       </div>
+    </header>
+    <div class="comment-actions">
+      @if (comment.replyCount) {
+        <button
+          class="reply-toggle"
+          type="button"
+          [class.expanded]="repliesAreVisible(comment)"
+          [title]="repliesAreVisible(comment) ? 'Hide replies' : 'Show replies'"
+          [attr.aria-label]="
+            comment.replyCount +
+            ' ' +
+            (comment.replyCount === 1 ? 'reply' : 'replies') +
+            '. ' +
+            (repliesAreVisible(comment) ? 'Hide replies' : 'Show replies')
+          "
+          [attr.aria-expanded]="repliesAreVisible(comment)"
+          (click)="toggleOrLoadReplies(comment)"
+        >
+          <ng-icon name="lucideChevronDown" size="1rem" aria-hidden="true" />
+        </button>
+      }
       <button
         class="reply-button"
         type="button"
@@ -29,8 +53,8 @@
       >
         <ng-icon name="lucideReply" size="1rem" aria-hidden="true" />
       </button>
-    </header>
-    <div class="comment-body" [innerHTML]="comment.text"></div>
+    </div>
+    <div class="comment-body" [innerHTML]="comment.text | highlightSearch: highlightTerm"></div>
     @if (comment.attachments.length) {
       <div class="attachments">
         @for (attachment of comment.attachments; track attachment.id) {
@@ -68,14 +92,18 @@
           (errorChanged)="errorChanged.emit($event)"
           (submitted)="submitted.emit()"
           (cancelled)="cancelled.emit()"
-        ></app-comment-form>
+        >
+        </app-comment-form>
       </article>
     }
-    @for (child of comment.replies; track child.id) {
-      <ng-template
-        [ngTemplateOutlet]="row"
-        [ngTemplateOutletContext]="{ comment: child, depth: depth + 1 }"
-      ></ng-template>
+    @if (repliesAreVisible(comment)) {
+      @for (child of comment.replies; track child.id) {
+        <ng-template
+          [ngTemplateOutlet]="row"
+          [ngTemplateOutletContext]="{ comment: child, depth: depth + 1 }"
+        >
+        </ng-template>
+      }
     }
   </article>
 </ng-template>
