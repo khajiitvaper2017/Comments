@@ -20,7 +20,7 @@ docker compose up --build
 
 Open [http://localhost:8080](http://localhost:8080).
 
-Docker runs SQL Server, Redis, RabbitMQ, the ASP.NET API, and Angular separately. Nginx serves the Angular frontend and proxies `/api` and SignalR requests to the API. Docker stores the database in the `comments-db` volume and uploaded files in the `comments-files` volume. Stop the application with `Ctrl+C`.
+Docker runs SQL Server, Redis, RabbitMQ, Elasticsearch, the ASP.NET API, and Angular separately. Nginx serves the Angular frontend and proxies `/api` and SignalR requests to the API. Docker stores the database in the `comments-db` volume, uploaded files in the `comments-files` volume, and the Elasticsearch index in the `comments-search` volume. Stop the application with `Ctrl+C`.
 
 ## Run locally
 
@@ -29,7 +29,7 @@ Requirements:
 - .NET 10 SDK
 - Node.js and npm
 - SQL Server (SQL Server Express, LocalDB, or another instance)
-- Redis and RabbitMQ for the upgraded Docker/API setup
+- Redis, RabbitMQ and Elasticsearch for the Docker/API setup
 
 SSMS is only a database client. A SQL Server engine must also be installed and running.
 
@@ -79,6 +79,7 @@ Interactive Swagger documentation is available at [http://localhost:8080/api/](h
 | `POST` | `/api/comments` | Create a comment or reply. Accepts multipart form data, including optional attachments and CAPTCHA fields. |
 | `GET` | `/api/captcha` | Create a CAPTCHA challenge. |
 | `GET` | `/api/attachments/{id}` | Display or download an uploaded attachment. |
+| `GET` | `/api/search?q=term&page=1` | Search sanitized comment text and user names through Elasticsearch. |
 | `GET` | `/health` | Check whether the API is running. |
 
 SignalR clients connect to `/hubs/discussions`. Swagger is available at `/api/`.
@@ -96,7 +97,8 @@ The API applies database migrations on startup. Invalid input returns an HTTP `4
 - **Security** — comment HTML is allow-listed and sanitized on the server; security headers protect the served application.
 - **Persistence** — SQL Server stores comments and attachment metadata; EF Core migrations create and update the schema.
 - **Separate file storage** — uploaded files are stored outside the API binaries, using local storage or a Docker volume.
-- **Asynchronous processing** — RabbitMQ workers process image attachments after comment creation; Redis caches comment pages and SignalR broadcasts discussion changes.
+- **Asynchronous processing and search** — RabbitMQ workers process image attachments and update the Elasticsearch search index after comment creation; Redis caches comment pages and SignalR broadcasts updates.
+- **Search** — search comment text and user names through Elasticsearch, with pagination and highlighting of matching terms.
 
 ## Useful commands
 
