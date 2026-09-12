@@ -24,6 +24,13 @@ public sealed class CommentsController(ICommentService service) : ControllerBase
         return service.GetRootsAsync(page, sort, descending, ct);
     }
 
+    /// <summary>Returns the next bounded section of replies for a comment.</summary>
+    [HttpGet("{parentId:guid}/replies")]
+    public Task<IReadOnlyList<CommentDto>> GetReplies(Guid parentId, CancellationToken ct)
+    {
+        return service.GetRepliesAsync(parentId, ct);
+    }
+
     /// <summary>Creates a comment or reply, with optional attachments.</summary>
     [HttpPost]
     public async Task<ActionResult<CommentDto>> Post([FromForm] CreateCommentFormModel formModel, CancellationToken ct)

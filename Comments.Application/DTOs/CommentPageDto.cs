@@ -6,4 +6,5 @@ public sealed record CommentPageDto(
     int PageSize,
     int TotalCount,
     string Sort,
-    bool Descending);
+    bool Descending,
+    int TotalReplyCount = 0);

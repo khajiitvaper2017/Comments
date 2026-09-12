@@ -3,6 +3,7 @@
     <TargetFramework>net10.0</TargetFramework><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Elastic.Clients.Elasticsearch" Version="9.5.2" />
     <ProjectReference Include="..\Comments.Domain\Comments.Domain.csproj" />
     <ProjectReference Include="..\Comments.Application\Comments.Application.csproj" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.11" />

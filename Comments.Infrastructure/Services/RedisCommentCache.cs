@@ -7,7 +7,8 @@ namespace Comments.Infrastructure.Services;
 
 public sealed class RedisCommentCache(IDistributedCache cache) : ICommentCache
 {
-    private const string VersionKey = "comments:cache-version";
+    // v2 separates root pages from lazy-loaded reply levels.
+    private const string VersionKey = "comments:cache-version:v5";
 
     public async Task<CommentPageDto?> GetAsync(int page, string sort, bool descending, CancellationToken ct)
     {

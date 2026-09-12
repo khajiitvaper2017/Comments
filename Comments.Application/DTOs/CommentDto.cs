@@ -9,4 +9,7 @@ public sealed record CommentDto(
     string Text,
     DateTime CreatedAtUtc,
     IReadOnlyList<AttachmentDto> Attachments,
-    IReadOnlyList<CommentDto> Replies);
+    IReadOnlyList<CommentDto> Replies,
+    int ReplyCount = 0,
+    bool HasMoreReplies = false,
+    bool IsSearchMatch = false);

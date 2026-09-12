@@ -20,6 +20,33 @@ public sealed class CommentService(
     IAttachmentStorageService attachments,
     ICommentCache cache) : ICommentService
 {
+    private const int MaxReplyDepth = 24;
+
+    /// <summary>Returns the next bounded section of replies for a comment.</summary>
+    public async Task<IReadOnlyList<CommentDto>> GetRepliesAsync(Guid parentId, CancellationToken ct)
+    {
+        var parent = await db.Comments.AsNoTracking()
+            .Where(x => x.Id == parentId && !x.IsDeleted)
+            .Select(x => new { x.RootId })
+            .SingleOrDefaultAsync(ct);
+        if (parent is null) return [];
+
+        var replies = await db.Comments.AsNoTracking()
+            .Where(x => x.RootId == parent.RootId && x.ParentId != null && !x.IsDeleted)
+            .Include(x => x.Attachments)
+            .OrderBy(x => x.CreatedAtUtc)
+            .ToListAsync(ct);
+
+        var parentsWithReplies = replies
+            .Where(x => x.ParentId != null)
+            .Select(x => x.ParentId!.Value)
+            .ToHashSet();
+
+        return replies.Where(x => x.ParentId == parentId)
+            .Select(x => Map(x, replies, parentsWithReplies, 0))
+            .ToList();
+    }
+
     /// <summary>Loads one page of root comments together with their replies.</summary>
     public async Task<CommentPageDto> GetRootsAsync(int page, string sort, bool descending, CancellationToken ct)
     {
@@ -31,28 +58,34 @@ public sealed class CommentService(
         var query = db.Comments.AsNoTracking().Where(x => x.ParentId == null && !x.IsDeleted);
         query = sort switch
         {
-            "userName" => descending ? query.OrderByDescending(x => x.UserName) : query.OrderBy(x => x.UserName),
-            "email" => descending ? query.OrderByDescending(x => x.Email) : query.OrderBy(x => x.Email),
-            _ => descending ? query.OrderByDescending(x => x.CreatedAtUtc) : query.OrderBy(x => x.CreatedAtUtc)
+            "userName" => descending
+                ? query.OrderByDescending(x => x.UserName).ThenByDescending(x => x.Id)
+                : query.OrderBy(x => x.UserName).ThenBy(x => x.Id),
+            "email" => descending
+                ? query.OrderByDescending(x => x.Email).ThenByDescending(x => x.Id)
+                : query.OrderBy(x => x.Email).ThenBy(x => x.Id),
+            _ => descending
+                ? query.OrderByDescending(x => x.CreatedAtUtc).ThenByDescending(x => x.Id)
+                : query.OrderBy(x => x.CreatedAtUtc).ThenBy(x => x.Id)
         };
         var total = await query.CountAsync(ct);
+        var totalReplyCount = await db.Comments.CountAsync(x => x.ParentId != null && !x.IsDeleted, ct);
         var roots = await query.Skip((page - 1) * 25).Take(25).Include(x => x.Attachments).ToListAsync(ct);
         var rootIds = roots.Select(x => x.Id).ToArray();
-        var replies = rootIds.Length == 0
-            ? []
+        var replyCounts = rootIds.Length == 0
+            ? new Dictionary<Guid, int>()
             : await db.Comments.AsNoTracking()
-                .Where(x => !x.IsDeleted && x.ParentId != null && rootIds.Contains(x.RootId))
-                .Include(x => x.Attachments)
-                .OrderBy(x => x.CreatedAtUtc)
-                .ToListAsync(ct);
-        var commentsForPage = roots.Concat(replies).ToList();
+                .Where(x => x.ParentId != null && rootIds.Contains(x.ParentId.Value) && !x.IsDeleted)
+                .GroupBy(x => x.ParentId!.Value)
+                .ToDictionaryAsync(group => group.Key, group => group.Count(), ct);
         var result = new CommentPageDto(
-            roots.Select(x => Map(x, commentsForPage)).ToList(),
+            roots.Select(x => ToDto(x, [], replyCounts.TryGetValue(x.Id, out var count), count)).ToList(),
             page,
             25,
             total,
             sort,
-            descending);
+            descending,
+            totalReplyCount);
         await cache.SetAsync(page, sort, descending, result, ct);
         return result;
     }
@@ -97,7 +130,7 @@ public sealed class CommentService(
             AddOutbox(new ProcessAttachment(attachment.Id));
         await db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
-        return Map(comment, [comment]);
+        return Map(comment, [comment], new HashSet<Guid>(), 0);
     }
 
     private void AddOutbox<T>(T message)
@@ -130,13 +163,31 @@ public sealed class CommentService(
         return uri.ToString();
     }
 
-    private static CommentDto Map(Comment comment, IEnumerable<Comment> all)
+    private static CommentDto Map(
+        Comment comment,
+        IEnumerable<Comment> all,
+        IReadOnlySet<Guid> parentsWithReplies,
+        int depth)
     {
+        if (depth >= MaxReplyDepth)
+            return ToDto(comment, [], parentsWithReplies.Contains(comment.Id),
+                all.Count(x => x.ParentId == comment.Id));
+
         var replies = all.Where(x => x.ParentId == comment.Id).OrderBy(x => x.CreatedAtUtc)
-            .Select(x => Map(x, all)).ToList();
+            .Select(x => Map(x, all, parentsWithReplies, depth + 1)).ToList();
+        return ToDto(comment, replies, replies.Count == 0 && parentsWithReplies.Contains(comment.Id),
+            replies.Count);
+    }
+
+    private static CommentDto ToDto(
+        Comment comment,
+        IReadOnlyList<CommentDto> replies,
+        bool hasMoreReplies,
+        int replyCount)
+    {
         return new CommentDto(comment.Id, comment.ParentId, comment.UserName, comment.Email, comment.HomePage,
             comment.SanitizedText, comment.CreatedAtUtc,
             comment.Attachments.Select(a => new AttachmentDto(a.Id, a.OriginalName, a.ContentType, a.Size,
-                a.Width, a.Height)).ToList(), replies);
+                a.Width, a.Height)).ToList(), replies, replyCount, hasMoreReplies);
     }
 }

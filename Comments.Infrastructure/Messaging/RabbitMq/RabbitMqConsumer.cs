@@ -20,6 +20,7 @@ public sealed class RabbitMqConsumer(
         // Each queue has its own scoped handler, while this class owns transport concerns only.
         CreateConsumer<CacheInvalidationHandler>(RabbitMqTopology.CacheQueue, stoppingToken);
         CreateConsumer<RealtimeNotificationHandler>(RabbitMqTopology.RealtimeQueue, stoppingToken);
+        CreateConsumer<SearchIndexingHandler>(RabbitMqTopology.SearchQueue, stoppingToken);
         CreateConsumer<AttachmentJobHandler>(RabbitMqTopology.AttachmentQueue, stoppingToken);
         return Task.Delay(Timeout.Infinite, stoppingToken);
     }
@@ -100,6 +101,7 @@ public sealed class RabbitMqConsumer(
         {
             RabbitMqTopology.CacheQueue => ["CommentCreated", "ReplyCreated"],
             RabbitMqTopology.RealtimeQueue => ["CommentCreated", "ReplyCreated"],
+            RabbitMqTopology.SearchQueue => ["CommentCreated", "ReplyCreated"],
             RabbitMqTopology.AttachmentQueue => ["ProcessAttachment"],
             _ => Array.Empty<string>()
         };
