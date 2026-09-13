@@ -30,6 +30,7 @@ public static class ApplicationExtensions
 
         app.MapHealthChecks("/health");
         app.MapControllers();
+        app.MapGraphQL();
         app.MapHub<DiscussionHub>("/hubs/discussions");
         return app;
     }

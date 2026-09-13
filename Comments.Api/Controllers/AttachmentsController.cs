@@ -3,6 +3,7 @@ using Comments.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Path = System.IO.Path;
 
 namespace Comments.Api.Controllers;
 

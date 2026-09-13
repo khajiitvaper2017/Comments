@@ -1,3 +1,4 @@
+using Comments.Api.GraphQL;
 using Comments.Api.Realtime;
 using Comments.Application.Abstractions;
 using Comments.Infrastructure.Messaging.Handlers;
@@ -9,6 +10,7 @@ using Comments.Infrastructure.Search;
 using Comments.Infrastructure.Services;
 using Elastic.Clients.Elasticsearch;
 using Microsoft.EntityFrameworkCore;
+using Path = System.IO.Path;
 
 namespace Comments.Api.Configuration;
 
@@ -25,6 +27,7 @@ public static class ServiceCollectionExtensions
         services.AddOpenApi();
         services.AddSwaggerGen(options =>
             options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, "Comments.Api.xml")));
+        services.AddGraphQLServer().AddQueryType<Query>();
         return services;
     }
 
