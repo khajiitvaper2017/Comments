@@ -23,6 +23,11 @@ import {
 import { CommentApiService } from '@app/core/services/comment-api.service';
 import { Captcha, CommentFormValue } from '@app/core/models/comment.models';
 import { finalize } from 'rxjs';
+import {
+  validateHomePage,
+  validateMarkup,
+  validateText,
+} from '@app/shared/validation/comment-validation';
 
 @Component({
   selector: 'app-comment-form',
@@ -123,7 +128,7 @@ export class CommentFormComponent {
   }
   setTextMode(mode: 'code' | 'preview') {
     if (mode === 'preview') {
-      const markupError = this.validateMarkup();
+      const markupError = validateMarkup(this.form.text);
       if (markupError) {
         this.formError = markupError;
         return;
@@ -144,12 +149,12 @@ export class CommentFormComponent {
       }
       this.homePageError = this.getHomePageError(this.form.homePage);
       if (this.homePageError) return;
-      if (this.file?.name.toLowerCase().endsWith('.txt') && this.file.size > 100 * 1024) return;
-      const markupError = this.validateMarkup();
-      if (markupError) {
-        this.formError = markupError;
+      const textError = validateText(this.form.text);
+      if (textError) {
+        this.formError = textError;
         return;
       }
+      if (this.file?.name.toLowerCase().endsWith('.txt') && this.file.size > 100 * 1024) return;
       this.formError = '';
       this.openCaptcha();
       return;
@@ -205,39 +210,7 @@ export class CommentFormComponent {
       );
   }
 
-  private validateMarkup() {
-    const tagPattern = /<\/?(a|code|i|strong)(?:\s+[^>]*)?\/?/gi;
-    const completeTagPattern = /<\/?(a|code|i|strong)(?:\s+[^>]*)?\s*\/?>/gi;
-    const remaining = this.form.text.replace(completeTagPattern, '');
-    if (/[<>]/.test(remaining)) return 'Invalid XHTML.';
-
-    const stack: string[] = [];
-    for (const match of this.form.text.matchAll(tagPattern)) {
-      const tag = match[1].toLowerCase();
-      const isClosing = match[0].startsWith('</');
-      const isSelfClosing = match[0].endsWith('/>');
-      if (isClosing) {
-        if (stack.pop() !== tag) return 'Invalid XHTML.';
-      } else if (!isSelfClosing) {
-        stack.push(tag);
-      }
-    }
-    return stack.length ? 'Invalid XHTML.' : '';
-  }
-
   private getHomePageError(value: string) {
-    const trimmed = value.trim();
-    if (!trimmed) return '';
-
-    const normalized = trimmed.includes('://') ? trimmed : `https://${trimmed}`;
-    try {
-      const url = new URL(normalized);
-      if (!['http:', 'https:'].includes(url.protocol) || !url.hostname)
-        return 'Home page must be a valid HTTP(S) URL.';
-    } catch {
-      return 'Home page must be a valid HTTP(S) URL.';
-    }
-
-    return '';
+    return validateHomePage(value);
   }
 }

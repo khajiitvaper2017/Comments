@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.RegularExpressions;
 using Comments.Application.Abstractions;
 using Comments.Application.Data;
 using Comments.Application.DTOs;
@@ -95,7 +94,7 @@ public sealed class CommentService(
     {
         // Files are stored before the transaction so the database row can reference their paths;
         // image conversion is deferred to the attachment queue.
-        Validate(request);
+        CommentRequestValidator.Validate(request);
         if (!captcha.Verify(request.CaptchaId, request.CaptchaAnswer))
             throw new ValidationException("CAPTCHA is invalid or expired.");
         var text = validationService.SanitizeAndValidate(request.Text);
@@ -109,7 +108,7 @@ public sealed class CommentService(
             RootId = parent?.RootId ?? Guid.Empty,
             UserName = request.UserName.Trim(),
             Email = request.Email.Trim(),
-            HomePage = NormalizeHomePage(request.HomePage),
+            HomePage = CommentRequestValidator.NormalizeHomePage(request.HomePage),
             RawText = request.Text,
             SanitizedText = text,
             IpAddress = ip,
@@ -143,25 +142,6 @@ public sealed class CommentService(
         });
     }
 
-    private static void Validate(CreateCommentRequest request)
-    {
-        if (!Regex.IsMatch(request.UserName.Trim(), "^[A-Za-z0-9]+$") || request.UserName.Length > 100)
-            throw new ValidationException("User Name must contain only Latin letters and digits.");
-        if (!Regex.IsMatch(request.Email, "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$"))
-            throw new ValidationException("A valid e-mail is required.");
-        _ = NormalizeHomePage(request.HomePage);
-    }
-
-    private static string? NormalizeHomePage(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value)) return null;
-        var normalized = value.Trim();
-        if (!normalized.Contains("://", StringComparison.Ordinal)) normalized = "https://" + normalized;
-        if (!Uri.TryCreate(normalized, UriKind.Absolute, out var uri) ||
-            uri.Scheme is not ("http" or "https") || string.IsNullOrWhiteSpace(uri.Host))
-            throw new ValidationException("Home page must be a valid HTTP(S) URL.");
-        return uri.ToString();
-    }
 
     private static CommentDto Map(
         Comment comment,

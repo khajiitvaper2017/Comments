@@ -3,39 +3,36 @@
     <h2 id="discussion-title">Comments</h2>
     <div class="discussion-controls">
       @if (viewMode === 'cards' && !searchMode) {
-        <div class="sorter" aria-label="Sort comments">
-          <span>Sort by</span>
-          <button
-            type="button"
-            [class.active]="sort === 'createdAt'"
-            (click)="sortChanged.emit('createdAt')"
-          >
-            Date
-            @if (sort === 'createdAt') {
-              {{ descending ? '↓' : '↑' }}
-            }
-          </button>
-          <button
-            type="button"
-            [class.active]="sort === 'userName'"
-            (click)="sortChanged.emit('userName')"
-          >
-            Name
-            @if (sort === 'userName') {
-              {{ descending ? '↓' : '↑' }}
-            }
-          </button>
-          <button
-            type="button"
-            [class.active]="sort === 'email'"
-            (click)="sortChanged.emit('email')"
-          >
-            E-mail
-            @if (sort === 'email') {
-              {{ descending ? '↓' : '↑' }}
-            }
-          </button>
-        </div>
+      <div class="sorter" aria-label="Sort comments">
+        <span>Sort by</span>
+        <button
+          type="button"
+          [class.active]="sort === 'createdAt'"
+          (click)="sortChanged.emit('createdAt')">
+          Date
+          @if (sort === 'createdAt') {
+          {{ descending ? '↓' : '↑' }}
+          }
+        </button>
+        <button
+          type="button"
+          [class.active]="sort === 'userName'"
+          (click)="sortChanged.emit('userName')">
+          Name
+          @if (sort === 'userName') {
+          {{ descending ? '↓' : '↑' }}
+          }
+        </button>
+        <button
+          type="button"
+          [class.active]="sort === 'email'"
+          (click)="sortChanged.emit('email')">
+          E-mail
+          @if (sort === 'email') {
+          {{ descending ? '↓' : '↑' }}
+          }
+        </button>
+      </div>
       }
       <div class="view-switch" role="group" aria-label="Comment view">
         <button
@@ -43,86 +40,81 @@
           title="Card view"
           aria-label="Card view"
           [class.active]="viewMode === 'cards'"
-          (click)="setViewMode('cards')"
-        >
-          <ng-icon name="lucideList" size="1rem" aria-hidden="true" />
+          (click)="setViewMode('cards')">
+          <ng-icon name="lucideList" size="1rem" aria-hidden="true"/>
         </button>
         <button
           type="button"
           title="Table view"
           aria-label="Table view"
           [class.active]="viewMode === 'table'"
-          (click)="setViewMode('table')"
-        >
-          <ng-icon name="lucideTable2" size="1rem" aria-hidden="true" />
+          (click)="setViewMode('table')">
+          <ng-icon name="lucideTable2" size="1rem" aria-hidden="true"/>
         </button>
       </div>
     </div>
   </div>
 
   @if (!comments.length) {
-    <p class="empty">No comments yet. Start the discussion below.</p>
+  <p class="empty">No comments yet. Start the discussion below.</p>
   } @else if (viewMode === 'cards') {
-    <app-comment-cards
-      [comments]="comments"
-      [captcha]="captcha"
-      [replyParentId]="replyParentId"
-      [highlightTerm]="highlightTerm"
-      (replyRequested)="replyRequested.emit($event)"
-      (loadRepliesRequested)="loadRepliesRequested.emit($event)"
-      (imageRequested)="imageRequested.emit($event)"
-      (textRequested)="textRequested.emit($event)"
-      (captchaChanged)="captchaChanged.emit($event)"
-      (errorChanged)="errorChanged.emit($event)"
-      (submitted)="submitted.emit()"
-      (cancelled)="cancelled.emit()"
-    />
+  <app-comment-cards
+    [comments]="comments"
+    [captcha]="captcha"
+    [replyParentId]="replyParentId"
+    [highlightTerm]="highlightTerm"
+    (replyRequested)="replyRequested.emit($event)"
+    (loadRepliesRequested)="loadRepliesRequested.emit($event)"
+    (imageRequested)="imageRequested.emit($event)"
+    (textRequested)="textRequested.emit($event)"
+    (captchaChanged)="captchaChanged.emit($event)"
+    (errorChanged)="errorChanged.emit($event)"
+    (submitted)="submitted.emit()"
+    (cancelled)="cancelled.emit()"/>
   } @else {
-    <app-comment-table
-      [comments]="comments"
-      [sort]="sort"
-      [descending]="descending"
-      [captcha]="captcha"
-      [replyParentId]="replyParentId"
-      [highlightTerm]="highlightTerm"
-      (sortChanged)="sortChanged.emit($event)"
-      (replyRequested)="replyRequested.emit($event)"
-      (loadRepliesRequested)="loadRepliesRequested.emit($event)"
-      (imageRequested)="imageRequested.emit($event)"
-      (textRequested)="textRequested.emit($event)"
-      (captchaChanged)="captchaChanged.emit($event)"
-      (errorChanged)="errorChanged.emit($event)"
-      (submitted)="submitted.emit()"
-      (cancelled)="cancelled.emit()"
-    />
+  <app-comment-table
+    [comments]="comments"
+    [sort]="sort"
+    [descending]="descending"
+    [captcha]="captcha"
+    [replyParentId]="replyParentId"
+    [highlightTerm]="highlightTerm"
+    (sortChanged)="sortChanged.emit($event)"
+    (replyRequested)="replyRequested.emit($event)"
+    (loadRepliesRequested)="loadRepliesRequested.emit($event)"
+    (imageRequested)="imageRequested.emit($event)"
+    (textRequested)="textRequested.emit($event)"
+    (captchaChanged)="captchaChanged.emit($event)"
+    (errorChanged)="errorChanged.emit($event)"
+    (submitted)="submitted.emit()"
+    (cancelled)="cancelled.emit()"/>
   }
 
   <div class="discussion-footer">
     @if (total > pageSize) {
-      <div class="pager">
-        <button type="button" [disabled]="page === 1" (click)="pageChanged.emit(page - 1)">
-          Previous
+    <div class="pager">
+      <button type="button" [disabled]="page === 1" (click)="pageChanged.emit(page - 1)">
+        Previous
+      </button>
+      <nav class="page-numbers" aria-label="Comment pages">
+        @for (item of pageItems; track $index) {
+        @if (item === 'ellipsis') {
+        <span class="page-ellipsis" aria-hidden="true">…</span>
+        } @else {
+        <button
+          type="button"
+          [class.active]="item === page"
+          [attr.aria-current]="item === page ? 'page' : null"
+          (click)="pageChanged.emit(item)">
+          {{ item }}
         </button>
-        <nav class="page-numbers" aria-label="Comment pages">
-          @for (item of pageItems; track $index) {
-            @if (item === 'ellipsis') {
-              <span class="page-ellipsis" aria-hidden="true">…</span>
-            } @else {
-              <button
-                type="button"
-                [class.active]="item === page"
-                [attr.aria-current]="item === page ? 'page' : null"
-                (click)="pageChanged.emit(item)"
-              >
-                {{ item }}
-              </button>
-            }
-          }
-        </nav>
-        <button type="button" [disabled]="page >= pageCount" (click)="pageChanged.emit(page + 1)">
-          Next
-        </button>
-      </div>
+        }
+        }
+      </nav>
+      <button type="button" [disabled]="page >= pageCount" (click)="pageChanged.emit(page + 1)">
+        Next
+      </button>
+    </div>
     }
     <p class="discussion-counts" aria-label="Discussion pagination">
       <span>{{ comments.length }} comments on this page</span>

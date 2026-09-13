@@ -102,6 +102,15 @@ The API applies database migrations on startup. Invalid input returns an HTTP `4
 
 ## Useful commands
 
+Run the focused automated tests:
+
+```powershell
+dotnet test
+npx --prefix .\Comments.Frontend ng test --watch=false --no-progress
+```
+
+Building the solution and frontend:
+
 ```powershell
 dotnet build .\Comments.slnx
 
