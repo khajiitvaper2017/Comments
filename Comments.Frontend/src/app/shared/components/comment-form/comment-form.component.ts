@@ -47,6 +47,7 @@ import {
   templateUrl: './comment-form.component.html',
 })
 export class CommentFormComponent {
+  private static readonly profileStorageKey = 'comments.user-profile';
   @ViewChild('textInput') private textInput?: ElementRef<HTMLTextAreaElement>;
   @Input() captcha: Captcha | null = null;
   @Input() parentId = '';
@@ -73,6 +74,10 @@ export class CommentFormComponent {
   isSubmitting = false;
   formError = '';
   homePageError = '';
+
+  constructor() {
+    this.restoreUserProfile();
+  }
 
   onHomePageChange(value: string) {
     this.homePageError = this.getHomePageError(value);
@@ -173,6 +178,7 @@ export class CommentFormComponent {
       .subscribe(
         () => {
           this.isSubmitting = false;
+          this.saveUserProfile();
           this.form = {
             userName: '',
             email: '',
@@ -212,5 +218,36 @@ export class CommentFormComponent {
 
   private getHomePageError(value: string) {
     return validateHomePage(value);
+  }
+
+  private restoreUserProfile() {
+    try {
+      const stored = localStorage.getItem(CommentFormComponent.profileStorageKey);
+      if (!stored) return;
+
+      const profile = JSON.parse(stored) as Partial<
+        Pick<CommentFormValue, 'userName' | 'email' | 'homePage'>
+      >;
+      this.form.userName = typeof profile.userName === 'string' ? profile.userName : '';
+      this.form.email = typeof profile.email === 'string' ? profile.email : '';
+      this.form.homePage = typeof profile.homePage === 'string' ? profile.homePage : '';
+    } catch {
+      // Ignore unavailable or invalid browser storage.
+    }
+  }
+
+  private saveUserProfile() {
+    try {
+      localStorage.setItem(
+        CommentFormComponent.profileStorageKey,
+        JSON.stringify({
+          userName: this.form.userName,
+          email: this.form.email,
+          homePage: this.form.homePage,
+        }),
+      );
+    } catch {
+      // Ignore unavailable browser storage.
+    }
   }
 }
