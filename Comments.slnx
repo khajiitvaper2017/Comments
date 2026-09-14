@@ -4,5 +4,6 @@
   <Project Path="Comments.Infrastructure/Comments.Infrastructure.csproj" />
   <Project Path="Comments.Api/Comments.Api.csproj" />
   <Project Path="Comments.Tests/Comments.Tests.csproj" />
+  <Project Path="Comments.Tests/LoadTests/Comments.LoadTests.csproj" />
   <Project Path="Comments.Frontend/Comments.Frontend.esproj"><Build /><Deploy /></Project>
 </Solution>

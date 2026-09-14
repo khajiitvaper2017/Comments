@@ -109,6 +109,22 @@ dotnet test
 npx --prefix .\Comments.Frontend ng test --watch=false --no-progress
 ```
 
+Run the fixed NBomber load scenario against a running Docker stack:
+
+```powershell
+$env:COMMENTS_ENABLE_LOADTEST_CAPTCHA = 'true'
+docker compose up --build -d
+dotnet run --project .\Comments.Tests\LoadTests\Comments.LoadTests.csproj
+```
+
+The scenario is stored in `Comments.Tests/LoadTests` and runs for 1 minute at
+approximately 12 comment writes per second. This models the required
+1,000,000 messages per 24 hours without making the test itself run for 24 hours.
+The read scenarios are included.
+The runner performs both reads and writes. Use a disposable database. 
+The CAPTCHA bypass is enabled only by `COMMENTS_ENABLE_LOADTEST_CAPTCHA=true` and
+defaults to disabled.
+
 Building the solution and frontend:
 
 ```powershell

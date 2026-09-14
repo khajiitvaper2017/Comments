@@ -60,6 +60,7 @@ services:
   app:
     build: .
     environment:
+      Captcha__EnableLoadTestBypass: "${COMMENTS_ENABLE_LOADTEST_CAPTCHA:-false}"
       ConnectionStrings__Comments: "Server=db,1433;Database=Comments;User Id=sa;Password=${COMMENTS_DB_PASSWORD};TrustServerCertificate=True"
       Storage__Root: "/data/uploads"
       ConnectionStrings__Redis: "redis:6379"

@@ -71,9 +71,15 @@ public static class ServiceCollectionExtensions
         return services;
     }
 
-    public static IServiceCollection AddApplicationServices(this IServiceCollection services)
+    public static IServiceCollection AddApplicationServices(this IServiceCollection services,
+        IConfiguration configuration)
     {
-        services.AddSingleton<ICaptchaService, CaptchaService>();
+        var loadTestCaptchaEnabled = configuration.GetValue<bool>("Captcha:EnableLoadTestBypass");
+        if (loadTestCaptchaEnabled)
+            services.AddSingleton<ICaptchaService, LoadTestCaptchaService>();
+        else
+            services.AddSingleton<ICaptchaService, CaptchaService>();
+
         services.AddScoped<ITextValidationService, TextValidationService>();
         services.AddScoped<IAttachmentStorageService, AttachmentStorageService>();
         services.AddScoped<IAttachmentProcessor, AttachmentProcessingService>();

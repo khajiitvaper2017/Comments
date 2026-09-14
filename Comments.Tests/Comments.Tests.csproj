@@ -16,6 +16,9 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Remove="LoadTests/**/*.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\Comments.Application\Comments.Application.csproj" />
     <ProjectReference Include="..\Comments.Api\Comments.Api.csproj" />
     <ProjectReference Include="..\Comments.Infrastructure\Comments.Infrastructure.csproj" />

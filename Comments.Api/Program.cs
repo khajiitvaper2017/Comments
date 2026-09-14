@@ -7,7 +7,7 @@ builder.Services
     .AddDatabase(builder.Configuration)
     .AddRedis(builder.Configuration)
     .AddElasticsearch(builder.Configuration)
-    .AddApplicationServices()
+    .AddApplicationServices(builder.Configuration)
     .AddRabbitMq();
 
 builder.Services.AddCommentsApi();

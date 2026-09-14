@@ -57,12 +57,16 @@ public sealed class CommentServiceTests
         await using var database = CreateDatabase();
         var service = CreateService(database, new FakeCaptcha());
 
-        var result = await service.CreateAsync(ValidRequest(), [], "127.0.0.1", "test", CancellationToken.None);
+        var result = await service.CreateAsync(
+            ValidRequest(),
+            [new AttachmentInput("note.txt", "text/plain", [1, 2, 3])],
+            "127.0.0.1", "test", CancellationToken.None);
 
         Assert.Equal("User123", result.UserName);
         Assert.Single(database.Comments);
-        var message = Assert.Single(database.OutboxMessages);
-        Assert.Equal("CommentCreated", message.Type);
+        Assert.Single(database.Attachments);
+        Assert.Contains(database.OutboxMessages, message => message.Type == "CommentCreated");
+        Assert.Contains(database.OutboxMessages, message => message.Type == "ProcessAttachment");
     }
 
     [Fact]
@@ -217,7 +221,14 @@ public sealed class CommentServiceTests
     {
         public Task<Attachment> SaveAsync(AttachmentInput input, CancellationToken ct)
         {
-            throw new NotSupportedException();
+            return Task.FromResult(new Attachment
+            {
+                OriginalName = input.FileName,
+                StoredName = Guid.NewGuid().ToString("N"),
+                ContentType = input.ContentType,
+                Size = input.Content.Length,
+                StorageReference = "test/" + input.FileName
+            });
         }
     }
 
