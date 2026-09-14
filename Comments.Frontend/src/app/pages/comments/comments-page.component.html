@@ -18,8 +18,41 @@
         [(ngModel)]="searchQuery"
         placeholder="Search text or user name"
       />
+      <span class="partial-search-option">
+        <input
+          id="partial-search"
+          name="partialSearch"
+          type="checkbox"
+          [(ngModel)]="partialSearch"
+        />
+        <span>Match partial words</span>
+      </span>
+      <span class="search-fields">
+        <span class="search-field-option">
+          <input
+            type="checkbox"
+            name="searchText"
+            aria-label="Search comment text"
+            [(ngModel)]="searchText"
+          />
+          <span>Search text</span>
+        </span>
+        <span class="search-field-option">
+          <input
+            type="checkbox"
+            name="searchUserName"
+            aria-label="Search usernames"
+            [(ngModel)]="searchUserName"
+          />
+          <span>Search usernames</span>
+        </span>
+      </span>
     </label>
-    <button class="submit-button" type="submit" [disabled]="searchLoading()">
+    <button
+      class="submit-button"
+      type="submit"
+      [disabled]="searchLoading() || (!searchText && !searchUserName)"
+    >
       {{ searchLoading() ? 'Searching...' : 'Search' }}
     </button>
     @if (searchActive()) {
@@ -53,6 +86,7 @@
     [descending]="descending"
     [searchMode]="searchActive()"
     [highlightTerm]="searchActive() ? activeSearchQuery : ''"
+    [partialSearch]="partialSearch"
     [viewMode]="viewMode"
     [captcha]="captcha()"
     [replyParentId]="replyParentId"

@@ -27,9 +27,12 @@ public sealed class Query
     public Task<CommentPageDto> Search(
         string query,
         int page = 1,
+        bool partial = false,
+        bool searchText = true,
+        bool searchUserName = true,
         [Service] ICommentSearch search = null!,
         CancellationToken cancellationToken = default)
     {
-        return search.SearchAsync(query, page, cancellationToken);
+        return search.SearchAsync(query, page, partial, searchText, searchUserName, cancellationToken);
     }
 }

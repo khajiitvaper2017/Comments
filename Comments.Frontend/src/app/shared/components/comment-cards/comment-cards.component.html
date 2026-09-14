@@ -10,7 +10,8 @@
     <header class="comment-header">
       <div class="avatar" aria-hidden="true">{{ comment.userName.charAt(0).toUpperCase() }}</div>
       <div class="identity">
-        <strong [innerHTML]="comment.userName | highlightSearch: highlightTerm"></strong>
+        <strong [innerHTML]="comment.userName | highlightSearch: highlightTerm : partialSearch">
+        </strong>
         <span>{{ comment.createdAtUtc | date: 'dd.MM.yy HH:mm' }}</span>
         @if (comment.replyCount) {
           <span class="reply-count">
@@ -29,16 +30,27 @@
         <button
           class="reply-toggle"
           type="button"
-          [class.expanded]="repliesAreVisible(comment)"
-          [title]="repliesAreVisible(comment) ? 'Hide replies' : 'Show replies'"
+          [class.load-more]="isLoadMore(comment)"
+          [class.expanded]="repliesAreVisible(comment) && !needsMoreReplies(comment)"
+          [title]="
+            needsMoreReplies(comment)
+              ? 'Show more replies'
+              : repliesAreVisible(comment)
+                ? 'Hide replies'
+                : 'Show replies'
+          "
           [attr.aria-label]="
             comment.replyCount +
             ' ' +
             (comment.replyCount === 1 ? 'reply' : 'replies') +
             '. ' +
-            (repliesAreVisible(comment) ? 'Hide replies' : 'Show replies')
+            (needsMoreReplies(comment)
+              ? 'Show more replies'
+              : repliesAreVisible(comment)
+                ? 'Hide replies'
+                : 'Show replies')
           "
-          [attr.aria-expanded]="repliesAreVisible(comment)"
+          [attr.aria-expanded]="repliesAreVisible(comment) && !needsMoreReplies(comment)"
           (click)="toggleOrLoadReplies(comment)"
         >
           <ng-icon name="lucideChevronDown" size="1rem" aria-hidden="true" />
@@ -54,7 +66,10 @@
         <ng-icon name="lucideReply" size="1rem" aria-hidden="true" />
       </button>
     </div>
-    <div class="comment-body" [innerHTML]="comment.text | highlightSearch: highlightTerm"></div>
+    <div
+      class="comment-body"
+      [innerHTML]="comment.text | highlightSearch: highlightTerm : partialSearch"
+    ></div>
     @if (comment.attachments.length) {
       <div class="attachments">
         @for (attachment of comment.attachments; track attachment.id) {

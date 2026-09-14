@@ -95,6 +95,7 @@ public static class ServiceCollectionExtensions
             new ElasticsearchClientSettings(new Uri(options.Uri))));
         services.AddScoped<ICommentSearch, ElasticsearchCommentSearch>();
         services.AddScoped<ICommentIndexer, ElasticsearchCommentSearch>();
+        services.AddScoped<ICommentIndexMaintenance, ElasticsearchCommentSearch>();
         services.AddHostedService<ElasticsearchIndexInitializer>();
         return services;
     }

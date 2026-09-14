@@ -24,11 +24,13 @@ import { HighlightSearchPipe } from '@app/shared/pipes/highlight-search.pipe';
 })
 export class CommentTableComponent {
   @Input() comments: CommentItem[] = [];
+  @Input() searchMode = false;
   @Input() sort = 'createdAt';
   @Input() descending = true;
   @Input() captcha: Captcha | null = null;
   @Input() replyParentId = '';
   @Input() highlightTerm = '';
+  @Input() partialSearch = false;
   @Output() readonly sortChanged = new EventEmitter<string>();
   @Output() readonly replyRequested = new EventEmitter<string>();
   @Output() readonly loadRepliesRequested = new EventEmitter<string>();
@@ -39,6 +41,7 @@ export class CommentTableComponent {
   @Output() readonly submitted = new EventEmitter<void>();
   @Output() readonly cancelled = new EventEmitter<void>();
   protected readonly collapsedReplies = new Set<string>();
+  private readonly loadedSearchReplies = new Set<string>();
 
   protected toggleReplies(commentId: string) {
     if (this.collapsedReplies.has(commentId)) {
@@ -57,8 +60,26 @@ export class CommentTableComponent {
     );
   }
 
+  protected needsMoreReplies(comment: CommentItem) {
+    return (
+      this.searchMode &&
+      this.countLoadedReplies(comment.replies) < comment.replyCount &&
+      !this.loadedSearchReplies.has(comment.id)
+    );
+  }
+
+  protected isLoadMore(comment: CommentItem) {
+    return comment.replyCount > 0 && (!comment.replies.length || this.needsMoreReplies(comment));
+  }
+
+  private countLoadedReplies(replies: CommentItem[]): number {
+    return replies.reduce((count, reply) => count + 1 + this.countLoadedReplies(reply.replies), 0);
+  }
+
   protected toggleOrLoadReplies(comment: CommentItem) {
-    if (!comment.replies.length && comment.replyCount > 0) {
+    const needsSearchLoad = this.needsMoreReplies(comment);
+    if ((!comment.replies.length || needsSearchLoad) && comment.replyCount > 0) {
+      this.loadedSearchReplies.add(comment.id);
       this.collapsedReplies.delete(comment.id);
       this.loadRepliesRequested.emit(comment.id);
       return;

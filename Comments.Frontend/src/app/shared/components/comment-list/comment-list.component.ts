@@ -30,6 +30,7 @@ export class CommentListComponent {
   @Input() descending = true;
   @Input() searchMode = false;
   @Input() highlightTerm = '';
+  @Input() partialSearch = false;
   @Input() viewMode: 'cards' | 'table' = 'cards';
   @Input() captcha: Captcha | null = null;
   @Input() replyParentId = '';

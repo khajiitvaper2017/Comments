@@ -2,13 +2,18 @@ import { Pipe, PipeTransform } from '@angular/core';
 
 @Pipe({ name: 'highlightSearch', standalone: true, pure: true })
 export class HighlightSearchPipe implements PipeTransform {
-  transform(html: string, query: string): string {
+  transform(html: string, query: string, partial = false): string {
     const phrase = query.trim();
     if (!phrase) return html;
 
     const container = document.createElement('div');
     container.innerHTML = html;
-    const pattern = new RegExp(`(${escapeRegExp(phrase)})`, 'gi');
+    const pattern = new RegExp(
+      partial
+        ? `(${escapeRegExp(phrase)})`
+        : `(?<![\\p{L}\\p{N}_])(${escapeRegExp(phrase)})(?![\\p{L}\\p{N}_])`,
+      'giu',
+    );
     const nodes: Text[] = [];
     const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);
     let node: Node | null;

@@ -72,9 +72,11 @@
   } @else if (viewMode === 'cards') {
     <app-comment-cards
       [comments]="comments"
+      [searchMode]="searchMode"
       [captcha]="captcha"
       [replyParentId]="replyParentId"
       [highlightTerm]="highlightTerm"
+      [partialSearch]="partialSearch"
       (replyRequested)="replyRequested.emit($event)"
       (loadRepliesRequested)="loadRepliesRequested.emit($event)"
       (imageRequested)="imageRequested.emit($event)"
@@ -87,11 +89,13 @@
   } @else {
     <app-comment-table
       [comments]="comments"
+      [searchMode]="searchMode"
       [sort]="sort"
       [descending]="descending"
       [captcha]="captcha"
       [replyParentId]="replyParentId"
       [highlightTerm]="highlightTerm"
+      [partialSearch]="partialSearch"
       (sortChanged)="sortChanged.emit($event)"
       (replyRequested)="replyRequested.emit($event)"
       (loadRepliesRequested)="loadRepliesRequested.emit($event)"

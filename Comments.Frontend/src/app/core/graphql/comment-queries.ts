@@ -52,8 +52,8 @@ export const REPLIES_QUERY = gql(`
 `);
 
 export const SEARCH_QUERY = gql(`
-  query Search($query: String!, $page: Int!) {
-    search(query: $query, page: $page) {
+  query Search($query: String!, $page: Int!, $partial: Boolean!, $searchText: Boolean!, $searchUserName: Boolean!) {
+    search(query: $query, page: $page, partial: $partial, searchText: $searchText, searchUserName: $searchUserName) {
       items { ${commentFieldsWithReplies(24)} }
       page
       pageSize

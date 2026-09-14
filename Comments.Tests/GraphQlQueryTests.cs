@@ -45,13 +45,13 @@ public sealed class GraphQlQueryTests
     {
         var search = new Mock<ICommentSearch>();
         var expected = new CommentPageDto([], 3, 25, 0, "search", false);
-        search.Setup(x => x.SearchAsync("term", 3, It.IsAny<CancellationToken>()))
+        search.Setup(x => x.SearchAsync("term", 3, true, true, true, It.IsAny<CancellationToken>()))
             .ReturnsAsync(expected);
 
-        var result = await new Query().Search("term", 3, search.Object, CancellationToken.None);
+        var result = await new Query().Search("term", 3, true, true, true, search.Object, CancellationToken.None);
 
         Assert.Same(expected, result);
-        search.Verify(x => x.SearchAsync("term", 3, It.IsAny<CancellationToken>()), Times.Once);
+        search.Verify(x => x.SearchAsync("term", 3, true, true, true, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

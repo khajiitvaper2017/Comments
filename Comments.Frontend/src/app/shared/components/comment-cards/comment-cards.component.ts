@@ -16,10 +16,12 @@ import { HighlightSearchPipe } from '@app/shared/pipes/highlight-search.pipe';
 })
 export class CommentCardsComponent {
   @Input() comments: CommentItem[] = [];
+  @Input() searchMode = false;
   @Input() captcha: Captcha | null = null;
   @Input() replyParentId = '';
   @Input() baseDepth = 0;
   @Input() highlightTerm = '';
+  @Input() partialSearch = false;
   @Output() readonly replyRequested = new EventEmitter<string>();
   @Output() readonly loadRepliesRequested = new EventEmitter<string>();
   @Output() readonly imageRequested = new EventEmitter<{ id: string; name: string }>();
@@ -29,9 +31,12 @@ export class CommentCardsComponent {
   @Output() readonly submitted = new EventEmitter<void>();
   @Output() readonly cancelled = new EventEmitter<void>();
   protected readonly collapsedReplies = new Set<string>();
+  private readonly loadedSearchReplies = new Set<string>();
 
   protected toggleOrLoadReplies(comment: CommentItem) {
-    if (!comment.replies.length && comment.replyCount > 0) {
+    const needsSearchLoad = this.needsMoreReplies(comment);
+    if ((!comment.replies.length || needsSearchLoad) && comment.replyCount > 0) {
+      this.loadedSearchReplies.add(comment.id);
       this.collapsedReplies.delete(comment.id);
       this.loadRepliesRequested.emit(comment.id);
       return;
@@ -46,5 +51,21 @@ export class CommentCardsComponent {
 
   protected repliesAreVisible(comment: CommentItem) {
     return comment.replies.length > 0 && !this.collapsedReplies.has(comment.id);
+  }
+
+  protected needsMoreReplies(comment: CommentItem) {
+    return (
+      this.searchMode &&
+      this.countLoadedReplies(comment.replies) < comment.replyCount &&
+      !this.loadedSearchReplies.has(comment.id)
+    );
+  }
+
+  protected isLoadMore(comment: CommentItem) {
+    return comment.replyCount > 0 && (!comment.replies.length || this.needsMoreReplies(comment));
+  }
+
+  private countLoadedReplies(replies: CommentItem[]): number {
+    return replies.reduce((count, reply) => count + 1 + this.countLoadedReplies(reply.replies), 0);
   }
 }

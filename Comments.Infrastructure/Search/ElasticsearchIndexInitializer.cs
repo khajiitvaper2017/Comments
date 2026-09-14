@@ -1,6 +1,4 @@
 using Comments.Application.Abstractions;
-using Comments.Infrastructure.Persistence;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -15,16 +13,13 @@ public sealed class ElasticsearchIndexInitializer(
     {
         try
         {
+            logger.LogInformation("Starting Elasticsearch comment index synchronization.");
             using var scope = scopes.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<CommentsDbContext>();
-            var indexer = scope.ServiceProvider.GetRequiredService<ICommentIndexer>();
-            var ids = await db.Comments.AsNoTracking()
-                .Where(x => !x.IsDeleted)
-                .Select(x => x.Id)
-                .ToListAsync(stoppingToken);
-
-            foreach (var id in ids)
-                await indexer.IndexAsync(id, stoppingToken);
+            var maintenance = scope.ServiceProvider.GetRequiredService<ICommentIndexMaintenance>();
+            var rebuilt = await maintenance.RebuildAsync(stoppingToken);
+            logger.LogInformation(rebuilt
+                ? "Elasticsearch comment index was rebuilt."
+                : "Elasticsearch comment index was already up to date; no rebuild was needed.");
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {

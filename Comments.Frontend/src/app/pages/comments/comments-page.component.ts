@@ -35,6 +35,9 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
   error = signal('');
   loading = signal(false);
   searchQuery = '';
+  partialSearch = false;
+  searchText = true;
+  searchUserName = true;
   activeSearchQuery = '';
   searchActive = signal(false);
   searchLoading = signal(false);
@@ -71,6 +74,9 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
 
   private loadFromQuery(params: ParamMap) {
     this.searchQuery = params.get('q')?.trim() ?? '';
+    this.partialSearch = params.get('partial') === 'true';
+    this.searchText = params.get('text') !== 'false';
+    this.searchUserName = params.get('user') !== 'false';
     this.activeSearchQuery = this.searchQuery;
     this.page = this.parsePositiveInt(params.get('page'), 1);
     const sort = params.get('sort');
@@ -97,6 +103,9 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
       relativeTo: this.route,
       queryParams: {
         q: this.activeSearchQuery || null,
+        partial: this.partialSearch ? true : null,
+        text: this.searchText ? null : false,
+        user: this.searchUserName ? null : false,
         page: this.page > 1 ? this.page : null,
         sort: this.sort === 'createdAt' ? null : this.sort,
         descending: this.descending ? null : false,
@@ -141,7 +150,13 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
   private loadSearchResults() {
     this.searchLoading.set(true);
     this.api
-      .searchComments(this.activeSearchQuery, this.page)
+      .searchComments(
+        this.activeSearchQuery,
+        this.page,
+        this.partialSearch,
+        this.searchText,
+        this.searchUserName,
+      )
       .pipe(finalize(() => this.searchLoading.set(false)))
       .subscribe({
         next: (result) => {

@@ -48,11 +48,17 @@ export class CommentApiService {
       .pipe(map((result) => result.data!.replies));
   }
 
-  searchComments(query: string, page = 1) {
+  searchComments(
+    query: string,
+    page = 1,
+    partial = false,
+    searchText = true,
+    searchUserName = true,
+  ) {
     return this.apollo
       .query<SearchQuery>({
         query: SEARCH_QUERY,
-        variables: { query, page },
+        variables: { query, page, partial, searchText, searchUserName },
       })
       .pipe(map((result) => result.data!.search));
   }
