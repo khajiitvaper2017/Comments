@@ -247,7 +247,6 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
   openComposer() {
     this.replyParentId = '';
     this.showComposer.set(true);
-    this.scrollToComposer();
   }
   cancelComposer() {
     this.replyParentId = '';
@@ -264,10 +263,11 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
     });
   }
   handleSubmitted() {
+    const wasReply = Boolean(this.replyParentId);
     this.error.set('');
     this.replyParentId = '';
     this.showComposer.set(false);
-    this.page = 1;
+    if (!wasReply) this.page = 1;
     this.updateUrl();
   }
   openImage(image: { id: string; name: string }) {

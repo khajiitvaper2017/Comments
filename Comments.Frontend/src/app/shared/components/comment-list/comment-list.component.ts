@@ -4,12 +4,19 @@ import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideList, lucideTable2 } from '@ng-icons/lucide';
 import { Captcha, CommentItem } from '@app/core/models/comment.models';
 import { CommentCardsComponent } from '@app/shared/components/comment-cards/comment-cards.component';
+import { CommentPagerComponent } from '@app/shared/components/comment-pager/comment-pager.component';
 import { CommentTableComponent } from '@app/shared/components/comment-table/comment-table.component';
 
 @Component({
   selector: 'app-comment-list',
   standalone: true,
-  imports: [CommonModule, CommentCardsComponent, CommentTableComponent, NgIcon],
+  imports: [
+    CommonModule,
+    CommentCardsComponent,
+    CommentPagerComponent,
+    CommentTableComponent,
+    NgIcon,
+  ],
   providers: [provideIcons({ lucideList, lucideTable2 })],
   templateUrl: './comment-list.component.html',
 })
@@ -49,22 +56,6 @@ export class CommentListComponent {
 
   protected get pageCount(): number {
     return Math.max(1, Math.ceil(this.total / Math.max(1, this.pageSize)));
-  }
-
-  protected get pageItems(): Array<number | 'ellipsis'> {
-    const lastPage = this.pageCount;
-    if (lastPage <= 7) return Array.from({ length: lastPage }, (_, index) => index + 1);
-
-    const items: Array<number | 'ellipsis'> = [1];
-    if (this.page > 3) items.push('ellipsis');
-
-    const firstVisible = Math.max(2, this.page - 1);
-    const lastVisible = Math.min(lastPage - 1, this.page + 1);
-    for (let current = firstVisible; current <= lastVisible; current++) items.push(current);
-
-    if (lastVisible < lastPage - 1) items.push('ellipsis');
-    items.push(lastPage);
-    return items;
   }
 
   private countReplies(replies: CommentItem[]): number {

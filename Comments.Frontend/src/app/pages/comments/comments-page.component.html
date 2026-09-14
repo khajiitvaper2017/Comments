@@ -32,6 +32,17 @@
       <span>Loading comments...</span>
     </div>
   }
+  @if (showComposer()) {
+    <app-comment-form
+      [captcha]="captcha()"
+      [parentId]="replyParentId"
+      (captchaChanged)="captcha.set($event)"
+      (errorChanged)="error.set($event)"
+      (submitted)="handleSubmitted()"
+      (cancelled)="cancelComposer()"
+    >
+    </app-comment-form>
+  }
   <app-comment-list
     [comments]="comments()"
     [total]="total"
@@ -60,17 +71,6 @@
   </app-comment-list>
   @if (error()) {
     <p class="error" role="alert">{{ error() }}</p>
-  }
-  @if (showComposer()) {
-    <app-comment-form
-      [captcha]="captcha()"
-      [parentId]="replyParentId"
-      (captchaChanged)="captcha.set($event)"
-      (errorChanged)="error.set($event)"
-      (submitted)="handleSubmitted()"
-      (cancelled)="cancelComposer()"
-    >
-    </app-comment-form>
   }
 </main>
 <app-image-lightbox [image]="selectedImage()" (closed)="closeImage()"></app-image-lightbox>
