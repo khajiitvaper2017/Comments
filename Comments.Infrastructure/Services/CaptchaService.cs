@@ -4,6 +4,7 @@ using Comments.Application.Abstractions;
 using Comments.Application.DTOs;
 using SkiaSharp;
 using Svg.Skia;
+using Svg.Skia.TypefaceProviders;
 
 namespace Comments.Infrastructure.Services;
 
@@ -63,7 +64,7 @@ public sealed class CaptchaService : ICaptchaService
             var angle = random.Next(-22, 23);
             var color = i % 2 == 0 ? "#173b70" : "#315f98";
             svg.Append(
-                $"<text x=\"{x}\" y=\"{y}\" transform=\"rotate({angle} {x} {y})\" font-family=\"DejaVu Sans,Arial,sans-serif\" font-size=\"34\" font-weight=\"bold\" fill=\"{color}\">{answer[i]}</text>");
+                $"<text x=\"{x}\" y=\"{y}\" transform=\"rotate({angle} {x} {y})\" font-family=\"Arial\" font-size=\"34\" font-weight=\"bold\" fill=\"{color}\">{answer[i]}</text>");
         }
 
         svg.Append("</svg>");
@@ -75,6 +76,10 @@ public sealed class CaptchaService : ICaptchaService
         // Rasterization prevents the browser from reading the answer from SVG <text> nodes.
         using var input = new MemoryStream(Encoding.UTF8.GetBytes(markup));
         using var svg = new SKSvg();
+        svg.Settings.TypefaceProviders = new List<ITypefaceProvider>
+        {
+            new BundledTypefaceProvider(Path.Combine(AppContext.BaseDirectory, "Fonts", "Arial.ttf"))
+        };
         if (svg.Load(input) is null || svg.Picture is null)
             throw new InvalidOperationException("Could not render the CAPTCHA image.");
 
@@ -83,5 +88,21 @@ public sealed class CaptchaService : ICaptchaService
         svg.Picture.ToImage(output, SKColors.Transparent, SKEncodedImageFormat.Png, 100, 1f, 1f,
             SKColorType.Rgba8888, SKAlphaType.Unpremul, colorSpace);
         return output.ToArray();
+    }
+
+    private sealed class BundledTypefaceProvider(string fontPath) : ITypefaceProvider
+    {
+        private readonly SKTypeface typeface = SKTypeface.FromFile(fontPath)
+                                               ?? throw new InvalidOperationException(
+                                                   $"Could not load CAPTCHA font: {fontPath}");
+
+        public SKTypeface FromFamilyName(
+            string familyName,
+            SKFontStyleWeight weight,
+            SKFontStyleWidth width,
+            SKFontStyleSlant slant)
+        {
+            return typeface;
+        }
     }
 }

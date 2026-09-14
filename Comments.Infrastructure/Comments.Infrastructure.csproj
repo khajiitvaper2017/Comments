@@ -3,6 +3,7 @@
     <TargetFramework>net10.0</TargetFramework><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
+    <None Include="Fonts\Arial.ttf" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Always" />
     <PackageReference Include="Elastic.Clients.Elasticsearch" Version="9.5.2" />
     <ProjectReference Include="..\Comments.Domain\Comments.Domain.csproj" />
     <ProjectReference Include="..\Comments.Application\Comments.Application.csproj" />
@@ -13,6 +14,7 @@
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.11" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.12" />
     <PackageReference Include="Svg.Skia" Version="5.2.3" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.148.0" />
     <PackageReference Include="HtmlSanitizer" Version="9.2.1039" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="10.0.11" />
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.11" />
