@@ -19,28 +19,45 @@ public sealed class CommentService(
     IAttachmentStorageService attachments,
     ICommentCache cache) : ICommentService
 {
+    // AutoLoadReplyLimit controls branch size; this separately caps nesting if stored counters are stale or invalid.
     private const int MaxReplyDepth = 24;
+
+    /// <summary>
+    ///     The maximum number of replies to load automatically for a comment before requiring the user to click "Load more
+    ///     replies".
+    /// </summary>
     private const int AutoLoadReplyLimit = 5;
+
+    /// <summary>
+    ///     The number of replies to load in a single request.
+    /// </summary>
+    private const int ReplyPageSize = 24;
 
     /// <summary>Returns the next bounded section of replies for a comment.</summary>
     public async Task<IReadOnlyList<CommentDto>> GetRepliesAsync(Guid parentId, CancellationToken ct)
     {
         var parent = await db.Comments.AsNoTracking()
             .Where(x => x.Id == parentId && !x.IsDeleted)
-            .Select(x => new { x.RootId })
+            .Select(x => new { x.DescendantCount })
             .SingleOrDefaultAsync(ct);
         if (parent is null) return [];
 
         var replies = await db.Comments.AsNoTracking()
-            .Where(x => x.RootId == parent.RootId && x.ParentId != null && !x.IsDeleted)
+            .Where(x => x.ParentId == parentId && !x.IsDeleted)
             .Include(x => x.Attachments)
             .OrderBy(x => x.CreatedAtUtc)
+            .Take(ReplyPageSize)
             .ToListAsync(ct);
 
-        var descendantCounts = BuildDescendantCounts(replies);
+        var smallReplyIds = replies
+            .Where(x => x.DescendantCount > 0 && x.DescendantCount < AutoLoadReplyLimit)
+            .Select(x => x.Id)
+            .ToArray();
+        var descendants = await LoadDescendantsAsync(smallReplyIds, ct);
+        var all = replies.Concat(descendants).ToList();
 
-        return replies.Where(x => x.ParentId == parentId)
-            .Select(x => Map(x, replies, descendantCounts, 0))
+        return replies
+            .Select(x => Map(x, all, 0))
             .ToList();
     }
 
@@ -66,18 +83,19 @@ public sealed class CommentService(
                 : query.OrderBy(x => x.CreatedAtUtc).ThenBy(x => x.Id)
         };
         var total = await query.CountAsync(ct);
-        var totalReplyCount = await db.Comments.CountAsync(x => x.ParentId != null && !x.IsDeleted, ct);
+        var totalReplyCount = await db.CommentStatistics
+            .Where(x => x.Id == 1)
+            .Select(x => x.TotalReplyCount)
+            .SingleAsync(ct);
         var roots = await query.Skip((page - 1) * 25).Take(25).Include(x => x.Attachments).ToListAsync(ct);
-        var rootIds = roots.Select(x => x.Id).ToArray();
-        var replyCounts = rootIds.Length == 0
-            ? new Dictionary<Guid, int>()
-            : await db.Comments.AsNoTracking()
-                // RootId covers the complete thread, so this includes nested descendants.
-                .Where(x => x.ParentId != null && rootIds.Contains(x.RootId) && !x.IsDeleted)
-                .GroupBy(x => x.RootId)
-                .ToDictionaryAsync(group => group.Key, group => group.Count(), ct);
+        var smallRootIds = roots
+            .Where(x => x.DescendantCount > 0 && x.DescendantCount < AutoLoadReplyLimit)
+            .Select(x => x.Id)
+            .ToArray();
+        var descendants = await LoadDescendantsAsync(smallRootIds, ct);
+        var all = roots.Concat(descendants).ToList();
         var result = new CommentPageDto(
-            roots.Select(x => ToDto(x, [], replyCounts.TryGetValue(x.Id, out var count), count)).ToList(),
+            roots.Select(x => Map(x, all, 0)).ToList(),
             page,
             25,
             total,
@@ -119,6 +137,28 @@ public sealed class CommentService(
         // The comment and its outbox messages must commit or roll back together.
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         db.Comments.Add(comment);
+        if (parent is not null)
+        {
+            var ancestorId = parent.Id;
+            for (var depth = 0; depth < MaxReplyDepth && ancestorId != Guid.Empty; depth++)
+            {
+                await db.Comments
+                    .Where(x => x.Id == ancestorId)
+                    .ExecuteUpdateAsync(setters => setters
+                        .SetProperty(x => x.DescendantCount, x => x.DescendantCount + 1), ct);
+
+                ancestorId = await db.Comments.AsNoTracking()
+                    .Where(x => x.Id == ancestorId)
+                    .Select(x => x.ParentId ?? Guid.Empty)
+                    .SingleAsync(ct);
+            }
+
+            await db.CommentStatistics
+                .Where(x => x.Id == 1)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(x => x.TotalReplyCount, x => x.TotalReplyCount + 1), ct);
+        }
+
         if (comment.ParentId is null)
             AddOutbox(new CommentCreated(comment.Id, comment.CreatedAtUtc));
         else
@@ -128,7 +168,28 @@ public sealed class CommentService(
             AddOutbox(new ProcessAttachment(attachment.Id));
         await db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
-        return Map(comment, [comment], BuildDescendantCounts([comment]), 0);
+        await cache.InvalidateAsync(ct);
+        return ToDto(comment, [], false, comment.DescendantCount);
+    }
+
+    private async Task<List<Comment>> LoadDescendantsAsync(Guid[] parentIds, CancellationToken ct)
+    {
+        var descendants = new List<Comment>();
+        var frontier = parentIds;
+
+        for (var depth = 0; depth < MaxReplyDepth && frontier.Length > 0; depth++)
+        {
+            var children = await db.Comments.AsNoTracking()
+                .Where(x => x.ParentId.HasValue && frontier.Contains(x.ParentId.Value) && !x.IsDeleted)
+                .Include(x => x.Attachments)
+                .OrderBy(x => x.CreatedAtUtc)
+                .ToListAsync(ct);
+
+            descendants.AddRange(children);
+            frontier = children.Select(x => x.Id).ToArray();
+        }
+
+        return descendants;
     }
 
     private void AddOutbox<T>(T message)
@@ -141,43 +202,19 @@ public sealed class CommentService(
         });
     }
 
-
-    private static CommentDto Map(
-        Comment comment,
-        IReadOnlyList<Comment> all,
-        IReadOnlyDictionary<Guid, int> descendantCounts,
-        int depth)
+    private static CommentDto Map(Comment comment, IReadOnlyList<Comment> all, int depth)
     {
-        var replyCount = descendantCounts.GetValueOrDefault(comment.Id);
+        var replyCount = comment.DescendantCount;
         if (depth >= MaxReplyDepth || replyCount >= AutoLoadReplyLimit)
-            // Large reply branches stay collapsed until the user explicitly loads them.
             return ToDto(comment, [], replyCount > 0, replyCount);
 
-        var replies = all.Where(x => x.ParentId == comment.Id).OrderBy(x => x.CreatedAtUtc)
-            .Select(x => Map(x, all, descendantCounts, depth + 1)).ToList();
+        var replies = all.Where(x => x.ParentId == comment.Id)
+            .OrderBy(x => x.CreatedAtUtc)
+            .Select(x => Map(x, all, depth + 1))
+            .ToList();
         return ToDto(comment, replies, false, replyCount);
     }
 
-    private static Dictionary<Guid, int> BuildDescendantCounts(IReadOnlyList<Comment> comments)
-    {
-        var children = comments.Where(x => x.ParentId is not null)
-            .GroupBy(x => x.ParentId!.Value)
-            .ToDictionary(group => group.Key, group => group.ToList());
-        var counts = new Dictionary<Guid, int>();
-
-        int Count(Guid id)
-        {
-            if (counts.TryGetValue(id, out var count)) return count;
-            count = children.TryGetValue(id, out var directReplies)
-                ? directReplies.Sum(reply => 1 + Count(reply.Id))
-                : 0;
-            counts[id] = count;
-            return count;
-        }
-
-        foreach (var comment in comments) Count(comment.Id);
-        return counts;
-    }
 
     private static CommentDto ToDto(
         Comment comment,

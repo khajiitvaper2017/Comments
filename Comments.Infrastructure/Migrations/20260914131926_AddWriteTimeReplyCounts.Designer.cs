@@ -4,6 +4,7 @@ using Comments.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Comments.Infrastructure.Migrations
 {
     [DbContext(typeof(CommentsDbContext))]
-    partial class CommentsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260914131926_AddWriteTimeReplyCounts")]
+    partial class AddWriteTimeReplyCounts
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -147,29 +150,6 @@ namespace Comments.Infrastructure.Migrations
                     b.HasIndex("RootId", "IsDeleted", "CreatedAtUtc");
 
                     b.ToTable("Comments");
-                });
-
-            modelBuilder.Entity("Comments.Domain.Entities.CommentStatistics", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("TotalReplyCount")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("CommentStatistics");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            TotalReplyCount = 0
-                        });
                 });
 
             modelBuilder.Entity("Comments.Domain.Entities.OutboxMessage", b =>

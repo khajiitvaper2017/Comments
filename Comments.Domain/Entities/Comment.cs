@@ -11,6 +11,12 @@ public sealed class Comment
     public required string RawText { get; set; }
     public required string SanitizedText { get; set; }
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+
+    /// <summary>
+    ///     The number of all descendants of this comment, including replies to replies.
+    /// </summary>
+    public int DescendantCount { get; set; }
+
     public bool IsDeleted { get; set; }
     public string? IpAddress { get; set; }
     public string? UserAgent { get; set; }

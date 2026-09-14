@@ -74,29 +74,14 @@ public sealed class ElasticsearchCommentSearch(
         var all = roots.Concat(replies).ToList();
         var matchedIds = response.Documents.Select(x => x.Id).ToHashSet();
         var contextIds = BuildSearchContext(all, matchedIds);
-        var descendantCounts = BuildDescendantCounts(all);
         var items = rootIds.Join(roots, id => id, root => root.Id, (_, root) =>
-            MapSearch(root, all, contextIds, matchedIds, descendantCounts, 0)).ToList();
-        var totalReplyCount = await db.Comments.CountAsync(x => x.ParentId != null && !x.IsDeleted, ct);
+            MapSearch(root, all, contextIds, matchedIds, 0)).ToList();
+        var totalReplyCount = await db.CommentStatistics
+            .Where(x => x.Id == 1)
+            .Select(x => x.TotalReplyCount)
+            .SingleAsync(ct);
         return new CommentPageDto(items, page, PageSize,
             (int)Math.Min(response.Total, int.MaxValue), "search", false, totalReplyCount);
-    }
-
-    private static CommentDto Map(Comment comment, IEnumerable<Comment> all, int depth)
-    {
-        if (depth >= MaxReplyDepth)
-            return new CommentDto(comment.Id, comment.ParentId, comment.UserName, comment.Email, comment.HomePage,
-                comment.SanitizedText, comment.CreatedAtUtc,
-                comment.Attachments.Select(a => new AttachmentDto(a.Id, a.OriginalName, a.ContentType, a.Size,
-                    a.Width, a.Height)).ToList(), [], all.Count(x => x.ParentId == comment.Id),
-                all.Any(x => x.ParentId == comment.Id));
-
-        var replies = all.Where(x => x.ParentId == comment.Id).OrderBy(x => x.CreatedAtUtc)
-            .Select(x => Map(x, all, depth + 1)).ToList();
-        return new CommentDto(comment.Id, comment.ParentId, comment.UserName, comment.Email, comment.HomePage,
-            comment.SanitizedText, comment.CreatedAtUtc,
-            comment.Attachments.Select(a => new AttachmentDto(a.Id, a.OriginalName, a.ContentType, a.Size,
-                a.Width, a.Height)).ToList(), replies, replies.Count);
     }
 
     private static HashSet<Guid> BuildSearchContext(IReadOnlyList<Comment> comments, HashSet<Guid> matchedIds)
@@ -121,7 +106,6 @@ public sealed class ElasticsearchCommentSearch(
         IReadOnlyList<Comment> all,
         IReadOnlySet<Guid> contextIds,
         IReadOnlySet<Guid> matchedIds,
-        IReadOnlyDictionary<Guid, int> descendantCounts,
         int depth)
     {
         var children = all.Where(x => x.ParentId == comment.Id).OrderBy(x => x.CreatedAtUtc).ToList();
@@ -129,35 +113,14 @@ public sealed class ElasticsearchCommentSearch(
         var selected = children.Where(x => contextIds.Contains(x.Id)).ToList();
 
         var replies = selected
-            .Select(x => MapSearch(x, all, contextIds, matchedIds, descendantCounts, depth + 1))
+            .Select(x => MapSearch(x, all, contextIds, matchedIds, depth + 1))
             .ToList();
         var hasMoreReplies = depth >= MaxReplyDepth || selected.Count < children.Count;
-        var replyCount = descendantCounts.GetValueOrDefault(comment.Id);
+        var replyCount = comment.DescendantCount;
         return new CommentDto(comment.Id, comment.ParentId, comment.UserName, comment.Email, comment.HomePage,
             comment.SanitizedText, comment.CreatedAtUtc,
             comment.Attachments.Select(a => new AttachmentDto(a.Id, a.OriginalName, a.ContentType, a.Size,
                 a.Width, a.Height)).ToList(), replies, replyCount, hasMoreReplies,
             matchedIds.Contains(comment.Id));
-    }
-
-    private static Dictionary<Guid, int> BuildDescendantCounts(IReadOnlyList<Comment> comments)
-    {
-        var children = comments.Where(x => x.ParentId is not null)
-            .GroupBy(x => x.ParentId!.Value)
-            .ToDictionary(group => group.Key, group => group.ToList());
-        var counts = new Dictionary<Guid, int>();
-
-        int Count(Guid id)
-        {
-            if (counts.TryGetValue(id, out var count)) return count;
-            count = children.TryGetValue(id, out var directReplies)
-                ? directReplies.Sum(reply => 1 + Count(reply.Id))
-                : 0;
-            counts[id] = count;
-            return count;
-        }
-
-        foreach (var comment in comments) Count(comment.Id);
-        return counts;
     }
 }

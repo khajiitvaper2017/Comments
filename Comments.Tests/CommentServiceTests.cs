@@ -90,6 +90,10 @@ public sealed class CommentServiceTests
 
         Assert.Equal(parent.Id, result.ParentId);
         Assert.Equal("ReplyCreated", Assert.Single(database.OutboxMessages).Type);
+        Assert.Equal(1, await database.Comments
+            .Where(comment => comment.Id == parent.Id)
+            .Select(comment => comment.DescendantCount)
+            .SingleAsync());
     }
 
     [Fact]
@@ -101,7 +105,8 @@ public sealed class CommentServiceTests
             UserName = "Root123",
             Email = "root@example.com",
             RawText = "Root.",
-            SanitizedText = "Root."
+            SanitizedText = "Root.",
+            DescendantCount = 2
         };
         var reply = new Comment
         {
@@ -110,7 +115,8 @@ public sealed class CommentServiceTests
             UserName = "Reply123",
             Email = "reply@example.com",
             RawText = "Reply.",
-            SanitizedText = "Reply."
+            SanitizedText = "Reply.",
+            DescendantCount = 1
         };
         var nestedReply = new Comment
         {
@@ -127,7 +133,11 @@ public sealed class CommentServiceTests
 
         var result = await service.GetRootsAsync(1, "createdAt", true, CancellationToken.None);
 
-        Assert.Equal(2, Assert.Single(result.Items).ReplyCount);
+        var loadedRoot = Assert.Single(result.Items);
+        Assert.Equal(2, loadedRoot.ReplyCount);
+        var loadedReply = Assert.Single(loadedRoot.Replies);
+        Assert.Equal(1, loadedReply.ReplyCount);
+        Assert.Single(loadedReply.Replies);
     }
 
     [Fact]
@@ -149,7 +159,8 @@ public sealed class CommentServiceTests
             UserName = "Reply123",
             Email = "reply@example.com",
             RawText = "Reply.",
-            SanitizedText = "Reply."
+            SanitizedText = "Reply.",
+            DescendantCount = 5
         };
         var descendants = Enumerable.Range(1, 5).Select(index => new Comment
         {
