@@ -25,6 +25,9 @@ if (testAttachments.Length == 0)
 using var httpClient = Http.CreateDefaultClient();
 httpClient.BaseAddress = new Uri(BaseUrl);
 var parentIds = await FindParentIds(httpClient);
+var reportFolder = Path.Combine(
+    Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "reports")),
+    DateTime.UtcNow.ToString("yyyy-MM-dd_HH-mm-ss"));
 
 // 60 root-page reads/s
 var readComments = Scenario.Create("read_comments", async context =>
@@ -89,7 +92,7 @@ NBomberRunner
     .RegisterScenarios(readComments, readReplies, searchComments, writeComments)
     .WithTestSuite("Comments API")
     .WithTestName("one-million-messages-per-day")
-    .WithReportFolder(Path.Combine("Comments.Tests", "LoadTests", "reports"))
+    .WithReportFolder(reportFolder)
     .WithReportFileName("comments-load-test")
     .Run();
 
