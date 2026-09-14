@@ -1,3 +1,4 @@
+using System.Threading.RateLimiting;
 using Comments.Api.GraphQL;
 using Comments.Api.Realtime;
 using Comments.Application.Abstractions;
@@ -32,6 +33,33 @@ public static class ServiceCollectionExtensions
             // Keep GraphQL's cycle protection aligned with the application's 24-level reply limit.
             .RemoveMaxAllowedFieldCycleDepthRule()
             .AddMaxAllowedFieldCycleDepthRule(24);
+        return services;
+    }
+
+    public static IServiceCollection AddCommentsRateLimiting(
+        this IServiceCollection services,
+        IConfiguration configuration)
+    {
+        // Load tests use the same flag as the CAPTCHA bypass and must measure the application,
+        // not the protection layer.
+        if (configuration.GetValue<bool>("Captcha:EnableLoadTestBypass"))
+            return services;
+
+        services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 120,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0,
+                        AutoReplenishment = true
+                    }));
+        });
+
         return services;
     }
 

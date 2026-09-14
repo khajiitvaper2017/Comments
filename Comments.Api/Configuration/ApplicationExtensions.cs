@@ -28,6 +28,9 @@ public static class ApplicationExtensions
         if (app.Environment.IsDevelopment())
             app.UseHttpsRedirection();
 
+        if (!app.Configuration.GetValue<bool>("Captcha:EnableLoadTestBypass"))
+            app.UseRateLimiter();
+
         app.MapHealthChecks("/health");
         app.MapControllers();
         app.MapGraphQL();

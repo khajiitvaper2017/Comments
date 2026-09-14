@@ -8,6 +8,7 @@ builder.Services
     .AddRedis(builder.Configuration)
     .AddElasticsearch(builder.Configuration)
     .AddApplicationServices(builder.Configuration)
+    .AddCommentsRateLimiting(builder.Configuration)
     .AddRabbitMq();
 
 builder.Services.AddCommentsApi();
