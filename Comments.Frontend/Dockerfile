@@ -3,7 +3,7 @@ WORKDIR /src
 COPY package*.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci
 COPY . .
-RUN npm run build
+RUN --mount=type=cache,target=/src/.angular/cache npm run build
 
 FROM nginx:alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf
