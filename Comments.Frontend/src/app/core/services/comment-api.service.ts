@@ -1,5 +1,15 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
+import { Apollo } from 'apollo-angular';
+import { map } from 'rxjs';
+import {
+  COMMENTS_QUERY,
+  CommentsQuery,
+  RepliesQuery,
+  REPLIES_QUERY,
+  SEARCH_QUERY,
+  SearchQuery,
+} from '@app/core/graphql/comment-queries';
 import {
   Captcha,
   CommentFormValue,
@@ -10,6 +20,7 @@ import {
 @Injectable({ providedIn: 'root' })
 export class CommentApiService {
   private readonly http = inject(HttpClient);
+  private readonly apollo = inject(Apollo);
 
   getCaptcha() {
     return this.http.get<Captcha>('/api/captcha');
@@ -20,20 +31,30 @@ export class CommentApiService {
   }
 
   getComments(page: number, sort: string, descending: boolean) {
-    const params = new HttpParams()
-      .set('page', page)
-      .set('sort', sort)
-      .set('descending', descending);
-    return this.http.get<CommentPage>('/api/comments', { params });
+    return this.apollo
+      .query<CommentsQuery>({
+        query: COMMENTS_QUERY,
+        variables: { page, sort, descending },
+      })
+      .pipe(map((result) => result.data!.comments));
   }
 
   getReplies(parentId: string) {
-    return this.http.get<CommentItem[]>(`/api/comments/${parentId}/replies`);
+    return this.apollo
+      .query<RepliesQuery>({
+        query: REPLIES_QUERY,
+        variables: { parentId },
+      })
+      .pipe(map((result) => result.data!.replies));
   }
 
   searchComments(query: string, page = 1) {
-    const params = new HttpParams().set('q', query).set('page', page);
-    return this.http.get<CommentPage>('/api/search', { params });
+    return this.apollo
+      .query<SearchQuery>({
+        query: SEARCH_QUERY,
+        variables: { query, page },
+      })
+      .pipe(map((result) => result.data!.search));
   }
 
   createComment(value: CommentFormValue, captchaId: string, file?: File) {

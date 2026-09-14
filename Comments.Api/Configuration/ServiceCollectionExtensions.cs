@@ -27,7 +27,11 @@ public static class ServiceCollectionExtensions
         services.AddOpenApi();
         services.AddSwaggerGen(options =>
             options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, "Comments.Api.xml")));
-        services.AddGraphQLServer().AddQueryType<Query>();
+        services.AddGraphQLServer()
+            .AddQueryType<Query>()
+            // Keep GraphQL's cycle protection aligned with the application's 24-level reply limit.
+            .RemoveMaxAllowedFieldCycleDepthRule()
+            .AddMaxAllowedFieldCycleDepthRule(24);
         return services;
     }
 

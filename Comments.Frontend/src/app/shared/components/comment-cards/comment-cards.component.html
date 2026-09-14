@@ -1,7 +1,7 @@
 <div class="comment-list">
   @for (comment of comments; track comment.id) {
-  <ng-template [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ comment, depth: baseDepth }">
-  </ng-template>
+    <ng-template [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ comment, depth: baseDepth }">
+    </ng-template>
   }
 </div>
 
@@ -13,90 +13,97 @@
         <strong [innerHTML]="comment.userName | highlightSearch: highlightTerm"></strong>
         <span>{{ comment.createdAtUtc | date: 'dd.MM.yy HH:mm' }}</span>
         @if (comment.replyCount) {
-        <span class="reply-count">
-          {{ comment.replyCount }} {{ comment.replyCount === 1 ? 'reply' : 'replies' }}
-        </span>
+          <span class="reply-count">
+            {{ comment.replyCount }} {{ comment.replyCount === 1 ? 'reply' : 'replies' }}
+          </span>
         }
         @if (comment.homePage) {
-        <a class="homepage" [href]="comment.homePage" target="_blank" rel="noopener">
-          {{ comment.homePage | homePageLabel }}
-        </a>
+          <a class="homepage" [href]="comment.homePage" target="_blank" rel="noopener">
+            {{ comment.homePage | homePageLabel }}
+          </a>
         }
       </div>
     </header>
     <div class="comment-actions">
       @if (comment.replyCount) {
-      <button
-        class="reply-toggle"
-        type="button"
-        [class.expanded]="repliesAreVisible(comment)"
-        [title]="repliesAreVisible(comment) ? 'Hide replies' : 'Show replies'"
-        [attr.aria-label]="
+        <button
+          class="reply-toggle"
+          type="button"
+          [class.expanded]="repliesAreVisible(comment)"
+          [title]="repliesAreVisible(comment) ? 'Hide replies' : 'Show replies'"
+          [attr.aria-label]="
             comment.replyCount +
             ' ' +
             (comment.replyCount === 1 ? 'reply' : 'replies') +
             '. ' +
             (repliesAreVisible(comment) ? 'Hide replies' : 'Show replies')
           "
-        [attr.aria-expanded]="repliesAreVisible(comment)"
-        (click)="toggleOrLoadReplies(comment)">
-        <ng-icon name="lucideChevronDown" size="1rem" aria-hidden="true"/>
-      </button>
+          [attr.aria-expanded]="repliesAreVisible(comment)"
+          (click)="toggleOrLoadReplies(comment)"
+        >
+          <ng-icon name="lucideChevronDown" size="1rem" aria-hidden="true" />
+        </button>
       }
       <button
         class="reply-button"
         type="button"
         title="Reply to this comment"
         aria-label="Reply to this comment"
-        (click)="replyRequested.emit(comment.id)">
-        <ng-icon name="lucideReply" size="1rem" aria-hidden="true"/>
+        (click)="replyRequested.emit(comment.id)"
+      >
+        <ng-icon name="lucideReply" size="1rem" aria-hidden="true" />
       </button>
     </div>
     <div class="comment-body" [innerHTML]="comment.text | highlightSearch: highlightTerm"></div>
     @if (comment.attachments.length) {
-    <div class="attachments">
-      @for (attachment of comment.attachments; track attachment.id) {
-      @if (attachment.contentType.startsWith('image/')) {
-      <button
-        class="image-attachment"
-        type="button"
-        (click)="imageRequested.emit({ id: attachment.id, name: attachment.fileName })">
-        <img
-          [src]="'/api/attachments/' + attachment.id"
-          [alt]="attachment.fileName"
-          loading="lazy"/>
-      </button>
-      } @else {
-      <button
-        class="text-attachment"
-        type="button"
-        (click)="textRequested.emit({ id: attachment.id, name: attachment.fileName })">
-        📎 {{ attachment.fileName }}
-      </button>
-      }
-      }
-    </div>
+      <div class="attachments">
+        @for (attachment of comment.attachments; track attachment.id) {
+          @if (attachment.contentType.startsWith('image/')) {
+            <button
+              class="image-attachment"
+              type="button"
+              (click)="imageRequested.emit({ id: attachment.id, name: attachment.fileName })"
+            >
+              <img
+                [src]="'/api/attachments/' + attachment.id"
+                [alt]="attachment.fileName"
+                loading="lazy"
+              />
+            </button>
+          } @else {
+            <button
+              class="text-attachment"
+              type="button"
+              (click)="textRequested.emit({ id: attachment.id, name: attachment.fileName })"
+            >
+              📎 {{ attachment.fileName }}
+            </button>
+          }
+        }
+      </div>
     }
     @if (replyParentId === comment.id) {
-    <article class="comment reply reply-composer" [style.--depth]="depth + 1">
-      <app-comment-form
-        [captcha]="captcha"
-        [parentId]="comment.id"
-        [replyToName]="comment.userName"
-        (captchaChanged)="captchaChanged.emit($event)"
-        (errorChanged)="errorChanged.emit($event)"
-        (submitted)="submitted.emit()"
-        (cancelled)="cancelled.emit()">
-      </app-comment-form>
-    </article>
+      <article class="comment reply reply-composer" [style.--depth]="depth + 1">
+        <app-comment-form
+          [captcha]="captcha"
+          [parentId]="comment.id"
+          [replyToName]="comment.userName"
+          (captchaChanged)="captchaChanged.emit($event)"
+          (errorChanged)="errorChanged.emit($event)"
+          (submitted)="submitted.emit()"
+          (cancelled)="cancelled.emit()"
+        >
+        </app-comment-form>
+      </article>
     }
     @if (repliesAreVisible(comment)) {
-    @for (child of comment.replies; track child.id) {
-    <ng-template
-      [ngTemplateOutlet]="row"
-      [ngTemplateOutletContext]="{ comment: child, depth: depth + 1 }">
-    </ng-template>
-    }
+      @for (child of comment.replies; track child.id) {
+        <ng-template
+          [ngTemplateOutlet]="row"
+          [ngTemplateOutletContext]="{ comment: child, depth: depth + 1 }"
+        >
+        </ng-template>
+      }
     }
   </article>
 </ng-template>

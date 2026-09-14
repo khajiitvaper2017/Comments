@@ -7,6 +7,7 @@ const PROXY_CONFIG = [
   {
     context: [
       "/api",
+      "/graphql",
     ],
     target: 'https://localhost:50943',
     secure: false

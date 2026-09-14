@@ -1,6 +1,9 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { InMemoryCache } from '@apollo/client';
+import { provideApollo } from 'apollo-angular';
+import { HttpLink } from 'apollo-angular/http';
 import { NgForm } from '@angular/forms';
 import { By } from '@angular/platform-browser';
 import { describe, expect, it, beforeEach, afterEach } from 'vitest';
@@ -14,7 +17,17 @@ describe('CommentFormComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [CommentFormComponent],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideApollo(() => {
+          const httpLink = TestBed.inject(HttpLink);
+          return {
+            link: httpLink.create({ uri: '/graphql' }),
+            cache: new InMemoryCache(),
+          };
+        }),
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(CommentFormComponent);

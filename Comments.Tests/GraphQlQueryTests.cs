@@ -1,3 +1,4 @@
+using Comments.Api.Configuration;
 using Comments.Api.GraphQL;
 using Comments.Application.Abstractions;
 using Comments.Application.DTOs;
@@ -10,42 +11,86 @@ namespace Comments.Tests;
 public sealed class GraphQlQueryTests
 {
     [Fact]
-    public async Task ReadQueriesReturnDataFromApplicationServices()
+    public async Task CommentsQueryReturnsPageFromCommentService()
     {
-        var comments = new Mock<ICommentService>();
+        var service = new Mock<ICommentService>();
+        var expected = new CommentPageDto([], 2, 25, 0, "userName", false);
+        service.Setup(x => x.GetRootsAsync(2, "userName", false, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expected);
+
+        var result = await new Query().Comments(
+            2, "userName", false, service.Object, CancellationToken.None);
+
+        Assert.Same(expected, result);
+        service.Verify(x => x.GetRootsAsync(2, "userName", false, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task RepliesQueryReturnsRepliesFromCommentService()
+    {
+        var service = new Mock<ICommentService>();
+        var parentId = Guid.NewGuid();
+        var expected = Array.Empty<CommentDto>();
+        service.Setup(x => x.GetRepliesAsync(parentId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expected);
+
+        var result = await new Query().Replies(parentId, service.Object, CancellationToken.None);
+
+        Assert.Same(expected, result);
+        service.Verify(x => x.GetRepliesAsync(parentId, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SearchQueryReturnsPageFromSearchService()
+    {
         var search = new Mock<ICommentSearch>();
-        var page = new CommentPageDto([], 1, 25, 0, "createdAt", true);
-        var replies = Array.Empty<CommentDto>();
+        var expected = new CommentPageDto([], 3, 25, 0, "search", false);
+        search.Setup(x => x.SearchAsync("term", 3, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expected);
 
-        comments.Setup(x => x.GetRootsAsync(1, "createdAt", true, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(page);
-        comments.Setup(x => x.GetRepliesAsync(Guid.Empty, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(replies);
-        search.Setup(x => x.SearchAsync("term", 1, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(page);
+        var result = await new Query().Search("term", 3, search.Object, CancellationToken.None);
 
-        await using var provider = new ServiceCollection()
-            .AddSingleton(comments.Object)
-            .AddSingleton(search.Object)
-            .AddGraphQLServer()
-            .AddQueryType<Query>()
-            .Services
-            .BuildServiceProvider();
+        Assert.Same(expected, result);
+        search.Verify(x => x.SearchAsync("term", 3, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GraphQlSchemaHasNoMutationType()
+    {
+        await using var provider = CreateProvider();
 
         var executor = await provider.GetRequiredService<IRequestExecutorProvider>()
             .GetExecutorAsync();
-        var result = await executor.ExecuteAsync("""
-                                                 {
-                                                   comments { page totalCount }
-                                                   replies(parentId: "00000000-0000-0000-0000-000000000000") { id }
-                                                   search(query: "term") { page totalCount }
-                                                 }
-                                                 """);
 
-        var operationResult = result.ExpectOperationResult();
-        Assert.Empty(operationResult.Errors);
-        comments.VerifyAll();
-        search.VerifyAll();
         Assert.Null(executor.Schema.MutationType);
+    }
+
+    [Fact]
+    public async Task GraphQlAllowsTheConfiguredReplyDepth()
+    {
+        var service = new Mock<ICommentService>();
+        service.Setup(x => x.GetRepliesAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        await using var provider = CreateProvider(service.Object);
+        var executor = await provider.GetRequiredService<IRequestExecutorProvider>()
+            .GetExecutorAsync();
+
+        var selection = "id";
+        for (var depth = 0; depth < 24; depth++)
+            selection = $"replies {{ {selection} }}";
+
+        var result = await executor.ExecuteAsync(
+            $"{{ replies(parentId: \"00000000-0000-0000-0000-000000000000\") {{ {selection} }} }}");
+
+        Assert.Empty(result.ExpectOperationResult().Errors);
+    }
+
+    private static ServiceProvider CreateProvider(ICommentService? service = null)
+    {
+        var services = new ServiceCollection();
+        if (service is not null)
+            services.AddSingleton(service);
+        services.AddCommentsApi();
+        return services.BuildServiceProvider();
     }
 }

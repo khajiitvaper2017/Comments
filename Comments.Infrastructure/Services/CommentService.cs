@@ -20,6 +20,7 @@ public sealed class CommentService(
     ICommentCache cache) : ICommentService
 {
     private const int MaxReplyDepth = 24;
+    private const int AutoLoadReplyLimit = 5;
 
     /// <summary>Returns the next bounded section of replies for a comment.</summary>
     public async Task<IReadOnlyList<CommentDto>> GetRepliesAsync(Guid parentId, CancellationToken ct)
@@ -36,13 +37,10 @@ public sealed class CommentService(
             .OrderBy(x => x.CreatedAtUtc)
             .ToListAsync(ct);
 
-        var parentsWithReplies = replies
-            .Where(x => x.ParentId != null)
-            .Select(x => x.ParentId!.Value)
-            .ToHashSet();
+        var descendantCounts = BuildDescendantCounts(replies);
 
         return replies.Where(x => x.ParentId == parentId)
-            .Select(x => Map(x, replies, parentsWithReplies, 0))
+            .Select(x => Map(x, replies, descendantCounts, 0))
             .ToList();
     }
 
@@ -74,8 +72,9 @@ public sealed class CommentService(
         var replyCounts = rootIds.Length == 0
             ? new Dictionary<Guid, int>()
             : await db.Comments.AsNoTracking()
-                .Where(x => x.ParentId != null && rootIds.Contains(x.ParentId.Value) && !x.IsDeleted)
-                .GroupBy(x => x.ParentId!.Value)
+                // RootId covers the complete thread, so this includes nested descendants.
+                .Where(x => x.ParentId != null && rootIds.Contains(x.RootId) && !x.IsDeleted)
+                .GroupBy(x => x.RootId)
                 .ToDictionaryAsync(group => group.Key, group => group.Count(), ct);
         var result = new CommentPageDto(
             roots.Select(x => ToDto(x, [], replyCounts.TryGetValue(x.Id, out var count), count)).ToList(),
@@ -129,7 +128,7 @@ public sealed class CommentService(
             AddOutbox(new ProcessAttachment(attachment.Id));
         await db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
-        return Map(comment, [comment], new HashSet<Guid>(), 0);
+        return Map(comment, [comment], BuildDescendantCounts([comment]), 0);
     }
 
     private void AddOutbox<T>(T message)
@@ -145,18 +144,39 @@ public sealed class CommentService(
 
     private static CommentDto Map(
         Comment comment,
-        IEnumerable<Comment> all,
-        IReadOnlySet<Guid> parentsWithReplies,
+        IReadOnlyList<Comment> all,
+        IReadOnlyDictionary<Guid, int> descendantCounts,
         int depth)
     {
-        if (depth >= MaxReplyDepth)
-            return ToDto(comment, [], parentsWithReplies.Contains(comment.Id),
-                all.Count(x => x.ParentId == comment.Id));
+        var replyCount = descendantCounts.GetValueOrDefault(comment.Id);
+        if (depth >= MaxReplyDepth || replyCount >= AutoLoadReplyLimit)
+            // Large reply branches stay collapsed until the user explicitly loads them.
+            return ToDto(comment, [], replyCount > 0, replyCount);
 
         var replies = all.Where(x => x.ParentId == comment.Id).OrderBy(x => x.CreatedAtUtc)
-            .Select(x => Map(x, all, parentsWithReplies, depth + 1)).ToList();
-        return ToDto(comment, replies, replies.Count == 0 && parentsWithReplies.Contains(comment.Id),
-            replies.Count);
+            .Select(x => Map(x, all, descendantCounts, depth + 1)).ToList();
+        return ToDto(comment, replies, false, replyCount);
+    }
+
+    private static Dictionary<Guid, int> BuildDescendantCounts(IReadOnlyList<Comment> comments)
+    {
+        var children = comments.Where(x => x.ParentId is not null)
+            .GroupBy(x => x.ParentId!.Value)
+            .ToDictionary(group => group.Key, group => group.ToList());
+        var counts = new Dictionary<Guid, int>();
+
+        int Count(Guid id)
+        {
+            if (counts.TryGetValue(id, out var count)) return count;
+            count = children.TryGetValue(id, out var directReplies)
+                ? directReplies.Sum(reply => 1 + Count(reply.Id))
+                : 0;
+            counts[id] = count;
+            return count;
+        }
+
+        foreach (var comment in comments) Count(comment.Id);
+        return counts;
     }
 
     private static CommentDto ToDto(

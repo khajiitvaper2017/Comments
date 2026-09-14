@@ -16,20 +16,21 @@
         id="comment-search"
         name="searchQuery"
         [(ngModel)]="searchQuery"
-        placeholder="Search text or user name"/>
+        placeholder="Search text or user name"
+      />
     </label>
     <button class="submit-button" type="submit" [disabled]="searchLoading()">
       {{ searchLoading() ? 'Searching...' : 'Search' }}
     </button>
     @if (searchActive()) {
-    <span class="search-results-count">{{ total }} results</span>
+      <span class="search-results-count">{{ total }} results</span>
     }
   </form>
   @if (loading()) {
-  <div class="loading-state" role="status" aria-live="polite">
-    <span class="loading-spinner" aria-hidden="true"></span>
-    <span>Loading comments...</span>
-  </div>
+    <div class="loading-state" role="status" aria-live="polite">
+      <span class="loading-spinner" aria-hidden="true"></span>
+      <span>Loading comments...</span>
+    </div>
   }
   <app-comment-list
     [comments]="comments()"
@@ -54,20 +55,22 @@
     (captchaChanged)="captcha.set($event)"
     (errorChanged)="error.set($event)"
     (submitted)="handleSubmitted()"
-    (cancelled)="cancelComposer()">
+    (cancelled)="cancelComposer()"
+  >
   </app-comment-list>
   @if (error()) {
-  <p class="error" role="alert">{{ error() }}</p>
+    <p class="error" role="alert">{{ error() }}</p>
   }
   @if (showComposer()) {
-  <app-comment-form
-    [captcha]="captcha()"
-    [parentId]="replyParentId"
-    (captchaChanged)="captcha.set($event)"
-    (errorChanged)="error.set($event)"
-    (submitted)="handleSubmitted()"
-    (cancelled)="cancelComposer()">
-  </app-comment-form>
+    <app-comment-form
+      [captcha]="captcha()"
+      [parentId]="replyParentId"
+      (captchaChanged)="captcha.set($event)"
+      (errorChanged)="error.set($event)"
+      (submitted)="handleSubmitted()"
+      (cancelled)="cancelComposer()"
+    >
+    </app-comment-form>
   }
 </main>
 <app-image-lightbox [image]="selectedImage()" (closed)="closeImage()"></app-image-lightbox>

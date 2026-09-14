@@ -9,7 +9,7 @@ This application is organized into separate Domain, Application, Infrastructure,
 
 Requirements: Docker Desktop.
 
-Run PowerShell in root folder, set the database password and start the application:
+Run PowerShell in root folder, set your database password and start the application, for example:
 
 ```powershell
 $env:COMMENTS_DB_PASSWORD = 'Comments-Db_2026!'
@@ -20,7 +20,7 @@ docker compose up --build
 
 Open [http://localhost:8080](http://localhost:8080).
 
-Docker runs SQL Server, Redis, RabbitMQ, Elasticsearch, the ASP.NET API, and Angular separately. Nginx serves the Angular frontend and proxies `/api` and SignalR requests to the API. Docker stores the database in the `comments-db` volume, uploaded files in the `comments-files` volume, and the Elasticsearch index in the `comments-search` volume. Stop the application with `Ctrl+C`.
+Docker runs SQL Server, Redis, RabbitMQ, Elasticsearch, the ASP.NET API, and Angular separately. Nginx serves the Angular frontend and proxies `/api`, `/graphql`, and SignalR requests to the API. Docker stores the database in the `comments-db` volume, uploaded files in the `comments-files` volume, and the Elasticsearch index in the `comments-search` volume. Stop the application with `Ctrl+C`.
 
 ## Run locally
 

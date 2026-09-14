@@ -24,6 +24,7 @@ import { finalize, Subscription } from 'rxjs';
   templateUrl: './comments-page.component.html',
 })
 export class CommentsPageComponent implements OnInit, OnDestroy {
+  private static readonly autoLoadReplyLimit = 5;
   private readonly api = inject(CommentApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -52,6 +53,7 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
   showComposer = signal(false);
   private realtimeRefreshTimer: ReturnType<typeof setTimeout> | undefined;
   private readonly loadedReplies = new Map<string, CommentItem[]>();
+  private readonly loadingReplies = new Set<string>();
   private querySubscription?: Subscription;
   ngOnInit() {
     this.hub.on('commentChanged', () => this.scheduleRealtimeRefresh());
@@ -110,10 +112,12 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
       .pipe(finalize(() => showLoading && this.loading.set(false)))
       .subscribe({
         next: (result) => {
-          this.comments.set(this.restoreLoadedReplies(result.items));
+          const comments = this.restoreLoadedReplies(result.items);
+          this.comments.set(comments);
           this.pageSize = result.pageSize;
           this.total = result.totalCount;
           this.totalReplyCount = result.totalReplyCount;
+          this.autoLoadSmallReplyTrees(comments);
         },
         error: () => this.error.set('Could not load comments.'),
       });
@@ -172,13 +176,31 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
   }
 
   loadReplies(parentId: string) {
-    this.api.getReplies(parentId).subscribe({
-      next: (replies) => {
-        this.loadedReplies.set(parentId, replies);
-        this.comments.update((comments) => this.attachReplies(comments, parentId, replies));
-      },
-      error: () => this.error.set('Could not load replies.'),
-    });
+    if (this.loadingReplies.has(parentId)) return;
+    this.loadingReplies.add(parentId);
+    this.api
+      .getReplies(parentId)
+      .pipe(finalize(() => this.loadingReplies.delete(parentId)))
+      .subscribe({
+        next: (replies) => {
+          this.loadedReplies.set(parentId, replies);
+          this.comments.update((comments) => this.attachReplies(comments, parentId, replies));
+        },
+        error: () => this.error.set('Could not load replies.'),
+      });
+  }
+
+  private autoLoadSmallReplyTrees(comments: CommentItem[]) {
+    // Small threads are cheaper to load completely than to make the user expand manually.
+    comments
+      .filter(
+        (comment) =>
+          comment.replyCount > 0 &&
+          comment.replyCount < CommentsPageComponent.autoLoadReplyLimit &&
+          comment.hasMoreReplies &&
+          !this.loadedReplies.has(comment.id),
+      )
+      .forEach((comment) => this.loadReplies(comment.id));
   }
 
   private attachReplies(

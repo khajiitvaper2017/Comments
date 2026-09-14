@@ -88,6 +88,86 @@ public sealed class CommentServiceTests
         Assert.Equal("ReplyCreated", Assert.Single(database.OutboxMessages).Type);
     }
 
+    [Fact]
+    public async Task RootReplyCountIncludesAllDescendants()
+    {
+        await using var database = CreateDatabase();
+        var root = new Comment
+        {
+            UserName = "Root123",
+            Email = "root@example.com",
+            RawText = "Root.",
+            SanitizedText = "Root."
+        };
+        var reply = new Comment
+        {
+            ParentId = root.Id,
+            RootId = root.Id,
+            UserName = "Reply123",
+            Email = "reply@example.com",
+            RawText = "Reply.",
+            SanitizedText = "Reply."
+        };
+        var nestedReply = new Comment
+        {
+            ParentId = reply.Id,
+            RootId = root.Id,
+            UserName = "Nested123",
+            Email = "nested@example.com",
+            RawText = "Nested reply.",
+            SanitizedText = "Nested reply."
+        };
+        database.Comments.AddRange(root, reply, nestedReply);
+        await database.SaveChangesAsync();
+        var service = CreateService(database, new FakeCaptcha());
+
+        var result = await service.GetRootsAsync(1, "createdAt", true, CancellationToken.None);
+
+        Assert.Equal(2, Assert.Single(result.Items).ReplyCount);
+    }
+
+    [Fact]
+    public async Task LargeReplyBranchIsNotExpandedAutomatically()
+    {
+        await using var database = CreateDatabase();
+        var root = new Comment
+        {
+            UserName = "Root123",
+            Email = "root@example.com",
+            RawText = "Root.",
+            SanitizedText = "Root."
+        };
+        root.RootId = root.Id;
+        var reply = new Comment
+        {
+            ParentId = root.Id,
+            RootId = root.Id,
+            UserName = "Reply123",
+            Email = "reply@example.com",
+            RawText = "Reply.",
+            SanitizedText = "Reply."
+        };
+        var descendants = Enumerable.Range(1, 5).Select(index => new Comment
+        {
+            ParentId = reply.Id,
+            RootId = root.Id,
+            UserName = $"Nested{index}",
+            Email = $"nested{index}@example.com",
+            RawText = $"Nested {index}.",
+            SanitizedText = $"Nested {index}."
+        }).ToList();
+        database.Comments.AddRange(new[] { root, reply }.Concat(descendants));
+        await database.SaveChangesAsync();
+        var service = CreateService(database, new FakeCaptcha());
+
+        var result = await service.GetRepliesAsync(root.Id, CancellationToken.None);
+
+        var loadedReply = Assert.Single(result);
+        Assert.Equal(5, loadedReply.ReplyCount);
+        Assert.Empty(loadedReply.Replies);
+        Assert.True(loadedReply.HasMoreReplies);
+    }
+
     private static CommentService CreateService(CommentsDbContext database, FakeCaptcha captcha)
     {
         return new CommentService(
