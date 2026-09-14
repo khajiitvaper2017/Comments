@@ -78,10 +78,14 @@ var writeComments = Scenario.Create("write_comments", async context =>
             { new StringContent("load-test"), "captchaId" },
             { new StringContent("bypass"), "captchaAnswer" }
         };
-        var testAttachment = testAttachments[context.InvocationNumber % testAttachments.Length];
-        var attachment = new ByteArrayContent(testAttachment.Content);
-        attachment.Headers.ContentType = new MediaTypeHeaderValue(testAttachment.ContentType);
-        form.Add(attachment, "attachments", testAttachment.FileName);
+        // attachments on 10% of comments.
+        if (context.InvocationNumber % 10 == 0)
+        {
+            var testAttachment = testAttachments[context.InvocationNumber % testAttachments.Length];
+            var attachment = new ByteArrayContent(testAttachment.Content);
+            attachment.Headers.ContentType = new MediaTypeHeaderValue(testAttachment.ContentType);
+            form.Add(attachment, "attachments", testAttachment.FileName);
+        }
 
         return await Http.Send(httpClient, Http.CreateRequest("POST", "/api/comments").WithBody(form));
     })
