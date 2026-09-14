@@ -215,7 +215,7 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
 
       return {
         ...comment,
-        replies: this.attachReplies(comment.replies, parentId, replies),
+        replies: this.attachReplies(comment.replies ?? [], parentId, replies),
       };
     });
   }
@@ -223,9 +223,8 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
   private restoreLoadedReplies(comments: CommentItem[]): CommentItem[] {
     return comments.map((comment) => {
       const savedReplies = this.loadedReplies.get(comment.id);
-      const replies = savedReplies
-        ? this.mergeReplies(comment.replies, savedReplies)
-        : comment.replies;
+      const serverReplies = comment.replies ?? [];
+      const replies = savedReplies ? this.mergeReplies(serverReplies, savedReplies) : serverReplies;
       return {
         ...comment,
         replies: this.restoreLoadedReplies(replies),
