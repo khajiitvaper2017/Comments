@@ -1,6 +1,8 @@
 services:
   db:
     image: mcr.microsoft.com/mssql/server:2022-latest
+    cpus: "1.5"
+    mem_limit: 2g
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_SA_PASSWORD: "${COMMENTS_DB_PASSWORD:?Set COMMENTS_DB_PASSWORD before starting Docker Compose}"
@@ -28,6 +30,8 @@ services:
       start_period: 20s
   redis:
     image: redis:7-alpine
+    cpus: "0.25"
+    mem_limit: 256m
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -35,6 +39,8 @@ services:
       retries: 20
   rabbitmq:
     image: rabbitmq:4-management-alpine
+    cpus: "0.5"
+    mem_limit: 512m
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
@@ -46,6 +52,8 @@ services:
       retries: 20
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:9.1.2
+    cpus: "1.0"
+    mem_limit: 1g
     environment:
       discovery.type: single-node
       xpack.security.enabled: "false"
@@ -59,6 +67,8 @@ services:
       start_period: 30s
   app:
     build: .
+    cpus: "1.0"
+    mem_limit: 1g
     environment:
       Captcha__EnableLoadTestBypass: "${COMMENTS_ENABLE_LOADTEST_CAPTCHA:-false}"
       ConnectionStrings__Comments: "Server=db,1433;Database=Comments;User Id=sa;Password=${COMMENTS_DB_PASSWORD};TrustServerCertificate=True"
@@ -69,10 +79,6 @@ services:
       RabbitMq__Password: "guest"
       Elasticsearch__Uri: "http://elasticsearch:9200"
       Elasticsearch__Index: "comments"
-      Logging__LogLevel__Default: "Warning"
-      Logging__LogLevel__Microsoft.AspNetCore: "Warning"
-      Logging__LogLevel__Microsoft.EntityFrameworkCore: "Warning"
-      Logging__LogLevel__Microsoft.Hosting.Lifetime: "Information"
     expose: ["8080"]
     healthcheck:
       test: ["CMD-SHELL", "bash -c ':</dev/tcp/127.0.0.1/8080'"]
@@ -92,6 +98,8 @@ services:
     volumes: [comments-files:/data]
   frontend:
     build: ./Comments.Frontend
+    cpus: "0.25"
+    mem_limit: 128m
     ports: ["8080:80"]
     depends_on:
       app:
