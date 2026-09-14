@@ -9,7 +9,6 @@ describe('CommentCardsComponent reply switch', () => {
       id: 'root',
       replyCount: 2,
       replies: [{ id: 'reply' }],
-      hasMoreReplies: false,
     } as unknown as CommentItem;
 
     expect(component.repliesAreVisible(comment)).toBe(true);
@@ -22,7 +21,6 @@ describe('CommentCardsComponent reply switch', () => {
       id: 'other',
       replyCount: 2,
       replies: [],
-      hasMoreReplies: true,
     } as unknown as CommentItem;
     let requested = '';
     component.loadRepliesRequested.subscribe((id: string) => (requested = id));

@@ -115,12 +115,11 @@ public sealed class ElasticsearchCommentSearch(
         var replies = selected
             .Select(x => MapSearch(x, all, contextIds, matchedIds, depth + 1))
             .ToList();
-        var hasMoreReplies = depth >= MaxReplyDepth || selected.Count < children.Count;
         var replyCount = comment.DescendantCount;
         return new CommentDto(comment.Id, comment.ParentId, comment.UserName, comment.Email, comment.HomePage,
             comment.SanitizedText, comment.CreatedAtUtc,
             comment.Attachments.Select(a => new AttachmentDto(a.Id, a.OriginalName, a.ContentType, a.Size,
-                a.Width, a.Height)).ToList(), replies, replyCount, hasMoreReplies,
+                a.Width, a.Height)).ToList(), replies, replyCount,
             matchedIds.Contains(comment.Id));
     }
 }

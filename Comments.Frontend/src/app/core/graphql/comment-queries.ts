@@ -23,7 +23,6 @@ const COMMENT_FIELDS = `
   createdAtUtc
   attachments { id fileName contentType size }
   replyCount
-  hasMoreReplies
   isSearchMatch
 `;
 

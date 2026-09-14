@@ -95,7 +95,7 @@
             }
           </td>
           <td class="table-comment-actions">
-            @if (comment.replies.length || comment.hasMoreReplies) {
+            @if (comment.replyCount > 0) {
               <button
                 class="reply-toggle"
                 type="button"

@@ -11,5 +11,4 @@ public sealed record CommentDto(
     IReadOnlyList<AttachmentDto> Attachments,
     IReadOnlyList<CommentDto> Replies,
     int ReplyCount = 0,
-    bool HasMoreReplies = false,
     bool IsSearchMatch = false);

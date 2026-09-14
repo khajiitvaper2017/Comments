@@ -16,7 +16,6 @@ export interface CommentItem {
   attachments: Attachment[];
   replies: CommentItem[];
   replyCount: number;
-  hasMoreReplies?: boolean;
   isSearchMatch?: boolean;
 }
 

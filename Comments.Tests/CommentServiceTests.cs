@@ -180,7 +180,6 @@ public sealed class CommentServiceTests
         var loadedReply = Assert.Single(result);
         Assert.Equal(5, loadedReply.ReplyCount);
         Assert.Empty(loadedReply.Replies);
-        Assert.True(loadedReply.HasMoreReplies);
     }
 
     private static CommentService CreateService(CommentsDbContext database, FakeCaptcha captcha)

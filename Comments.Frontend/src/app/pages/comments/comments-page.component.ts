@@ -185,6 +185,7 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
         next: (replies) => {
           this.loadedReplies.set(parentId, replies);
           this.comments.update((comments) => this.attachReplies(comments, parentId, replies));
+          this.autoLoadSmallReplyTrees(replies);
         },
         error: () => this.error.set('Could not load replies.'),
       });
@@ -192,15 +193,19 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
 
   private autoLoadSmallReplyTrees(comments: CommentItem[]) {
     // Small threads are cheaper to load completely than to make the user expand manually.
-    comments
-      .filter(
-        (comment) =>
-          comment.replyCount > 0 &&
-          comment.replyCount < CommentsPageComponent.autoLoadReplyLimit &&
-          comment.hasMoreReplies &&
-          !this.loadedReplies.has(comment.id),
-      )
-      .forEach((comment) => this.loadReplies(comment.id));
+    for (const comment of comments) {
+      if (
+        comment.replyCount > 0 &&
+        comment.replyCount < CommentsPageComponent.autoLoadReplyLimit &&
+        comment.replies.length < comment.replyCount &&
+        !this.loadedReplies.has(comment.id) &&
+        !this.loadingReplies.has(comment.id)
+      ) {
+        this.loadReplies(comment.id);
+      }
+
+      this.autoLoadSmallReplyTrees(comment.replies);
+    }
   }
 
   private attachReplies(
@@ -210,7 +215,7 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
   ): CommentItem[] {
     return comments.map((comment) => {
       if (comment.id === parentId) {
-        return { ...comment, replies, hasMoreReplies: false };
+        return { ...comment, replies };
       }
 
       return {
@@ -228,7 +233,6 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
       return {
         ...comment,
         replies: this.restoreLoadedReplies(replies),
-        hasMoreReplies: savedReplies ? false : comment.hasMoreReplies,
       };
     });
   }
@@ -263,12 +267,17 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
     });
   }
   handleSubmitted() {
-    const wasReply = Boolean(this.replyParentId);
+    const parentId = this.replyParentId;
+    const wasReply = Boolean(parentId);
     this.error.set('');
     this.replyParentId = '';
     this.showComposer.set(false);
-    if (!wasReply) this.page = 1;
-    this.updateUrl();
+    if (wasReply) {
+      this.loadReplies(parentId);
+    } else {
+      this.page = 1;
+      this.updateUrl();
+    }
   }
   openImage(image: { id: string; name: string }) {
     this.selectedImage.set({ url: `/api/attachments/${image.id}`, name: image.name });

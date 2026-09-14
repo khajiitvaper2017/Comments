@@ -31,7 +31,7 @@ export class CommentCardsComponent {
   protected readonly collapsedReplies = new Set<string>();
 
   protected toggleOrLoadReplies(comment: CommentItem) {
-    if (!comment.replies.length && comment.hasMoreReplies) {
+    if (!comment.replies.length && comment.replyCount > 0) {
       this.collapsedReplies.delete(comment.id);
       this.loadRepliesRequested.emit(comment.id);
       return;

@@ -169,7 +169,7 @@ public sealed class CommentService(
         await db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
         await cache.InvalidateAsync(ct);
-        return ToDto(comment, [], false, comment.DescendantCount);
+        return ToDto(comment, [], comment.DescendantCount);
     }
 
     private async Task<List<Comment>> LoadDescendantsAsync(Guid[] parentIds, CancellationToken ct)
@@ -206,25 +206,24 @@ public sealed class CommentService(
     {
         var replyCount = comment.DescendantCount;
         if (depth >= MaxReplyDepth || replyCount >= AutoLoadReplyLimit)
-            return ToDto(comment, [], replyCount > 0, replyCount);
+            return ToDto(comment, [], replyCount);
 
         var replies = all.Where(x => x.ParentId == comment.Id)
             .OrderBy(x => x.CreatedAtUtc)
             .Select(x => Map(x, all, depth + 1))
             .ToList();
-        return ToDto(comment, replies, false, replyCount);
+        return ToDto(comment, replies, replyCount);
     }
 
 
     private static CommentDto ToDto(
         Comment comment,
         IReadOnlyList<CommentDto> replies,
-        bool hasMoreReplies,
         int replyCount)
     {
         return new CommentDto(comment.Id, comment.ParentId, comment.UserName, comment.Email, comment.HomePage,
             comment.SanitizedText, comment.CreatedAtUtc,
             comment.Attachments.Select(a => new AttachmentDto(a.Id, a.OriginalName, a.ContentType, a.Size,
-                a.Width, a.Height)).ToList(), replies, replyCount, hasMoreReplies);
+                a.Width, a.Height)).ToList(), replies, replyCount);
     }
 }
