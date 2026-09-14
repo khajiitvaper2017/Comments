@@ -113,6 +113,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAttachmentProcessor, AttachmentProcessingService>();
         services.AddScoped<ICommentService, CommentService>();
         services.AddSingleton<IRealtimeNotifier, SignalRRealtimeNotifier>();
+        services.AddHostedService<AttachmentMaintenanceService>();
         return services;
     }
 

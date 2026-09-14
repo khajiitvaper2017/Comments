@@ -34,7 +34,9 @@ public sealed class RabbitMqConsumer(
         var channel = connection.Get().CreateModel();
         channels.Add(channel);
         DeclareQueue(channel, queue);
-        channel.BasicQos(0, 4, false);
+        // Image conversion is CPU-heavy; keep it deliberately behind normal event consumers.
+        var prefetch = queue == RabbitMqTopology.AttachmentQueue ? 1 : 4;
+        channel.BasicQos(0, (ushort)prefetch, false);
         var consumer = new AsyncEventingBasicConsumer(channel);
         consumer.Received += async (_, args) =>
         {

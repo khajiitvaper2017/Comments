@@ -165,6 +165,7 @@ public sealed class CommentService(
             AddOutbox(new ReplyCreated(comment.Id, comment.ParentId.Value, comment.CreatedAtUtc));
         foreach (var attachment in comment.Attachments.Where(x =>
                      x.ProcessingStatus == AttachmentProcessingStatus.Pending))
+            // WebP conversion is queued.
             AddOutbox(new ProcessAttachment(attachment.Id));
         await db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
