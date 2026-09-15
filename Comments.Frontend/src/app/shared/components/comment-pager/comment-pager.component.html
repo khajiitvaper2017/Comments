@@ -1,8 +1,8 @@
 @if (hasPreviousPage || nextCursor) {
   <div class="pager">
-    <button type="button" [disabled]="!hasPreviousPage" (click)="pageChanged.emit('previous')">
-      Previous
-    </button>
+    @if (hasPreviousPage) {
+      <button type="button" (click)="pageChanged.emit('previous')">Previous</button>
+    }
     <button type="button" [disabled]="!nextCursor" (click)="pageChanged.emit('next')">Next</button>
   </div>
 }
