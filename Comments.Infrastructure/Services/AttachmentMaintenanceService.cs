@@ -43,9 +43,11 @@ public sealed class AttachmentMaintenanceService(
         var db = scope.ServiceProvider.GetRequiredService<CommentsDbContext>();
         var candidates = await db.Attachments
             .AsNoTracking()
+            // Failed jobs are terminal until an operator repairs the source file.
             .Where(x => x.ContentType.StartsWith("image/") &&
-                        (x.ProcessingStatus != AttachmentProcessingStatus.Processed ||
-                         !x.StoredName.EndsWith(".webp")))
+                        (x.ProcessingStatus == AttachmentProcessingStatus.Pending ||
+                         (x.ProcessingStatus == AttachmentProcessingStatus.Processed &&
+                          !x.StoredName.EndsWith(".webp"))))
             .OrderBy(x => x.CreatedAtUtc)
             .Take(BatchSize)
             .ToListAsync(ct);

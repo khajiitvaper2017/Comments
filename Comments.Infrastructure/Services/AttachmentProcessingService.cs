@@ -2,6 +2,7 @@ using Comments.Application.Abstractions;
 using Comments.Domain.Entities;
 using Comments.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Processing;
@@ -9,12 +10,31 @@ using SixLabors.ImageSharp.Processing;
 namespace Comments.Infrastructure.Services;
 
 /// <summary>Converts an uploaded image to a lossy WebP file.</summary>
-public sealed class AttachmentProcessingService(CommentsDbContext db) : IAttachmentProcessor
+public sealed class AttachmentProcessingService(
+    CommentsDbContext db,
+    ILogger<AttachmentProcessingService> logger) : IAttachmentProcessor
 {
     public async Task ProcessAsync(Guid attachmentId, CancellationToken ct)
     {
-        var attachment = await db.Attachments.SingleAsync(x => x.Id == attachmentId, ct);
+        var attachment = await db.Attachments.SingleOrDefaultAsync(x => x.Id == attachmentId, ct);
+        if (attachment is null)
+        {
+            logger.LogWarning("Skipping attachment job {AttachmentId}: attachment row was not found.", attachmentId);
+            return;
+        }
+
         if (attachment.ProcessingStatus == AttachmentProcessingStatus.Processed) return;
+
+        if (!File.Exists(attachment.StorageReference))
+        {
+            attachment.ProcessingStatus = AttachmentProcessingStatus.Failed;
+            await db.SaveChangesAsync(ct);
+            logger.LogWarning(
+                "Skipping attachment job {AttachmentId}: source file {StorageReference} was not found.",
+                attachmentId,
+                attachment.StorageReference);
+            return;
+        }
 
         try
         {
@@ -30,7 +50,7 @@ public sealed class AttachmentProcessingService(CommentsDbContext db) : IAttachm
             {
                 FileFormat = WebpFileFormatType.Lossy,
                 Quality = 80,
-                Method = WebpEncodingMethod.BestQuality
+                Method = WebpEncodingMethod.Fastest
             }, ct);
             if (!string.Equals(processedPath, attachment.StorageReference, StringComparison.OrdinalIgnoreCase))
                 File.Delete(attachment.StorageReference);
