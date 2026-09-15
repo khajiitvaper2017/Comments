@@ -6,6 +6,7 @@ using Comments.Infrastructure.Persistence;
 using Elastic.Clients.Elasticsearch;
 using Elastic.Clients.Elasticsearch.QueryDsl;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Comments.Infrastructure.Search;
@@ -14,7 +15,7 @@ public sealed class ElasticsearchCommentSearch(
     ElasticsearchClient client,
     IOptions<ElasticsearchOptions> options,
     CommentsDbContext db,
-    ICommentCache cache) : ICommentSearch, ICommentIndexer, ICommentIndexMaintenance
+    ILogger<ElasticsearchCommentSearch> logger) : ICommentSearch, ICommentIndexer, ICommentIndexMaintenance
 {
     private const int MaxReplyDepth = 24;
     private const int PageSize = 25;
@@ -84,20 +85,24 @@ public sealed class ElasticsearchCommentSearch(
             throw new InvalidOperationException($"Elasticsearch indexing failed for comment {commentId}.");
     }
 
-    public async Task<CommentPageDto> SearchAsync(string query, int page, bool partial, bool searchText,
-        bool searchUserName, CancellationToken ct)
+    public async Task<CommentPageDto> SearchAsync(string query, bool partial, bool searchText,
+        bool searchUserName, CancellationToken ct, string? cursor = null)
     {
-        page = Math.Max(1, page);
         query = query.Trim();
         if (query.Length == 0 || (!searchText && !searchUserName))
-            return new CommentPageDto([], page, PageSize, 0, "search", false);
+            return new CommentPageDto([], null, "search", false);
 
-        var response = await client.SearchAsync<CommentSearchDocument>(request => request
-            .Indices(options.Value.Index)
-            .From((page - 1) * PageSize)
-            .Size(PageSize)
-            .TrackTotalHits(true)
-            .Query(queryDefinition =>
+        var response = await client.SearchAsync<CommentSearchDocument>(request =>
+        {
+            request.Indices(options.Value.Index)
+                .Size(PageSize)
+                // The existing index maps the serialized Guid as text; sort on its
+                // keyword subfield so search_after does not require fielddata.
+                .Sort(sort => sort.Field("id.keyword", SortOrder.Asc));
+            if (!string.IsNullOrWhiteSpace(cursor))
+                request.SearchAfter(FieldValue.String(cursor));
+
+            request.Query(queryDefinition =>
             {
                 if (partial && searchUserName)
                 {
@@ -117,10 +122,23 @@ public sealed class ElasticsearchCommentSearch(
                 {
                     ConfigureTextSearch(multiMatch, query, searchText, searchUserName, partial);
                 });
-            }), ct);
+            });
+        }, ct);
 
         if (!response.IsValidResponse)
+        {
+            logger.LogError(
+                "Elasticsearch search failed for cursor {Cursor}, partial={Partial}, searchText={SearchText}, " +
+                "searchUserName={SearchUserName}, status={StatusCode}, error={ProductError}. {DebugInformation}",
+                cursor,
+                partial,
+                searchText,
+                searchUserName,
+                response.ApiCallDetails.HttpStatusCode,
+                response.ApiCallDetails.ProductError,
+                response.ApiCallDetails.DebugInformation);
             throw new InvalidOperationException("Elasticsearch search failed.");
+        }
 
         var matchedIds = response.Documents.Select(x => x.Id).ToHashSet();
         var comments = await db.Comments.AsNoTracking()
@@ -129,23 +147,8 @@ public sealed class ElasticsearchCommentSearch(
             .ToListAsync(ct);
         var items = response.Documents.Join(comments, document => document.Id, comment => comment.Id,
             (document, comment) => MapSearchHit(comment, document)).ToList();
-        var totals = await GetTotalsAsync(ct);
-        return new CommentPageDto(items, page, PageSize,
-            (int)Math.Min(response.Total, int.MaxValue), "search", false, totals.TotalReplyCount);
-    }
-
-    private async Task<CommentTotalsDto> GetTotalsAsync(CancellationToken ct)
-    {
-        var cached = await cache.GetTotalsAsync(ct);
-        if (cached.Value is not null) return cached.Value;
-
-        var value = await db.CommentStatistics
-            .AsNoTracking()
-            .Where(x => x.Id == 1)
-            .Select(x => new CommentTotalsDto(x.TotalRootCount, x.TotalReplyCount))
-            .SingleAsync(ct);
-        await cache.SetTotalsAsync(value, cached.Version, ct);
-        return value;
+        var nextCursor = response.Documents.Count == PageSize ? response.Documents.Last().Id.ToString() : null;
+        return new CommentPageDto(items, nextCursor, "search", false);
     }
 
     private async Task<bool> NeedsRebuildAsync(CancellationToken ct)

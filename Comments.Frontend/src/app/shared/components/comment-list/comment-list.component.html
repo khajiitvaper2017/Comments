@@ -61,9 +61,8 @@
   </div>
 
   <app-comment-pager
-    [total]="total"
-    [page]="page"
-    [pageSize]="pageSize"
+    [nextCursor]="nextCursor"
+    [hasPreviousPage]="hasPreviousPage"
     (pageChanged)="pageChanged.emit($event)"
   />
 
@@ -112,17 +111,13 @@
 
   <div class="discussion-footer">
     <app-comment-pager
-      [total]="total"
-      [page]="page"
-      [pageSize]="pageSize"
+      [nextCursor]="nextCursor"
+      [hasPreviousPage]="hasPreviousPage"
       (pageChanged)="pageChanged.emit($event)"
     />
-    <p class="discussion-counts" aria-label="Discussion pagination">
-      <span>{{ comments.length }} comments on this page</span>
-      <span>{{ replyCount }} replies on this page</span>
-      <span>{{ total }} total comments</span>
-      <span>{{ totalReplyCount }} total replies</span>
-      <span>Page {{ page }} of {{ pageCount }}</span>
+    <p class="discussion-counts" aria-label="Discussion section">
+      <span>{{ comments.length }} comments in this section</span>
+      <span>{{ replyCount }} replies in this section</span>
     </p>
   </div>
 </section>

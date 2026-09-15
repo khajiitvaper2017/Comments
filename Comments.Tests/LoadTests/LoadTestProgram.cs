@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Text.Json;
 using NBomber.Contracts;
 using NBomber.CSharp;
+using NBomber.Http;
 using NBomber.Http.CSharp;
 
 const string BaseUrl = "http://localhost:8080";
@@ -53,8 +54,8 @@ var searchVariants = new[]
     new SearchVariant(false, false, true),
     new SearchVariant(true, false, true)
 };
-var searchPageCounts = new ConcurrentDictionary<string, int>();
-
+var rootContinuations = new ConcurrentBag<RootContinuation>();
+var searchContinuations = new ConcurrentDictionary<string, ConcurrentBag<string>>();
 var testAttachments = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "TestAttachments"))
     .Select(path => new
     {
@@ -74,16 +75,22 @@ var reportFolder = Path.Combine(
     Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "reports")),
     DateTime.UtcNow.ToString("yyyy-MM-dd_HH-mm-ss"));
 
-// 60 root-page reads/s, distributed across the number of root pages.
+// 60 bounded root reads/s. Once a response exposes a cursor, later invocations
+// randomly reuse one of the discovered continuations, exercising arbitrary slices
+// without crawling the whole database during test startup.
 var readComments = Scenario.Create("read_comments", async context =>
     {
-        var page = context.InvocationNumber % seed.RootPageCount + 1;
-        var sort = sortFields[context.InvocationNumber % sortFields.Length];
-        var descending = context.InvocationNumber % 2 == 0;
+        var continuation = TakeRandom(rootContinuations);
+        var sort = continuation?.Sort ?? sortFields[context.InvocationNumber % sortFields.Length];
+        var descending = continuation?.Descending ?? context.InvocationNumber % 2 == 0;
+        var cursor = continuation?.Cursor;
+        var cursorQuery = cursor is null ? string.Empty : $"&cursor={Uri.EscapeDataString(cursor)}";
         var request = Http.CreateRequest("GET",
-                $"/api/comments?page={page}&sort={sort}&descending={descending.ToString().ToLowerInvariant()}")
+                $"/api/comments?sort={sort}&descending={descending.ToString().ToLowerInvariant()}{cursorQuery}")
             .WithHeader("Accept", "application/json");
-        return await Http.Send(httpClient, request);
+        var response = await Http.Send<CursorPageResponse>(httpClient, request);
+        AddRootContinuation(response, rootContinuations, sort, descending);
+        return response;
     })
     .WithWarmUpDuration(TimeSpan.FromSeconds(WarmUpSeconds))
     .WithLoadSimulations(Inject(RootReadRatePerSecond));
@@ -99,31 +106,28 @@ var readReplies = Scenario.Create("read_replies", async context =>
     .WithWarmUpDuration(TimeSpan.FromSeconds(WarmUpSeconds))
     .WithLoadSimulations(Inject(ReplyReadRatePerSecond));
 
-// 10 searches/s. 
-// Each term/option combination learns its available page count from responses, 
-// then randomly visits one of those pages.
+// 10 searches/s. Each search variant keeps at most five discovered cursors.
+// Requests therefore exercise the first result plus a random continuation from
+// the next five result slices, without wandering arbitrarily deep into results.
 var searchComments = Scenario.Create("search_comments", async context =>
     {
         var term = searchTerms[context.InvocationNumber % searchTerms.Length];
         var variant = searchVariants[context.InvocationNumber % searchVariants.Length];
         var searchKey = $"{term}:{variant.Partial}:{variant.SearchText}:{variant.SearchUserName}";
-        var availablePages = searchPageCounts.GetValueOrDefault(searchKey, 1);
-        var page = Random.Shared.Next(1, availablePages + 1);
+        var cursorPool = searchContinuations.GetOrAdd(searchKey, _ => new ConcurrentBag<string>());
+        var cursor = TakeRandomLimited(cursorPool, 5);
+        var cursorQuery = cursor is null
+            ? string.Empty
+            : $"&cursor={Uri.EscapeDataString(cursor)}";
         var request = Http.CreateRequest("GET",
-                $"/api/search?q={Uri.EscapeDataString(term)}&page={page}" +
+                $"/api/search?q={Uri.EscapeDataString(term)}" +
+                cursorQuery +
                 $"&partial={variant.Partial.ToString().ToLowerInvariant()}" +
                 $"&searchText={variant.SearchText.ToString().ToLowerInvariant()}" +
                 $"&searchUserName={variant.SearchUserName.ToString().ToLowerInvariant()}")
             .WithHeader("Accept", "application/json");
-        var response = await Http.Send<SearchPageResponse>(httpClient, request);
-        if (!response.IsError && response.Payload.IsSome())
-        {
-            var result = response.Payload.Value.Data;
-            var pageCount = Math.Max(1, (int)Math.Ceiling(
-                (double)result.TotalCount / Math.Max(1, result.PageSize)));
-            searchPageCounts[searchKey] = pageCount;
-        }
-
+        var response = await Http.Send<CursorPageResponse>(httpClient, request);
+        AddContinuation(response, cursorPool, 5);
         return response;
     })
     .WithWarmUpDuration(TimeSpan.FromSeconds(WarmUpSeconds))
@@ -132,7 +136,7 @@ var searchComments = Scenario.Create("search_comments", async context =>
 // Keep total write traffic at the one-million-messages-per-day rate while exercising
 // both root creation and reply creation paths.
 var writeComments = Scenario.Create("write_root_comments", async context =>
-    await SendComment(context.InvocationNumber, null))
+        await SendComment(context.InvocationNumber, null))
     .WithWarmUpDuration(TimeSpan.FromSeconds(WarmUpSeconds))
     .WithLoadSimulations(Inject(rootWriteRatePerSecond));
 
@@ -236,6 +240,45 @@ static LoadSimulation Inject(int rate)
     return Simulation.Inject(rate, TimeSpan.FromSeconds(1), TimeSpan.FromMinutes(TestDurationMinutes));
 }
 
+static T? TakeRandom<T>(ConcurrentBag<T> values) where T : class
+{
+    var snapshot = values.ToArray();
+    return snapshot.Length == 0 ? null : snapshot[Random.Shared.Next(snapshot.Length)];
+}
+
+static T? TakeRandomLimited<T>(ConcurrentBag<T> values, int maximum) where T : class
+{
+    var snapshot = values.Take(maximum).ToArray();
+    return snapshot.Length == 0 ? null : snapshot[Random.Shared.Next(snapshot.Length)];
+}
+
+static void AddContinuation(
+    Response<HttpResponse<CursorPageResponse>> response,
+    ConcurrentBag<string> target,
+    int maximum)
+{
+    if (!response.IsError && response.Payload.IsSome())
+    {
+        var nextCursor = response.Payload.Value.Data.NextCursor;
+        if (!string.IsNullOrWhiteSpace(nextCursor) && target.Count < maximum)
+            target.Add(nextCursor);
+    }
+}
+
+static void AddRootContinuation(
+    Response<HttpResponse<CursorPageResponse>> response,
+    ConcurrentBag<RootContinuation> target,
+    string sort,
+    bool descending)
+{
+    if (!response.IsError && response.Payload.IsSome())
+    {
+        var nextCursor = response.Payload.Value.Data.NextCursor;
+        if (!string.IsNullOrWhiteSpace(nextCursor))
+            target.Add(new RootContinuation(nextCursor, sort, descending));
+    }
+}
+
 static string GetContentType(string path)
 {
     return Path.GetExtension(path).ToLowerInvariant() switch
@@ -250,15 +293,12 @@ static string GetContentType(string path)
 
 static async Task<LoadTestSeed> LoadSeedData(HttpClient client, IReadOnlyList<string> searchTerms)
 {
-    // Seed IDs and pagination metadata from the running API.
-    using var response = await client.GetAsync("/api/comments?page=1&sort=createdAt&descending=true");
+    // Seed IDs from the first bounded response. The API no longer exposes page numbers.
+    using var response = await client.GetAsync("/api/comments?sort=createdAt&descending=true");
     response.EnsureSuccessStatusCode();
     await using var stream = await response.Content.ReadAsStreamAsync();
     using var document = await JsonDocument.ParseAsync(stream);
     var root = document.RootElement;
-    var pageSize = root.GetProperty("pageSize").GetInt32();
-    var totalCount = root.GetProperty("totalCount").GetInt32();
-    var rootPageCount = Math.Max(1, (int)Math.Ceiling((double)totalCount / pageSize));
     var parentIds = new HashSet<Guid>();
     var attachmentIds = new HashSet<Guid>();
 
@@ -272,8 +312,7 @@ static async Task<LoadTestSeed> LoadSeedData(HttpClient client, IReadOnlyList<st
     return new LoadTestSeed(
         parentIds.ToArray(),
         attachmentIds.ToArray(),
-        ancestorIds,
-        rootPageCount);
+        ancestorIds);
 }
 
 static async Task<Guid[]> FindAncestorIds(HttpClient client, IReadOnlyList<string> searchTerms)
@@ -281,7 +320,7 @@ static async Task<Guid[]> FindAncestorIds(HttpClient client, IReadOnlyList<strin
     foreach (var term in searchTerms)
     {
         using var response = await client.GetAsync(
-            $"/api/search?q={Uri.EscapeDataString(term)}&page=1&partial=false&searchText=true&searchUserName=true");
+            $"/api/search?q={Uri.EscapeDataString(term)}&partial=false&searchText=true&searchUserName=true");
         if (!response.IsSuccessStatusCode) continue;
 
         await using var stream = await response.Content.ReadAsStreamAsync();
@@ -312,14 +351,15 @@ static void CollectCommentData(
         CollectCommentData(reply, commentIds, attachmentIds);
 }
 
-readonly record struct SearchVariant(bool Partial, bool SearchText, bool SearchUserName);
+internal readonly record struct SearchVariant(bool Partial, bool SearchText, bool SearchUserName);
 
-sealed record SearchPageResponse(int TotalCount, int PageSize);
+internal sealed record RootContinuation(string Cursor, string Sort, bool Descending);
 
-sealed record CaptchaResponse(string Id, string Image);
+internal sealed record CursorPageResponse(string? NextCursor);
 
-sealed record LoadTestSeed(
+internal sealed record CaptchaResponse(string Id, string Image);
+
+internal sealed record LoadTestSeed(
     Guid[] ParentIds,
     Guid[] AttachmentIds,
-    Guid[] AncestorIds,
-    int RootPageCount);
+    Guid[] AncestorIds);

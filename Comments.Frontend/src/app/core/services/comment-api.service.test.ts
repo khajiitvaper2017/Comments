@@ -36,21 +36,18 @@ describe('CommentApiService Apollo reads', () => {
   it('loads comments through Apollo', async () => {
     const expected: CommentPage = {
       items: [],
-      page: 2,
-      pageSize: 25,
-      totalCount: 0,
+      nextCursor: null,
       sort: 'userName',
       descending: false,
-      totalReplyCount: 0,
     };
-    const resultPromise = firstValueFrom(service.getComments(2, 'userName', false));
+    const resultPromise = firstValueFrom(service.getComments('userName', false));
 
     const request = http.expectOne('/graphql');
     expect(request.request.method).toBe('POST');
     expect(request.request.body.variables).toEqual({
-      page: 2,
       sort: 'userName',
       descending: false,
+      cursor: null,
     });
     expect(request.request.body.operationName).toBe('Comments');
     expect(request.request.body.query).toMatch(/items\s*\{[\s\S]*replies\s*\{/);

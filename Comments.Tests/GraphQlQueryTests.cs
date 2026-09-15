@@ -14,15 +14,15 @@ public sealed class GraphQlQueryTests
     public async Task CommentsQueryReturnsPageFromCommentService()
     {
         var service = new Mock<ICommentService>();
-        var expected = new CommentPageDto([], 2, 25, 0, "userName", false);
-        service.Setup(x => x.GetRootsAsync(2, "userName", false, It.IsAny<CancellationToken>()))
+        var expected = new CommentPageDto([], null, "userName", false);
+        service.Setup(x => x.GetRootsAsync("userName", false, It.IsAny<CancellationToken>(), null))
             .ReturnsAsync(expected);
 
         var result = await new Query().Comments(
-            2, "userName", false, service.Object, CancellationToken.None);
+            "userName", false, service.Object, CancellationToken.None);
 
         Assert.Same(expected, result);
-        service.Verify(x => x.GetRootsAsync(2, "userName", false, It.IsAny<CancellationToken>()), Times.Once);
+        service.Verify(x => x.GetRootsAsync("userName", false, It.IsAny<CancellationToken>(), null), Times.Once);
     }
 
     [Fact]
@@ -44,14 +44,14 @@ public sealed class GraphQlQueryTests
     public async Task SearchQueryReturnsPageFromSearchService()
     {
         var search = new Mock<ICommentSearch>();
-        var expected = new CommentPageDto([], 3, 25, 0, "search", false);
-        search.Setup(x => x.SearchAsync("term", 3, true, true, true, It.IsAny<CancellationToken>()))
+        var expected = new CommentPageDto([], null, "search", false);
+        search.Setup(x => x.SearchAsync("term", true, true, true, It.IsAny<CancellationToken>(), null))
             .ReturnsAsync(expected);
 
-        var result = await new Query().Search("term", 3, true, true, true, search.Object, CancellationToken.None);
+        var result = await new Query().Search("term", true, true, true, search.Object, CancellationToken.None);
 
         Assert.Same(expected, result);
-        search.Verify(x => x.SearchAsync("term", 3, true, true, true, It.IsAny<CancellationToken>()), Times.Once);
+        search.Verify(x => x.SearchAsync("term", true, true, true, It.IsAny<CancellationToken>(), null), Times.Once);
     }
 
     [Fact]

@@ -32,11 +32,11 @@ export class CommentApiService {
     return this.http.get(`/api/attachments/${id}`, { responseType: 'text' });
   }
 
-  getComments(page: number, sort: string, descending: boolean) {
+  getComments(sort: string, descending: boolean, cursor: string | null = null) {
     return this.apollo
       .query<CommentsQuery>({
         query: COMMENTS_QUERY,
-        variables: { page, sort, descending },
+        variables: { sort, descending, cursor },
       })
       .pipe(map((result) => result.data!.comments));
   }
@@ -58,15 +58,15 @@ export class CommentApiService {
 
   searchComments(
     query: string,
-    page = 1,
     partial = false,
     searchText = true,
     searchUserName = true,
+    cursor: string | null = null,
   ) {
     return this.apollo
       .query<SearchQuery>({
         query: SEARCH_QUERY,
-        variables: { query, page, partial, searchText, searchUserName },
+        variables: { query, partial, searchText, searchUserName, cursor },
       })
       .pipe(map((result) => result.data!.search));
   }

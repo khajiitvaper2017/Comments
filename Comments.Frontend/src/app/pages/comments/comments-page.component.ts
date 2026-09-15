@@ -45,10 +45,10 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
     .withUrl('/hubs/discussions')
     .withAutomaticReconnect()
     .build();
-  page = 1;
-  pageSize = 25;
-  total = 0;
-  totalReplyCount = 0;
+  cursor: string | null = null;
+  nextCursor: string | null = null;
+  hasPreviousPage = false;
+  private cursorHistory: Array<string | null> = [];
   sort = 'createdAt';
   descending = true;
   viewMode: 'cards' | 'table' = 'cards';
@@ -58,6 +58,7 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
   private readonly loadedReplies = new Map<string, CommentItem[]>();
   private readonly loadingReplies = new Set<string>();
   private readonly loadingAncestors = new Set<string>();
+  private pendingCursorNavigation: string | null | undefined;
   private querySubscription?: Subscription;
   ngOnInit() {
     this.hub.on('commentChanged', () => this.scheduleRealtimeRefresh());
@@ -79,7 +80,11 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
     this.searchText = params.get('text') !== 'false';
     this.searchUserName = params.get('user') !== 'false';
     this.activeSearchQuery = this.searchQuery;
-    this.page = this.parsePositiveInt(params.get('page'), 1);
+    const requestedCursor = params.get('cursor');
+    const isCursorNavigation = this.pendingCursorNavigation === requestedCursor;
+    this.pendingCursorNavigation = undefined;
+    this.cursor = requestedCursor;
+    if (!isCursorNavigation) this.cursorHistory = [];
     const sort = params.get('sort');
     this.sort = sort === 'userName' || sort === 'email' ? sort : 'createdAt';
     this.descending = params.get('descending') !== 'false';
@@ -94,11 +99,6 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
     }
   }
 
-  private parsePositiveInt(value: string | null, fallback: number): number {
-    const parsed = Number(value);
-    return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
-  }
-
   private updateUrl() {
     void this.router.navigate([], {
       relativeTo: this.route,
@@ -107,26 +107,26 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
         partial: this.partialSearch ? true : null,
         text: this.searchText ? null : false,
         user: this.searchUserName ? null : false,
-        page: this.page > 1 ? this.page : null,
         sort: this.sort === 'createdAt' ? null : this.sort,
         descending: this.descending ? null : false,
         view: this.viewMode === 'cards' ? null : this.viewMode,
+        cursor: this.cursor,
       },
     });
   }
 
-  loadComments(showLoading = true) {
+  loadComments(showLoading = true, cursor = this.cursor) {
     if (showLoading) this.loading.set(true);
     this.api
-      .getComments(this.page, this.sort, this.descending)
+      .getComments(this.sort, this.descending, cursor)
       .pipe(finalize(() => showLoading && this.loading.set(false)))
       .subscribe({
         next: (result) => {
           const comments = this.restoreLoadedReplies(result.items);
           this.comments.set(comments);
-          this.pageSize = result.pageSize;
-          this.total = result.totalCount;
-          this.totalReplyCount = result.totalReplyCount;
+          this.cursor = cursor;
+          this.nextCursor = result.nextCursor ?? null;
+          this.hasPreviousPage = this.cursorHistory.length > 0;
           this.autoLoadSmallReplyTrees(comments);
         },
         error: () => this.error.set('Could not load comments.'),
@@ -144,7 +144,9 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
 
   search() {
     this.activeSearchQuery = this.searchQuery.trim();
-    this.page = 1;
+    this.cursor = null;
+    this.nextCursor = null;
+    this.cursorHistory = [];
     this.updateUrl();
   }
 
@@ -153,19 +155,17 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
     this.api
       .searchComments(
         this.activeSearchQuery,
-        this.page,
         this.partialSearch,
         this.searchText,
         this.searchUserName,
+        this.cursor,
       )
       .pipe(finalize(() => this.searchLoading.set(false)))
       .subscribe({
         next: (result) => {
           this.comments.set(this.restoreLoadedReplies(result.items));
-          this.pageSize = result.pageSize;
-          this.total = result.totalCount;
-          this.totalReplyCount = result.totalReplyCount;
-          this.page = result.page;
+          this.nextCursor = result.nextCursor ?? null;
+          this.hasPreviousPage = this.cursorHistory.length > 0;
         },
         error: () => this.error.set('Search is currently unavailable.'),
       });
@@ -216,13 +216,21 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
   changeSort(sort: string) {
     this.descending = this.sort === sort ? !this.descending : sort === 'createdAt';
     this.sort = sort;
-    this.page = 1;
+    this.cursor = null;
+    this.nextCursor = null;
+    this.cursorHistory = [];
     this.updateUrl();
   }
 
-  changePage(page: number) {
-    if (page === this.page) return;
-    this.page = page;
+  changePage(direction: 'next' | 'previous') {
+    if (direction === 'next' && !this.nextCursor) return;
+    if (direction === 'previous' && this.cursorHistory.length === 0) return;
+
+    const requestedCursor =
+      direction === 'next' ? this.nextCursor : (this.cursorHistory.pop() ?? null);
+    if (direction === 'next') this.cursorHistory.push(this.cursor);
+    this.cursor = requestedCursor;
+    this.pendingCursorNavigation = requestedCursor;
     // Long smooth-scroll animations become janky on pages containing many replies.
     window.scrollTo({ top: 0, behavior: 'smooth' });
     this.updateUrl();
@@ -333,7 +341,9 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
     if (wasReply) {
       this.loadReplies(parentId);
     } else {
-      this.page = 1;
+      this.cursor = null;
+      this.nextCursor = null;
+      this.cursorHistory = [];
       this.updateUrl();
     }
   }

@@ -8,7 +8,6 @@ public sealed class CommentsDbContext(DbContextOptions<CommentsDbContext> option
     public DbSet<Comment> Comments => Set<Comment>();
     public DbSet<Attachment> Attachments => Set<Attachment>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
-    public DbSet<CommentStatistics> CommentStatistics => Set<CommentStatistics>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -55,13 +54,5 @@ public sealed class CommentsDbContext(DbContextOptions<CommentsDbContext> option
         o.Property(x => x.Payload).IsRequired();
         o.Property(x => x.LastError).HasMaxLength(2000);
         o.HasIndex(x => new { x.ProcessedAtUtc, x.DeadLetteredAtUtc, x.OccurredAtUtc });
-
-        b.Entity<CommentStatistics>().HasKey(x => x.Id);
-        b.Entity<CommentStatistics>().HasData(new CommentStatistics
-        {
-            Id = 1,
-            TotalRootCount = 0,
-            TotalReplyCount = 0
-        });
     }
 }

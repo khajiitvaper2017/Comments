@@ -7,46 +7,26 @@ namespace Comments.Infrastructure.Services;
 
 public sealed class RedisCommentCache(IDistributedCache cache) : ICommentCache
 {
-    // v2 separates root pages from lazy-loaded reply levels.
-    private const string VersionKey = "comments:cache-version:v5";
-    private const string TotalsKeyPrefix = "comments:totals:v5:";
+    // Versioned keys keep cursor slices isolated after writes.
+    private const string VersionKey = "comments:cache-version:v6";
 
-    public async Task<CommentPageDto?> GetAsync(int page, string sort, bool descending, CancellationToken ct)
+    public async Task<CommentPageDto?> GetAsync(string sort, bool descending, CancellationToken ct,
+        string? cursor = null)
     {
         var version = await GetVersionAsync(ct);
-        var value = await cache.GetStringAsync(Key(version, page, sort, descending), ct);
+        var value = await cache.GetStringAsync(Key(version, cursor, sort, descending), ct);
         return value is null ? null : JsonSerializer.Deserialize<CommentPageDto>(value);
     }
 
-    public async Task SetAsync(int page, string sort, bool descending, CommentPageDto value, CancellationToken ct)
+    public async Task SetAsync(string sort, bool descending, CommentPageDto value, CancellationToken ct,
+        string? cursor = null)
     {
         var version = await GetVersionAsync(ct);
         await cache.SetStringAsync(
-            Key(version, page, sort, descending),
+            Key(version, cursor, sort, descending),
             JsonSerializer.Serialize(value),
             new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30) },
             ct);
-    }
-
-    public async Task<CommentTotalsCacheResult> GetTotalsAsync(CancellationToken ct)
-    {
-        var version = await GetVersionAsync(ct);
-        var value = await cache.GetStringAsync(TotalsKey(version), ct);
-        return new CommentTotalsCacheResult(
-            value is null ? null : JsonSerializer.Deserialize<CommentTotalsDto>(value),
-            version);
-    }
-
-    public async Task<bool> SetTotalsAsync(CommentTotalsDto value, long version, CancellationToken ct)
-    {
-        if (await GetVersionAsync(ct) != version) return false;
-
-        await cache.SetStringAsync(
-            TotalsKey(version),
-            JsonSerializer.Serialize(value),
-            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30) },
-            ct);
-        return true;
     }
 
     public async Task InvalidateAsync(CancellationToken ct)
@@ -62,13 +42,8 @@ public sealed class RedisCommentCache(IDistributedCache cache) : ICommentCache
         return long.TryParse(value, out var version) ? version : 1;
     }
 
-    private static string Key(long version, int page, string sort, bool descending)
+    private static string Key(long version, string? cursor, string sort, bool descending)
     {
-        return $"comments:v{version}:page:{page}:sort:{sort}:descending:{descending}";
-    }
-
-    private static string TotalsKey(long version)
-    {
-        return $"{TotalsKeyPrefix}{version}";
+        return $"comments:v{version}:cursor:{cursor ?? "first"}:sort:{sort}:descending:{descending}";
     }
 }

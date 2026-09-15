@@ -22,12 +22,9 @@ export interface CommentItem {
 
 export interface CommentPage {
   items: CommentItem[];
-  page: number;
-  pageSize: number;
-  totalCount: number;
+  nextCursor?: string | null;
   sort: string;
   descending: boolean;
-  totalReplyCount: number;
 }
 
 export interface Captcha {

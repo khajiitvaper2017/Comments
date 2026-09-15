@@ -6,7 +6,8 @@ namespace Comments.Application.Abstractions;
 
 public interface ICommentService
 {
-    Task<CommentPageDto> GetRootsAsync(int page, string sort, bool descending, CancellationToken cancellationToken);
+    Task<CommentPageDto> GetRootsAsync(string sort, bool descending,
+        CancellationToken cancellationToken, string? cursor = null);
 
     Task<IReadOnlyList<CommentDto>> GetRepliesAsync(Guid parentId, CancellationToken cancellationToken);
 

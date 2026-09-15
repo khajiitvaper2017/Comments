@@ -67,10 +67,6 @@ public sealed class CommentServiceTests
         Assert.Single(database.Attachments);
         Assert.Contains(database.OutboxMessages, message => message.Type == "CommentCreated");
         Assert.Contains(database.OutboxMessages, message => message.Type == "ProcessAttachment");
-        Assert.Equal(1, await database.CommentStatistics
-            .Where(statistics => statistics.Id == 1)
-            .Select(statistics => statistics.TotalRootCount)
-            .SingleAsync());
     }
 
     [Fact]
@@ -135,7 +131,7 @@ public sealed class CommentServiceTests
         await database.SaveChangesAsync();
         var service = CreateService(database, new FakeCaptcha());
 
-        var result = await service.GetRootsAsync(1, "createdAt", true, CancellationToken.None);
+        var result = await service.GetRootsAsync("createdAt", true, CancellationToken.None);
 
         var loadedRoot = Assert.Single(result.Items);
         Assert.Equal(2, loadedRoot.ReplyCount);
@@ -248,24 +244,16 @@ public sealed class CommentServiceTests
 
     private sealed class FakeCommentCache : ICommentCache
     {
-        public Task<CommentPageDto?> GetAsync(int page, string sort, bool descending, CancellationToken ct)
+        public Task<CommentPageDto?> GetAsync(string sort, bool descending, CancellationToken ct,
+            string? cursor = null)
         {
             return Task.FromResult<CommentPageDto?>(null);
         }
 
-        public Task SetAsync(int page, string sort, bool descending, CommentPageDto value, CancellationToken ct)
+        public Task SetAsync(string sort, bool descending, CommentPageDto value, CancellationToken ct,
+            string? cursor = null)
         {
             return Task.CompletedTask;
-        }
-
-        public Task<CommentTotalsCacheResult> GetTotalsAsync(CancellationToken ct)
-        {
-            return Task.FromResult(new CommentTotalsCacheResult(null, 1));
-        }
-
-        public Task<bool> SetTotalsAsync(CommentTotalsDto value, long version, CancellationToken ct)
-        {
-            return Task.FromResult(true);
         }
 
         public Task InvalidateAsync(CancellationToken ct)

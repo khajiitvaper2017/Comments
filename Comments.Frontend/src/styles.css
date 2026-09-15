@@ -552,23 +552,6 @@ mark {
   padding: 0.4rem 0.65rem;
   border: 1px solid var(--color-border-strong);
 }
-.page-numbers {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-.page-numbers button {
-  min-width: 2rem;
-  padding: 0.4rem 0.45rem;
-}
-.page-numbers button.active {
-  background: var(--color-action-strong);
-  color: #fff;
-}
-.page-ellipsis {
-  padding: 0 0.2rem;
-}
-
 /* Composer */
 .composer {
   margin: 2rem 0 3rem;

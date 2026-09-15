@@ -7,13 +7,13 @@ namespace Comments.Api.GraphQL;
 public sealed class Query
 {
     public Task<CommentPageDto> Comments(
-        int page = 1,
         string sort = "createdAt",
         bool descending = true,
         [Service] ICommentService service = null!,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        string? cursor = null)
     {
-        return service.GetRootsAsync(page, sort, descending, cancellationToken);
+        return service.GetRootsAsync(sort, descending, cancellationToken, cursor);
     }
 
     public Task<IReadOnlyList<CommentDto>> Replies(
@@ -34,13 +34,13 @@ public sealed class Query
 
     public Task<CommentPageDto> Search(
         string query,
-        int page = 1,
         bool partial = false,
         bool searchText = true,
         bool searchUserName = true,
         [Service] ICommentSearch search = null!,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        string? cursor = null)
     {
-        return search.SearchAsync(query, page, partial, searchText, searchUserName, cancellationToken);
+        return search.SearchAsync(query, partial, searchText, searchUserName, cancellationToken, cursor);
     }
 }

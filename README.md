@@ -75,11 +75,11 @@ Interactive Swagger documentation is available at [http://localhost:8080/api/](h
 
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
-| `GET` | `/api/comments?page=1&sort=createdAt&descending=true` | Get a page of root comments. Supported sorting fields are `createdAt`, `userName`, and `email`. |
+| `GET` | `/api/comments?sort=createdAt&descending=true` | Get a bounded root slice. Pass the returned `nextCursor` as `cursor` to continue. Supported sorting fields are `createdAt`, `userName`, and `email`. |
 | `POST` | `/api/comments` | Create a comment or reply. Accepts multipart form data, including optional attachments and CAPTCHA fields. |
 | `GET` | `/api/captcha` | Create a CAPTCHA challenge. |
 | `GET` | `/api/attachments/{id}` | Display or download an uploaded attachment. |
-| `GET` | `/api/search?q=term&page=1` | Search sanitized comment text and user names through Elasticsearch. |
+| `GET` | `/api/search?q=term` | Search sanitized comment text and user names through Elasticsearch. Pass the returned `nextCursor` as `cursor` to continue. |
 | `GET` | `/health` | Check whether the API is running. |
 
 SignalR clients connect to `/hubs/discussions`. Swagger is available at `/api/`.
@@ -90,15 +90,15 @@ The API applies database migrations on startup. Invalid input returns an HTTP `4
 
 - **Comments and replies** — create root comments and nested replies.
 - **Two display modes** — browse discussions as a threaded card view or a sortable table.
-- **Pagination and sorting** — root comments are loaded in pages and can be sorted by user name, e-mail, or date.
+- **Cursor continuation and sorting** — root comments are loaded in bounded slices and can be sorted by user name, e-mail, or date.
 - **Text formatting** — edit HTML-like markup with toolbar actions for `a`, `code`, `i` and `strong`, or switch to a rendered preview.
 - **Validation and CAPTCHA** — input is validated in the browser and on the server before a comment is saved.
 - **File attachments** — upload JPG, JPEG, GIF, PNG, or TXT files; images open in a zoomable lightbox and text files open in a scrollable preview.
 - **Security** — comment HTML is allow-listed and sanitized on the server; security headers protect the served application.
 - **Persistence** — SQL Server stores comments and attachment metadata; EF Core migrations create and update the schema.
 - **Separate file storage** — uploaded files are stored outside the API binaries, using local storage or a Docker volume.
-- **Asynchronous processing and search** — RabbitMQ workers process image attachments and update the Elasticsearch search index after comment creation; Redis caches comment pages and SignalR broadcasts updates.
-- **Search** — search comment text and user names through Elasticsearch, with pagination and highlighting of matching terms.
+- **Asynchronous processing and search** — RabbitMQ workers process image attachments and update the Elasticsearch search index after comment creation; Redis caches cursor slices and SignalR broadcasts updates.
+- **Search** — search comment text and user names through Elasticsearch, with cursor continuation and highlighting of matching terms.
 
 ## Useful commands
 

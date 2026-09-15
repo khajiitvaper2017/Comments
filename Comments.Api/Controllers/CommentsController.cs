@@ -12,16 +12,17 @@ namespace Comments.Api.Controllers;
 [Route("api/comments")]
 public sealed class CommentsController(ICommentService service) : ControllerBase
 {
-    /// <summary>Returns a paginated and sorted list of root comments.</summary>
-    /// <param name="page">The one-based page number.</param>
+    /// <summary>Returns the next bounded section of root comments.</summary>
     /// <param name="sort">The sort field: createdAt, userName, or email.</param>
     /// <param name="descending">Whether to sort in descending order.</param>
     /// <param name="ct">The cancellation token for the request.</param>
+    /// <param name="cursor">The continuation token returned by the previous response.</param>
     [HttpGet]
-    public Task<CommentPageDto> Get([FromQuery] int page = 1, [FromQuery] string sort = "createdAt",
-        [FromQuery] bool descending = true, CancellationToken ct = default)
+    public Task<CommentPageDto> Get([FromQuery] string sort = "createdAt",
+        [FromQuery] bool descending = true, CancellationToken ct = default,
+        [FromQuery] string? cursor = null)
     {
-        return service.GetRootsAsync(page, sort, descending, ct);
+        return service.GetRootsAsync(sort, descending, ct, cursor);
     }
 
     /// <summary>Returns the next bounded section of replies for a comment.</summary>

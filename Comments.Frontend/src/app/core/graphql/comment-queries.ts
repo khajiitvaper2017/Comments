@@ -37,15 +37,12 @@ function commentFieldsWithReplies(depth: number): string {
 }
 
 export const COMMENTS_QUERY = gql`
-  query Comments($page: Int!, $sort: String!, $descending: Boolean!) {
-    comments(page: $page, sort: $sort, descending: $descending) {
+  query Comments($sort: String!, $descending: Boolean!, $cursor: String) {
+    comments(sort: $sort, descending: $descending, cursor: $cursor) {
       items { ${COMMENT_FIELDS} replies { ${COMMENT_FIELDS} } }
-      page
-      pageSize
-      totalCount
+      nextCursor
       sort
       descending
-      totalReplyCount
     }
   }
 `;
@@ -63,15 +60,12 @@ export const ANCESTORS_QUERY = gql(`
 `);
 
 export const SEARCH_QUERY = gql(`
-  query Search($query: String!, $page: Int!, $partial: Boolean!, $searchText: Boolean!, $searchUserName: Boolean!) {
-    search(query: $query, page: $page, partial: $partial, searchText: $searchText, searchUserName: $searchUserName) {
+  query Search($query: String!, $partial: Boolean!, $searchText: Boolean!, $searchUserName: Boolean!, $cursor: String) {
+    search(query: $query, partial: $partial, searchText: $searchText, searchUserName: $searchUserName, cursor: $cursor) {
       items { ${COMMENT_FIELDS} }
-      page
-      pageSize
-      totalCount
+      nextCursor
       sort
       descending
-      totalReplyCount
     }
   }
 `);

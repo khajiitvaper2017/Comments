@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using Comments.Application.Abstractions;
 using Comments.Application.Data;
@@ -21,6 +23,7 @@ public sealed class CommentService(
 {
     // AutoLoadReplyLimit controls branch size; this separately caps nesting if stored counters are stale or invalid.
     private const int MaxReplyDepth = 24;
+    private const int RootPageSize = 25;
 
     /// <summary>
     ///     The maximum number of replies to load automatically for a comment before requiring the user to click "Load more
@@ -73,15 +76,24 @@ public sealed class CommentService(
             .ToList();
     }
 
-    /// <summary>Loads one page of root comments together with their replies.</summary>
-    public async Task<CommentPageDto> GetRootsAsync(int page, string sort, bool descending, CancellationToken ct)
+    /// <summary>Loads one bounded root slice together with its permitted replies.</summary>
+    public async Task<CommentPageDto> GetRootsAsync(string sort, bool descending,
+        CancellationToken ct, string? cursor = null)
     {
-        // Cache the complete page because the frontend needs the roots and replies together.
-        page = Math.Max(1, page);
+        // Cache the complete bounded section because the frontend needs roots and replies together.
         sort = new[] { "userName", "email", "createdAt" }.Contains(sort) ? sort : "createdAt";
-        var cached = await cache.GetAsync(page, sort, descending, ct);
+        var cached = await cache.GetAsync(sort, descending, ct, cursor);
         if (cached is not null) return cached;
         var query = db.Comments.AsNoTracking().Where(x => x.ParentId == null && !x.IsDeleted);
+        var position = DecodeCursor(cursor);
+        if (position is not null)
+        {
+            if (position.Sort != sort || position.Descending != descending)
+                position = null;
+            else
+                query = ApplyCursor(query, sort, descending, position);
+        }
+
         query = sort switch
         {
             "userName" => descending
@@ -94,8 +106,9 @@ public sealed class CommentService(
                 ? query.OrderByDescending(x => x.CreatedAtUtc).ThenByDescending(x => x.Id)
                 : query.OrderBy(x => x.CreatedAtUtc).ThenBy(x => x.Id)
         };
-        var totals = await GetTotalsAsync(ct);
-        var roots = await query.Skip((page - 1) * 25).Take(25).Include(x => x.Attachments).ToListAsync(ct);
+        var roots = await query.Take(RootPageSize + 1).Include(x => x.Attachments).ToListAsync(ct);
+        var hasMore = roots.Count > RootPageSize;
+        if (hasMore) roots.RemoveAt(RootPageSize);
         var smallRootIds = roots
             .Where(x => x.DescendantCount > 0 && x.DescendantCount < AutoLoadReplyLimit)
             .Select(x => x.Id)
@@ -106,13 +119,10 @@ public sealed class CommentService(
         var all = roots.Concat(descendants).ToList();
         var result = new CommentPageDto(
             roots.Select(x => Map(x, all, 0)).ToList(),
-            page,
-            25,
-            totals.TotalRootCount,
+            hasMore ? EncodeCursor(roots[^1], sort, descending) : null,
             sort,
-            descending,
-            totals.TotalReplyCount);
-        await cache.SetAsync(page, sort, descending, result, ct);
+            descending);
+        await cache.SetAsync(sort, descending, result, ct, cursor);
         return result;
     }
 
@@ -162,18 +172,6 @@ public sealed class CommentService(
                     .Select(x => x.ParentId ?? Guid.Empty)
                     .SingleAsync(ct);
             }
-
-            await db.CommentStatistics
-                .Where(x => x.Id == 1)
-                .ExecuteUpdateAsync(setters => setters
-                    .SetProperty(x => x.TotalReplyCount, x => x.TotalReplyCount + 1), ct);
-        }
-        else
-        {
-            await db.CommentStatistics
-                .Where(x => x.Id == 1)
-                .ExecuteUpdateAsync(setters => setters
-                    .SetProperty(x => x.TotalRootCount, x => x.TotalRootCount + 1), ct);
         }
 
         if (comment.ParentId is null)
@@ -188,20 +186,6 @@ public sealed class CommentService(
         await transaction.CommitAsync(ct);
         await cache.InvalidateAsync(ct);
         return ToDto(comment, [], comment.DescendantCount);
-    }
-
-    private async Task<CommentTotalsDto> GetTotalsAsync(CancellationToken ct)
-    {
-        var cached = await cache.GetTotalsAsync(ct);
-        if (cached.Value is not null) return cached.Value;
-
-        var value = await db.CommentStatistics
-            .AsNoTracking()
-            .Where(x => x.Id == 1)
-            .Select(x => new CommentTotalsDto(x.TotalRootCount, x.TotalReplyCount))
-            .SingleAsync(ct);
-        await cache.SetTotalsAsync(value, cached.Version, ct);
-        return value;
     }
 
     private async Task<List<Comment>> LoadDescendantsAsync(Guid[] parentIds, CancellationToken ct)
@@ -222,6 +206,65 @@ public sealed class CommentService(
         }
 
         return descendants;
+    }
+
+    private static IQueryable<Comment> ApplyCursor(
+        IQueryable<Comment> query,
+        string sort,
+        bool descending,
+        CursorPosition position)
+    {
+        if (sort == "createdAt")
+        {
+            var value = DateTime.Parse(position.Value, null, DateTimeStyles.RoundtripKind);
+            return descending
+                ? query.Where(x => x.CreatedAtUtc < value || (x.CreatedAtUtc == value && x.Id < position.Id))
+                : query.Where(x => x.CreatedAtUtc > value || (x.CreatedAtUtc == value && x.Id > position.Id));
+        }
+
+        return sort == "userName"
+            ? descending
+                ? query.Where(x => x.UserName.CompareTo(position.Value) < 0 ||
+                                   (x.UserName == position.Value && x.Id < position.Id))
+                : query.Where(x => x.UserName.CompareTo(position.Value) > 0 ||
+                                   (x.UserName == position.Value && x.Id > position.Id))
+            : descending
+                ? query.Where(x => x.Email.CompareTo(position.Value) < 0 ||
+                                   (x.Email == position.Value && x.Id < position.Id))
+                : query.Where(x => x.Email.CompareTo(position.Value) > 0 ||
+                                   (x.Email == position.Value && x.Id > position.Id));
+    }
+
+    private static string EncodeCursor(Comment comment, string sort, bool descending)
+    {
+        var value = sort == "createdAt"
+            ? comment.CreatedAtUtc.ToString("O")
+            : sort == "userName"
+                ? comment.UserName
+                : comment.Email;
+        var json = JsonSerializer.Serialize(new CursorPosition(sort, descending, value, comment.Id));
+        return Convert.ToBase64String(Encoding.UTF8.GetBytes(json))
+            .TrimEnd('=').Replace('+', '-').Replace('/', '_');
+    }
+
+    private static CursorPosition? DecodeCursor(string? cursor)
+    {
+        if (string.IsNullOrWhiteSpace(cursor)) return null;
+        try
+        {
+            var padded = cursor.Replace('-', '+').Replace('_', '/');
+            padded = padded.PadRight(padded.Length + (4 - padded.Length % 4) % 4, '=');
+            var json = Encoding.UTF8.GetString(Convert.FromBase64String(padded));
+            return JsonSerializer.Deserialize<CursorPosition>(json);
+        }
+        catch (FormatException)
+        {
+            return null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 
     private async Task<List<Comment>> LoadSmallRootDescendantsAsync(Guid[] rootIds, CancellationToken ct)
@@ -269,4 +312,6 @@ public sealed class CommentService(
             comment.Attachments.Select(a => new AttachmentDto(a.Id, a.OriginalName, a.ContentType, a.Size,
                 a.Width, a.Height)).ToList(), replies, replyCount);
     }
+
+    private sealed record CursorPosition(string Sort, bool Descending, string Value, Guid Id);
 }

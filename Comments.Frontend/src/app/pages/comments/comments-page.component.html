@@ -55,9 +55,6 @@
     >
       {{ searchLoading() ? 'Searching...' : 'Search' }}
     </button>
-    @if (searchActive()) {
-      <span class="search-results-count">{{ total }} results</span>
-    }
   </form>
   @if (loading()) {
     <div class="loading-state" role="status" aria-live="polite">
@@ -78,10 +75,8 @@
   }
   <app-comment-list
     [comments]="comments()"
-    [total]="total"
-    [totalReplyCount]="totalReplyCount"
-    [page]="page"
-    [pageSize]="pageSize"
+    [nextCursor]="nextCursor"
+    [hasPreviousPage]="hasPreviousPage"
     [sort]="sort"
     [descending]="descending"
     [searchMode]="searchActive()"

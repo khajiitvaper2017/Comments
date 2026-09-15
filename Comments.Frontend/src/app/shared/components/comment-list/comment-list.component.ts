@@ -22,10 +22,8 @@ import { CommentTableComponent } from '@app/shared/components/comment-table/comm
 })
 export class CommentListComponent {
   @Input() comments: CommentItem[] = [];
-  @Input() total = 0;
-  @Input() totalReplyCount = 0;
-  @Input() page = 1;
-  @Input() pageSize = 25;
+  @Input() nextCursor: string | null = null;
+  @Input() hasPreviousPage = false;
   @Input() sort = 'createdAt';
   @Input() descending = true;
   @Input() searchMode = false;
@@ -35,7 +33,7 @@ export class CommentListComponent {
   @Input() captcha: Captcha | null = null;
   @Input() replyParentId = '';
   @Output() readonly sortChanged = new EventEmitter<string>();
-  @Output() readonly pageChanged = new EventEmitter<number>();
+  @Output() readonly pageChanged = new EventEmitter<'next' | 'previous'>();
   @Output() readonly viewModeChanged = new EventEmitter<'cards' | 'table'>();
   @Output() readonly replyRequested = new EventEmitter<string>();
   @Output() readonly loadRepliesRequested = new EventEmitter<string>();
@@ -54,10 +52,6 @@ export class CommentListComponent {
 
   protected get replyCount(): number {
     return this.comments.reduce((count, comment) => count + this.countReplies(comment.replies), 0);
-  }
-
-  protected get pageCount(): number {
-    return Math.max(1, Math.ceil(this.total / Math.max(1, this.pageSize)));
   }
 
   private countReplies(replies: CommentItem[]): number {
