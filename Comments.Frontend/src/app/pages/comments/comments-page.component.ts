@@ -57,6 +57,7 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
   private realtimeRefreshTimer: ReturnType<typeof setTimeout> | undefined;
   private readonly loadedReplies = new Map<string, CommentItem[]>();
   private readonly loadingReplies = new Set<string>();
+  private readonly loadingAncestors = new Set<string>();
   private querySubscription?: Subscription;
   ngOnInit() {
     this.hub.on('commentChanged', () => this.scheduleRealtimeRefresh());
@@ -168,6 +169,48 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
         },
         error: () => this.error.set('Search is currently unavailable.'),
       });
+  }
+
+  loadAncestors(commentId: string) {
+    if (this.loadingAncestors.has(commentId)) return;
+    const comment = this.findComment(this.comments(), commentId);
+    const ids = comment?.ancestorIds ?? [];
+    if (!comment || ids.length === 0) return;
+
+    this.loadingAncestors.add(commentId);
+    this.api
+      .getAncestors(ids)
+      .pipe(finalize(() => this.loadingAncestors.delete(commentId)))
+      .subscribe({
+        next: (ancestors) => {
+          const path = this.attachSearchAncestors([comment], ancestors)[0];
+          this.comments.update((comments) =>
+            comments.map((item) => (item.id === commentId ? path : item)),
+          );
+        },
+        error: () => this.error.set('Could not load comment ancestors.'),
+      });
+  }
+
+  private attachSearchAncestors(items: CommentItem[], ancestors: CommentItem[]): CommentItem[] {
+    const byId = new Map(ancestors.map((ancestor) => [ancestor.id, ancestor]));
+    return items.map((hit) => {
+      let current = hit;
+      for (const ancestorId of [...(hit.ancestorIds ?? [])].reverse()) {
+        const ancestor = byId.get(ancestorId);
+        if (ancestor) current = { ...ancestor, replies: [current] };
+      }
+      return current;
+    });
+  }
+
+  private findComment(comments: CommentItem[], id: string): CommentItem | undefined {
+    for (const comment of comments) {
+      if (comment.id === id) return comment;
+      const nested = this.findComment(comment.replies, id);
+      if (nested) return nested;
+    }
+    return undefined;
   }
 
   changeSort(sort: string) {

@@ -24,14 +24,21 @@ public sealed class CommentsDbContext(DbContextOptions<CommentsDbContext> option
         c.Property(x => x.UserAgent).HasMaxLength(512);
         c.HasOne(x => x.Parent).WithMany(x => x.Replies).HasForeignKey(x => x.ParentId)
             .OnDelete(DeleteBehavior.Restrict);
-        c.HasIndex(x => new { x.RootId, x.CreatedAtUtc });
-        c.HasIndex(x => x.ParentId);
-        c.HasIndex(x => x.UserName);
-        c.HasIndex(x => x.Email);
-        c.HasIndex(x => new { x.ParentId, x.IsDeleted, x.CreatedAtUtc });
-        c.HasIndex(x => new { x.ParentId, x.IsDeleted, x.UserName });
-        c.HasIndex(x => new { x.ParentId, x.IsDeleted, x.Email });
-        c.HasIndex(x => new { x.RootId, x.IsDeleted, x.CreatedAtUtc });
+        c.HasIndex(x => new { x.CreatedAtUtc, x.Id })
+            .HasDatabaseName("IX_Comments_ActiveRoots_CreatedAtUtc_Id")
+            .HasFilter("[ParentId] IS NULL AND [IsDeleted] = 0");
+        c.HasIndex(x => new { x.UserName, x.Id })
+            .HasDatabaseName("IX_Comments_ActiveRoots_UserName_Id")
+            .HasFilter("[ParentId] IS NULL AND [IsDeleted] = 0");
+        c.HasIndex(x => new { x.Email, x.Id })
+            .HasDatabaseName("IX_Comments_ActiveRoots_Email_Id")
+            .HasFilter("[ParentId] IS NULL AND [IsDeleted] = 0");
+        c.HasIndex(x => new { x.ParentId, x.CreatedAtUtc, x.Id })
+            .HasDatabaseName("IX_Comments_ActiveReplies_ParentId_CreatedAtUtc_Id")
+            .HasFilter("[IsDeleted] = 0");
+        c.HasIndex(x => new { x.RootId, x.CreatedAtUtc, x.Id })
+            .HasDatabaseName("IX_Comments_ActiveTree_RootId_CreatedAtUtc_Id")
+            .HasFilter("[IsDeleted] = 0");
         var a = b.Entity<Attachment>();
         a.HasKey(x => x.Id);
         a.Property(x => x.OriginalName).HasMaxLength(255).IsRequired();
@@ -50,6 +57,11 @@ public sealed class CommentsDbContext(DbContextOptions<CommentsDbContext> option
         o.HasIndex(x => new { x.ProcessedAtUtc, x.DeadLetteredAtUtc, x.OccurredAtUtc });
 
         b.Entity<CommentStatistics>().HasKey(x => x.Id);
-        b.Entity<CommentStatistics>().HasData(new CommentStatistics { Id = 1, TotalReplyCount = 0 });
+        b.Entity<CommentStatistics>().HasData(new CommentStatistics
+        {
+            Id = 1,
+            TotalRootCount = 0,
+            TotalReplyCount = 0
+        });
     }
 }

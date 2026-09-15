@@ -9,6 +9,10 @@ export interface RepliesQuery {
   replies: CommentItem[];
 }
 
+export interface AncestorsQuery {
+  ancestors: CommentItem[];
+}
+
 export interface SearchQuery {
   search: CommentPage;
 }
@@ -24,6 +28,7 @@ const COMMENT_FIELDS = `
   attachments { id fileName contentType size }
   replyCount
   isSearchMatch
+  ancestorIds
 `;
 
 function commentFieldsWithReplies(depth: number): string {
@@ -51,10 +56,16 @@ export const REPLIES_QUERY = gql(`
   }
 `);
 
+export const ANCESTORS_QUERY = gql(`
+  query Ancestors($ids: [UUID!]!) {
+    ancestors(ids: $ids) { ${COMMENT_FIELDS} }
+  }
+`);
+
 export const SEARCH_QUERY = gql(`
   query Search($query: String!, $page: Int!, $partial: Boolean!, $searchText: Boolean!, $searchUserName: Boolean!) {
     search(query: $query, page: $page, partial: $partial, searchText: $searchText, searchUserName: $searchUserName) {
-      items { ${commentFieldsWithReplies(24)} }
+      items { ${COMMENT_FIELDS} }
       page
       pageSize
       totalCount

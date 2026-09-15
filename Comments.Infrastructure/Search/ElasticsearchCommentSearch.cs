@@ -13,7 +13,8 @@ namespace Comments.Infrastructure.Search;
 public sealed class ElasticsearchCommentSearch(
     ElasticsearchClient client,
     IOptions<ElasticsearchOptions> options,
-    CommentsDbContext db) : ICommentSearch, ICommentIndexer, ICommentIndexMaintenance
+    CommentsDbContext db,
+    ICommentCache cache) : ICommentSearch, ICommentIndexer, ICommentIndexMaintenance
 {
     private const int MaxReplyDepth = 24;
     private const int PageSize = 25;
@@ -30,10 +31,15 @@ public sealed class ElasticsearchCommentSearch(
         if (!await NeedsRebuildAsync(ct)) return false;
         await ResetIndexAsync(ct);
 
+        var parentIds = await db.Comments.AsNoTracking()
+            .Where(x => !x.IsDeleted)
+            .Select(x => new { x.Id, x.ParentId })
+            .ToDictionaryAsync(x => x.Id, x => x.ParentId, ct);
+
         Guid? lastId = null;
         while (true)
         {
-            var documents = await LoadBatchAsync(lastId, ct);
+            var documents = await LoadBatchAsync(lastId, parentIds, ct);
             if (documents.Count == 0) break;
             await IndexBatchAsync(documents, ct);
             lastId = documents[^1].Id;
@@ -47,11 +53,25 @@ public sealed class ElasticsearchCommentSearch(
         var comment = await db.Comments.AsNoTracking().SingleOrDefaultAsync(x => x.Id == commentId, ct);
         if (comment is null || comment.IsDeleted) return;
 
+        var ancestors = new List<Guid>();
+        var parentId = comment.ParentId;
+        for (var depth = 0; depth < 24 && parentId is Guid currentId; depth++)
+        {
+            ancestors.Add(currentId);
+            parentId = await db.Comments.AsNoTracking()
+                .Where(x => !x.IsDeleted && x.Id == currentId)
+                .Select(x => x.ParentId)
+                .SingleOrDefaultAsync(ct);
+        }
+
+        ancestors.Reverse();
+
         var document = new CommentSearchDocument
         {
             Id = comment.Id,
             ParentId = comment.ParentId,
             RootId = comment.RootId,
+            AncestorIds = ancestors,
             UserName = comment.UserName,
             Text = comment.SanitizedText,
             CreatedAtUtc = comment.CreatedAtUtc
@@ -102,29 +122,30 @@ public sealed class ElasticsearchCommentSearch(
         if (!response.IsValidResponse)
             throw new InvalidOperationException("Elasticsearch search failed.");
 
-        var rootIds = response.Documents.Select(x => x.RootId).Distinct().ToArray();
-        var roots = await db.Comments.AsNoTracking()
-            .Where(x => !x.IsDeleted && rootIds.Contains(x.Id))
+        var matchedIds = response.Documents.Select(x => x.Id).ToHashSet();
+        var comments = await db.Comments.AsNoTracking()
+            .Where(x => !x.IsDeleted && matchedIds.Contains(x.Id))
             .Include(x => x.Attachments)
             .ToListAsync(ct);
-        var replies = rootIds.Length == 0
-            ? []
-            : await db.Comments.AsNoTracking()
-                .Where(x => !x.IsDeleted && x.ParentId != null && rootIds.Contains(x.RootId))
-                .Include(x => x.Attachments)
-                .OrderBy(x => x.CreatedAtUtc)
-                .ToListAsync(ct);
-        var all = roots.Concat(replies).ToList();
-        var matchedIds = response.Documents.Select(x => x.Id).ToHashSet();
-        var contextIds = BuildSearchContext(all, matchedIds);
-        var items = rootIds.Join(roots, id => id, root => root.Id, (_, root) =>
-            MapSearch(root, all, contextIds, matchedIds, 0)).ToList();
-        var totalReplyCount = await db.CommentStatistics
-            .Where(x => x.Id == 1)
-            .Select(x => x.TotalReplyCount)
-            .SingleAsync(ct);
+        var items = response.Documents.Join(comments, document => document.Id, comment => comment.Id,
+            (document, comment) => MapSearchHit(comment, document)).ToList();
+        var totals = await GetTotalsAsync(ct);
         return new CommentPageDto(items, page, PageSize,
-            (int)Math.Min(response.Total, int.MaxValue), "search", false, totalReplyCount);
+            (int)Math.Min(response.Total, int.MaxValue), "search", false, totals.TotalReplyCount);
+    }
+
+    private async Task<CommentTotalsDto> GetTotalsAsync(CancellationToken ct)
+    {
+        var cached = await cache.GetTotalsAsync(ct);
+        if (cached.Value is not null) return cached.Value;
+
+        var value = await db.CommentStatistics
+            .AsNoTracking()
+            .Where(x => x.Id == 1)
+            .Select(x => new CommentTotalsDto(x.TotalRootCount, x.TotalReplyCount))
+            .SingleAsync(ct);
+        await cache.SetTotalsAsync(value, cached.Version, ct);
+        return value;
     }
 
     private async Task<bool> NeedsRebuildAsync(CancellationToken ct)
@@ -150,7 +171,10 @@ public sealed class ElasticsearchCommentSearch(
             throw new InvalidOperationException("Elasticsearch index reset failed.");
     }
 
-    private async Task<List<CommentSearchDocument>> LoadBatchAsync(Guid? lastId, CancellationToken ct)
+    private async Task<List<CommentSearchDocument>> LoadBatchAsync(
+        Guid? lastId,
+        IReadOnlyDictionary<Guid, Guid?> parentIds,
+        CancellationToken ct)
     {
         var query = db.Comments.AsNoTracking().Where(x => !x.IsDeleted);
         if (lastId is Guid id)
@@ -164,11 +188,27 @@ public sealed class ElasticsearchCommentSearch(
                 Id = x.Id,
                 ParentId = x.ParentId,
                 RootId = x.RootId,
+                AncestorIds = BuildAncestorIds(x.ParentId, parentIds),
                 UserName = x.UserName,
                 Text = x.SanitizedText,
                 CreatedAtUtc = x.CreatedAtUtc
             })
             .ToListAsync(ct);
+    }
+
+    private static IReadOnlyList<Guid> BuildAncestorIds(
+        Guid? parentId,
+        IReadOnlyDictionary<Guid, Guid?> parentIds)
+    {
+        var ancestors = new List<Guid>();
+        for (var depth = 0; depth < 24 && parentId is Guid currentId; depth++)
+        {
+            ancestors.Add(currentId);
+            if (!parentIds.TryGetValue(currentId, out parentId)) break;
+        }
+
+        ancestors.Reverse();
+        return ancestors;
     }
 
     private async Task IndexBatchAsync(IReadOnlyCollection<CommentSearchDocument> documents, CancellationToken ct)
@@ -203,42 +243,17 @@ public sealed class ElasticsearchCommentSearch(
             .Replace("?", "\\?", StringComparison.Ordinal);
     }
 
-    private static HashSet<Guid> BuildSearchContext(IReadOnlyList<Comment> comments, HashSet<Guid> matchedIds)
-    {
-        var byId = comments.ToDictionary(x => x.Id);
-        var context = new HashSet<Guid>(matchedIds);
-        foreach (var matchedId in matchedIds)
-        {
-            var current = matchedId;
-            while (byId.TryGetValue(current, out var comment) && comment.ParentId is Guid parentId)
-            {
-                if (!context.Add(parentId)) break;
-                current = parentId;
-            }
-        }
-
-        return context;
-    }
-
-    private static CommentDto MapSearch(
+    private static CommentDto MapSearchHit(
         Comment comment,
-        IReadOnlyList<Comment> all,
-        IReadOnlySet<Guid> contextIds,
-        IReadOnlySet<Guid> matchedIds,
-        int depth)
+        CommentSearchDocument document)
     {
-        var children = all.Where(x => x.ParentId == comment.Id).OrderBy(x => x.CreatedAtUtc).ToList();
-        // Show every direct reply of the root, but only follow branches leading to a hit.
-        var selected = children.Where(x => contextIds.Contains(x.Id)).ToList();
-
-        var replies = selected
-            .Select(x => MapSearch(x, all, contextIds, matchedIds, depth + 1))
-            .ToList();
         var replyCount = comment.DescendantCount;
         return new CommentDto(comment.Id, comment.ParentId, comment.UserName, comment.Email, comment.HomePage,
             comment.SanitizedText, comment.CreatedAtUtc,
             comment.Attachments.Select(a => new AttachmentDto(a.Id, a.OriginalName, a.ContentType, a.Size,
-                a.Width, a.Height)).ToList(), replies, replyCount,
-            matchedIds.Contains(comment.Id));
+                a.Width, a.Height)).ToList(), [], replyCount, true)
+        {
+            AncestorIds = document.AncestorIds
+        };
     }
 }

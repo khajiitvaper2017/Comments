@@ -41,7 +41,19 @@ public static class ApplicationExtensions
     private static void ApplyDatabaseMigrations(WebApplication app)
     {
         using var scope = app.Services.CreateScope();
-        scope.ServiceProvider.GetRequiredService<CommentsDbContext>().Database.Migrate();
+        var db = scope.ServiceProvider.GetRequiredService<CommentsDbContext>();
+        db.Database.Migrate();
+
+        var statistics = db.CommentStatistics.Single();
+        if (statistics.TotalRootCount == 0)
+        {
+            var rootCount = db.Comments.Count(x => x.ParentId == null && !x.IsDeleted);
+            if (rootCount > 0)
+            {
+                statistics.TotalRootCount = rootCount;
+                db.SaveChanges();
+            }
+        }
     }
 
     private static void HandleExceptions(IApplicationBuilder builder)

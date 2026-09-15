@@ -95,6 +95,17 @@
             }
           </td>
           <td class="table-comment-actions">
+            @if (searchMode && comment.ancestorIds?.length) {
+              <button
+                class="ancestor-toggle"
+                type="button"
+                title="Show ancestors"
+                aria-label="Show ancestors"
+                (click)="loadAncestorsRequested.emit(comment.id)"
+              >
+                <ng-icon name="lucideGitBranch" size="1rem" aria-hidden="true" />
+              </button>
+            }
             @if (comment.replyCount > 0) {
               <button
                 class="reply-toggle"
@@ -164,6 +175,7 @@
                 [partialSearch]="partialSearch"
                 (replyRequested)="replyRequested.emit($event)"
                 (loadRepliesRequested)="loadRepliesRequested.emit($event)"
+                (loadAncestorsRequested)="loadAncestorsRequested.emit($event)"
                 (imageRequested)="imageRequested.emit($event)"
                 (textRequested)="textRequested.emit($event)"
                 (captchaChanged)="captchaChanged.emit($event)"

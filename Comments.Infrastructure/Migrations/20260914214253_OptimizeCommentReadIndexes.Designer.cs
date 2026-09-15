@@ -4,6 +4,7 @@ using Comments.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Comments.Infrastructure.Migrations
 {
     [DbContext(typeof(CommentsDbContext))]
-    partial class CommentsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260914214253_OptimizeCommentReadIndexes")]
+    partial class OptimizeCommentReadIndexes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -164,9 +167,6 @@ namespace Comments.Infrastructure.Migrations
                     b.Property<int>("TotalReplyCount")
                         .HasColumnType("int");
 
-                    b.Property<int>("TotalRootCount")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.ToTable("CommentStatistics");
@@ -175,8 +175,7 @@ namespace Comments.Infrastructure.Migrations
                         new
                         {
                             Id = 1,
-                            TotalReplyCount = 0,
-                            TotalRootCount = 0
+                            TotalReplyCount = 0
                         });
                 });
 

@@ -36,12 +36,6 @@ public sealed class CommentService(
     /// <summary>Returns the next bounded section of replies for a comment.</summary>
     public async Task<IReadOnlyList<CommentDto>> GetRepliesAsync(Guid parentId, CancellationToken ct)
     {
-        var parent = await db.Comments.AsNoTracking()
-            .Where(x => x.Id == parentId && !x.IsDeleted)
-            .Select(x => new { x.DescendantCount })
-            .SingleOrDefaultAsync(ct);
-        if (parent is null) return [];
-
         var replies = await db.Comments.AsNoTracking()
             .Where(x => x.ParentId == parentId && !x.IsDeleted)
             .Include(x => x.Attachments)
@@ -53,11 +47,29 @@ public sealed class CommentService(
             .Where(x => x.DescendantCount > 0 && x.DescendantCount < AutoLoadReplyLimit)
             .Select(x => x.Id)
             .ToArray();
-        var descendants = await LoadDescendantsAsync(smallReplyIds, ct);
+        var descendants = smallReplyIds.Length == 0
+            ? []
+            : await LoadDescendantsAsync(smallReplyIds, ct);
         var all = replies.Concat(descendants).ToList();
 
         return replies
             .Select(x => Map(x, all, 0))
+            .ToList();
+    }
+
+    /// <summary>Loads a bounded set of comments in the requested order with one database query.</summary>
+    public async Task<IReadOnlyList<CommentDto>> GetAncestorsAsync(IReadOnlyList<Guid> ids, CancellationToken ct)
+    {
+        var requestedIds = ids.Distinct().ToArray();
+        if (requestedIds.Length == 0) return [];
+
+        var comments = await db.Comments.AsNoTracking()
+            .Where(x => !x.IsDeleted && requestedIds.Contains(x.Id))
+            .Include(x => x.Attachments)
+            .ToListAsync(ct);
+        var byId = comments.ToDictionary(x => x.Id);
+        return requestedIds.Where(byId.ContainsKey)
+            .Select(id => ToDto(byId[id], [], byId[id].DescendantCount))
             .ToList();
     }
 
@@ -82,26 +94,24 @@ public sealed class CommentService(
                 ? query.OrderByDescending(x => x.CreatedAtUtc).ThenByDescending(x => x.Id)
                 : query.OrderBy(x => x.CreatedAtUtc).ThenBy(x => x.Id)
         };
-        var total = await query.CountAsync(ct);
-        var totalReplyCount = await db.CommentStatistics
-            .Where(x => x.Id == 1)
-            .Select(x => x.TotalReplyCount)
-            .SingleAsync(ct);
+        var totals = await GetTotalsAsync(ct);
         var roots = await query.Skip((page - 1) * 25).Take(25).Include(x => x.Attachments).ToListAsync(ct);
         var smallRootIds = roots
             .Where(x => x.DescendantCount > 0 && x.DescendantCount < AutoLoadReplyLimit)
             .Select(x => x.Id)
             .ToArray();
-        var descendants = await LoadDescendantsAsync(smallRootIds, ct);
+        // A small root thread is bounded by DescendantCount, so its complete tree can be read
+        // by RootId in one query instead of issuing one query per reply depth.
+        var descendants = await LoadSmallRootDescendantsAsync(smallRootIds, ct);
         var all = roots.Concat(descendants).ToList();
         var result = new CommentPageDto(
             roots.Select(x => Map(x, all, 0)).ToList(),
             page,
             25,
-            total,
+            totals.TotalRootCount,
             sort,
             descending,
-            totalReplyCount);
+            totals.TotalReplyCount);
         await cache.SetAsync(page, sort, descending, result, ct);
         return result;
     }
@@ -158,6 +168,13 @@ public sealed class CommentService(
                 .ExecuteUpdateAsync(setters => setters
                     .SetProperty(x => x.TotalReplyCount, x => x.TotalReplyCount + 1), ct);
         }
+        else
+        {
+            await db.CommentStatistics
+                .Where(x => x.Id == 1)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(x => x.TotalRootCount, x => x.TotalRootCount + 1), ct);
+        }
 
         if (comment.ParentId is null)
             AddOutbox(new CommentCreated(comment.Id, comment.CreatedAtUtc));
@@ -171,6 +188,20 @@ public sealed class CommentService(
         await transaction.CommitAsync(ct);
         await cache.InvalidateAsync(ct);
         return ToDto(comment, [], comment.DescendantCount);
+    }
+
+    private async Task<CommentTotalsDto> GetTotalsAsync(CancellationToken ct)
+    {
+        var cached = await cache.GetTotalsAsync(ct);
+        if (cached.Value is not null) return cached.Value;
+
+        var value = await db.CommentStatistics
+            .AsNoTracking()
+            .Where(x => x.Id == 1)
+            .Select(x => new CommentTotalsDto(x.TotalRootCount, x.TotalReplyCount))
+            .SingleAsync(ct);
+        await cache.SetTotalsAsync(value, cached.Version, ct);
+        return value;
     }
 
     private async Task<List<Comment>> LoadDescendantsAsync(Guid[] parentIds, CancellationToken ct)
@@ -191,6 +222,17 @@ public sealed class CommentService(
         }
 
         return descendants;
+    }
+
+    private async Task<List<Comment>> LoadSmallRootDescendantsAsync(Guid[] rootIds, CancellationToken ct)
+    {
+        if (rootIds.Length == 0) return [];
+
+        return await db.Comments.AsNoTracking()
+            .Where(x => x.ParentId.HasValue && !x.IsDeleted && rootIds.Contains(x.RootId))
+            .Include(x => x.Attachments)
+            .OrderBy(x => x.CreatedAtUtc)
+            .ToListAsync(ct);
     }
 
     private void AddOutbox<T>(T message)

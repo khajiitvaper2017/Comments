@@ -9,6 +9,7 @@ public sealed class RedisCommentCache(IDistributedCache cache) : ICommentCache
 {
     // v2 separates root pages from lazy-loaded reply levels.
     private const string VersionKey = "comments:cache-version:v5";
+    private const string TotalsKeyPrefix = "comments:totals:v5:";
 
     public async Task<CommentPageDto?> GetAsync(int page, string sort, bool descending, CancellationToken ct)
     {
@@ -27,6 +28,27 @@ public sealed class RedisCommentCache(IDistributedCache cache) : ICommentCache
             ct);
     }
 
+    public async Task<CommentTotalsCacheResult> GetTotalsAsync(CancellationToken ct)
+    {
+        var version = await GetVersionAsync(ct);
+        var value = await cache.GetStringAsync(TotalsKey(version), ct);
+        return new CommentTotalsCacheResult(
+            value is null ? null : JsonSerializer.Deserialize<CommentTotalsDto>(value),
+            version);
+    }
+
+    public async Task<bool> SetTotalsAsync(CommentTotalsDto value, long version, CancellationToken ct)
+    {
+        if (await GetVersionAsync(ct) != version) return false;
+
+        await cache.SetStringAsync(
+            TotalsKey(version),
+            JsonSerializer.Serialize(value),
+            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30) },
+            ct);
+        return true;
+    }
+
     public async Task InvalidateAsync(CancellationToken ct)
     {
         var version = await GetVersionAsync(ct);
@@ -43,5 +65,10 @@ public sealed class RedisCommentCache(IDistributedCache cache) : ICommentCache
     private static string Key(long version, int page, string sort, bool descending)
     {
         return $"comments:v{version}:page:{page}:sort:{sort}:descending:{descending}";
+    }
+
+    private static string TotalsKey(long version)
+    {
+        return $"{TotalsKeyPrefix}{version}";
     }
 }

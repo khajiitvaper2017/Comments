@@ -39,6 +39,7 @@ export class CommentListComponent {
   @Output() readonly viewModeChanged = new EventEmitter<'cards' | 'table'>();
   @Output() readonly replyRequested = new EventEmitter<string>();
   @Output() readonly loadRepliesRequested = new EventEmitter<string>();
+  @Output() readonly loadAncestorsRequested = new EventEmitter<string>();
   @Output() readonly imageRequested = new EventEmitter<{ id: string; name: string }>();
   @Output() readonly textRequested = new EventEmitter<{ id: string; name: string }>();
   @Output() readonly captchaChanged = new EventEmitter<Captcha>();

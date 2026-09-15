@@ -24,6 +24,14 @@ public sealed class Query
         return service.GetRepliesAsync(parentId, cancellationToken);
     }
 
+    public Task<IReadOnlyList<CommentDto>> Ancestors(
+        IReadOnlyList<Guid> ids,
+        [Service] ICommentService service,
+        CancellationToken cancellationToken = default)
+    {
+        return service.GetAncestorsAsync(ids, cancellationToken);
+    }
+
     public Task<CommentPageDto> Search(
         string query,
         int page = 1,

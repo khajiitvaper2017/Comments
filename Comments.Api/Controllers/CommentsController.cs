@@ -31,6 +31,13 @@ public sealed class CommentsController(ICommentService service) : ControllerBase
         return service.GetRepliesAsync(parentId, ct);
     }
 
+    /// <summary>Returns the requested search ancestors in the order supplied by the caller.</summary>
+    [HttpGet("ancestors")]
+    public Task<IReadOnlyList<CommentDto>> GetAncestors([FromQuery] Guid[] ids, CancellationToken ct)
+    {
+        return service.GetAncestorsAsync(ids, ct);
+    }
+
     /// <summary>Creates a comment or reply, with optional attachments.</summary>
     [HttpPost]
     public async Task<ActionResult<CommentDto>> Post([FromForm] CreateCommentFormModel formModel, CancellationToken ct)

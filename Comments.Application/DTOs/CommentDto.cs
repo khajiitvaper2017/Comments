@@ -11,4 +11,8 @@ public sealed record CommentDto(
     IReadOnlyList<AttachmentDto> Attachments,
     IReadOnlyList<CommentDto> Replies,
     int ReplyCount = 0,
-    bool IsSearchMatch = false);
+    bool IsSearchMatch = false)
+{
+    /// <summary>IDs of the strict ancestors needed to build optional search context.</summary>
+    public IReadOnlyList<Guid> AncestorIds { get; init; } = [];
+}

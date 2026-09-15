@@ -5,6 +5,8 @@ import { map } from 'rxjs';
 import {
   COMMENTS_QUERY,
   CommentsQuery,
+  AncestorsQuery,
+  ANCESTORS_QUERY,
   RepliesQuery,
   REPLIES_QUERY,
   SEARCH_QUERY,
@@ -46,6 +48,12 @@ export class CommentApiService {
         variables: { parentId },
       })
       .pipe(map((result) => result.data!.replies));
+  }
+
+  getAncestors(ids: string[]) {
+    return this.apollo
+      .query<AncestorsQuery>({ query: ANCESTORS_QUERY, variables: { ids } })
+      .pipe(map((result) => result.data!.ancestors));
   }
 
   searchComments(

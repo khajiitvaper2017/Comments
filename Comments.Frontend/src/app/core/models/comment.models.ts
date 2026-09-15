@@ -17,6 +17,7 @@ export interface CommentItem {
   replies: CommentItem[];
   replyCount: number;
   isSearchMatch?: boolean;
+  ancestorIds?: string[];
 }
 
 export interface CommentPage {

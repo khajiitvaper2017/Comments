@@ -26,6 +26,17 @@
       </div>
     </header>
     <div class="comment-actions">
+      @if (searchMode && comment.ancestorIds?.length) {
+        <button
+          class="ancestor-toggle"
+          type="button"
+          title="Show ancestors"
+          aria-label="Show ancestors"
+          (click)="loadAncestorsRequested.emit(comment.id)"
+        >
+          <ng-icon name="lucideGitBranch" size="1rem" aria-hidden="true" />
+        </button>
+      }
       @if (comment.replyCount) {
         <button
           class="reply-toggle"

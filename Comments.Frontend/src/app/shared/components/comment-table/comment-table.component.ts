@@ -5,7 +5,7 @@ import { CommentCardsComponent } from '@app/shared/components/comment-cards/comm
 import { CommentFormComponent } from '@app/shared/components/comment-form/comment-form.component';
 import { HomePageLabelPipe } from '@app/shared/pipes/home-page-label.pipe';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideChevronDown, lucideReply } from '@ng-icons/lucide';
+import { lucideChevronDown, lucideGitBranch, lucideReply } from '@ng-icons/lucide';
 import { HighlightSearchPipe } from '@app/shared/pipes/highlight-search.pipe';
 
 @Component({
@@ -19,7 +19,7 @@ import { HighlightSearchPipe } from '@app/shared/pipes/highlight-search.pipe';
     HighlightSearchPipe,
     NgIcon,
   ],
-  providers: [provideIcons({ lucideChevronDown, lucideReply })],
+  providers: [provideIcons({ lucideChevronDown, lucideGitBranch, lucideReply })],
   templateUrl: './comment-table.component.html',
 })
 export class CommentTableComponent {
@@ -34,6 +34,7 @@ export class CommentTableComponent {
   @Output() readonly sortChanged = new EventEmitter<string>();
   @Output() readonly replyRequested = new EventEmitter<string>();
   @Output() readonly loadRepliesRequested = new EventEmitter<string>();
+  @Output() readonly loadAncestorsRequested = new EventEmitter<string>();
   @Output() readonly imageRequested = new EventEmitter<{ id: string; name: string }>();
   @Output() readonly textRequested = new EventEmitter<{ id: string; name: string }>();
   @Output() readonly captchaChanged = new EventEmitter<Captcha>();

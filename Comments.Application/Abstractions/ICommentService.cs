@@ -10,6 +10,9 @@ public interface ICommentService
 
     Task<IReadOnlyList<CommentDto>> GetRepliesAsync(Guid parentId, CancellationToken cancellationToken);
 
+    Task<IReadOnlyList<CommentDto>> GetAncestorsAsync(IReadOnlyList<Guid> ids,
+        CancellationToken cancellationToken);
+
     Task<CommentDto> CreateAsync(CreateCommentRequest request, IReadOnlyList<AttachmentInput> attachments, string? ip,
         string? userAgent, CancellationToken cancellationToken);
 }
