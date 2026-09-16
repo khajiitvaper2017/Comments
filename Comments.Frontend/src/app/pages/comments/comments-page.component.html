@@ -68,7 +68,7 @@
       [parentId]="replyParentId"
       (captchaChanged)="captcha.set($event)"
       (errorChanged)="error.set($event)"
-      (submitted)="handleSubmitted()"
+      (submitted)="handleSubmitted($event)"
       (cancelled)="cancelComposer()"
     >
     </app-comment-form>
@@ -95,7 +95,7 @@
     (textRequested)="openText($event)"
     (captchaChanged)="captcha.set($event)"
     (errorChanged)="error.set($event)"
-    (submitted)="handleSubmitted()"
+    (submitted)="handleSubmitted($event)"
     (cancelled)="cancelComposer()"
   >
   </app-comment-list>

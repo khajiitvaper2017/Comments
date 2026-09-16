@@ -83,7 +83,7 @@
       (textRequested)="textRequested.emit($event)"
       (captchaChanged)="captchaChanged.emit($event)"
       (errorChanged)="errorChanged.emit($event)"
-      (submitted)="submitted.emit()"
+      (submitted)="submitted.emit($event)"
       (cancelled)="cancelled.emit()"
     />
   } @else {
@@ -104,7 +104,7 @@
       (textRequested)="textRequested.emit($event)"
       (captchaChanged)="captchaChanged.emit($event)"
       (errorChanged)="errorChanged.emit($event)"
-      (submitted)="submitted.emit()"
+      (submitted)="submitted.emit($event)"
       (cancelled)="cancelled.emit()"
     />
   }

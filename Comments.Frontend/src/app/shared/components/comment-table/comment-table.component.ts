@@ -39,7 +39,7 @@ export class CommentTableComponent {
   @Output() readonly textRequested = new EventEmitter<{ id: string; name: string }>();
   @Output() readonly captchaChanged = new EventEmitter<Captcha>();
   @Output() readonly errorChanged = new EventEmitter<string>();
-  @Output() readonly submitted = new EventEmitter<void>();
+  @Output() readonly submitted = new EventEmitter<CommentItem>();
   @Output() readonly cancelled = new EventEmitter<void>();
   protected readonly collapsedReplies = new Set<string>();
   private readonly loadedSearchReplies = new Set<string>();

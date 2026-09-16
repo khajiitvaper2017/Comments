@@ -108,28 +108,28 @@
         }
       </div>
     }
-    @if (replyParentId === comment.id) {
-      <article class="comment reply reply-composer" [style.--depth]="depth + 1">
-        <app-comment-form
-          [captcha]="captcha"
-          [parentId]="comment.id"
-          [replyToName]="comment.userName"
-          (captchaChanged)="captchaChanged.emit($event)"
-          (errorChanged)="errorChanged.emit($event)"
-          (submitted)="submitted.emit()"
-          (cancelled)="cancelled.emit()"
-        >
-        </app-comment-form>
-      </article>
-    }
-    @if (repliesAreVisible(comment)) {
-      @for (child of comment.replies; track child.id) {
-        <ng-template
-          [ngTemplateOutlet]="row"
-          [ngTemplateOutletContext]="{ comment: child, depth: depth + 1 }"
-        >
-        </ng-template>
-      }
-    }
   </article>
+  @if (replyParentId === comment.id) {
+    <article class="comment reply reply-composer" [style.--depth]="depth + 1">
+      <app-comment-form
+        [captcha]="captcha"
+        [parentId]="comment.id"
+        [replyToName]="comment.userName"
+        (captchaChanged)="captchaChanged.emit($event)"
+        (errorChanged)="errorChanged.emit($event)"
+        (submitted)="submitted.emit($event)"
+        (cancelled)="cancelled.emit()"
+      >
+      </app-comment-form>
+    </article>
+  }
+  @if (repliesAreVisible(comment)) {
+    @for (child of comment.replies; track child.id) {
+      <ng-template
+        [ngTemplateOutlet]="row"
+        [ngTemplateOutletContext]="{ comment: child, depth: depth + 1 }"
+      >
+      </ng-template>
+    }
+  }
 </ng-template>

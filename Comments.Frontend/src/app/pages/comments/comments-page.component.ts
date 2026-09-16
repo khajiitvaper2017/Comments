@@ -54,15 +54,31 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
   viewMode: 'cards' | 'table' = 'cards';
   replyParentId = '';
   showComposer = signal(false);
-  private realtimeRefreshTimer: ReturnType<typeof setTimeout> | undefined;
   private readonly loadedReplies = new Map<string, CommentItem[]>();
   private readonly loadingReplies = new Set<string>();
   private readonly loadingAncestors = new Set<string>();
+  private readonly pendingRealtimeComments = new Map<string, CommentItem>();
+  private realtimeFlushTimer?: number;
+  private scrollEndTimer?: number;
+  private isScrolling = false;
   private pendingCursorNavigation: string | null | undefined;
   private querySubscription?: Subscription;
+  private readonly handleWindowScroll = () => {
+    this.isScrolling = true;
+    if (this.scrollEndTimer !== undefined) window.clearTimeout(this.scrollEndTimer);
+    this.scrollEndTimer = window.setTimeout(() => {
+      this.scrollEndTimer = undefined;
+      this.isScrolling = false;
+      if (this.pendingRealtimeComments.size > 0 && this.realtimeFlushTimer === undefined) {
+        this.flushRealtimeComments();
+      }
+    }, 150);
+  };
   ngOnInit() {
-    this.hub.on('commentChanged', () => this.scheduleRealtimeRefresh());
+    this.hub.on('commentChanged', (comment: CommentItem) => this.handleRealtimeComment(comment));
     void this.hub.start().catch(() => undefined);
+    this.handleWindowScroll();
+    window.addEventListener('scroll', this.handleWindowScroll, { passive: true, capture: true });
     this.querySubscription = this.route.queryParamMap.subscribe((params) =>
       this.loadFromQuery(params),
     );
@@ -70,7 +86,9 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.querySubscription?.unsubscribe();
-    if (this.realtimeRefreshTimer) clearTimeout(this.realtimeRefreshTimer);
+    if (this.realtimeFlushTimer !== undefined) window.clearTimeout(this.realtimeFlushTimer);
+    if (this.scrollEndTimer !== undefined) window.clearTimeout(this.scrollEndTimer);
+    window.removeEventListener('scroll', this.handleWindowScroll, true);
     void this.hub.stop();
   }
 
@@ -115,16 +133,15 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
     });
   }
 
-  loadComments(showLoading = true, cursor = this.cursor) {
-    if (showLoading) this.loading.set(true);
+  loadComments() {
+    this.loading.set(true);
     this.api
-      .getComments(this.sort, this.descending, cursor)
-      .pipe(finalize(() => showLoading && this.loading.set(false)))
+      .getComments(this.sort, this.descending, this.cursor)
+      .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
         next: (result) => {
           const comments = this.restoreLoadedReplies(result.items);
           this.comments.set(comments);
-          this.cursor = cursor;
           this.nextCursor = result.nextCursor ?? null;
           this.hasPreviousPage = this.cursorHistory.length > 0;
           this.autoLoadSmallReplyTrees(comments);
@@ -133,13 +150,58 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
       });
   }
 
-  private scheduleRealtimeRefresh() {
-    if (this.realtimeRefreshTimer || this.searchActive()) return;
+  private handleRealtimeComment(comment: CommentItem) {
+    if (!this.isDefaultFirstPage()) return;
 
-    this.realtimeRefreshTimer = setTimeout(() => {
-      this.realtimeRefreshTimer = undefined;
-      this.loadComments(false);
+    this.pendingRealtimeComments.set(comment.id, comment);
+    if (this.realtimeFlushTimer !== undefined) return;
+
+    this.realtimeFlushTimer = window.setTimeout(() => {
+      this.realtimeFlushTimer = undefined;
+      if (this.isScrolling) return;
+      this.flushRealtimeComments();
     }, 1000);
+  }
+
+  private flushRealtimeComments() {
+    const pending = [...this.pendingRealtimeComments.values()];
+    this.pendingRealtimeComments.clear();
+    if (pending.length === 0 || !this.isDefaultFirstPage()) return;
+
+    this.comments.update((comments) => {
+      let updated = comments;
+      for (const comment of pending) {
+        updated = comment.parentId
+          ? this.attachRealtimeReply(updated, comment)
+          : [comment, ...updated.filter((item) => item.id !== comment.id)];
+      }
+      return updated;
+    });
+  }
+
+  private attachRealtimeReply(comments: CommentItem[], reply: CommentItem): CommentItem[] {
+    return comments.map((comment) => {
+      if (comment.id === reply.parentId) {
+        if (comment.replies.some((item) => item.id === reply.id)) return comment;
+
+        return {
+          ...comment,
+          replyCount: comment.replyCount + 1,
+          replies: [reply, ...comment.replies.filter((item) => item.id !== reply.id)],
+        };
+      }
+
+      return {
+        ...comment,
+        replies: this.attachRealtimeReply(comment.replies ?? [], reply),
+      };
+    });
+  }
+
+  private isDefaultFirstPage(): boolean {
+    return (
+      !this.searchActive() && this.cursor === null && this.sort === 'createdAt' && this.descending
+    );
   }
 
   search() {
@@ -317,34 +379,49 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
   openComposer() {
     this.replyParentId = '';
     this.showComposer.set(true);
+    this.scrollToComposer('smooth', 'start');
   }
   cancelComposer() {
     this.replyParentId = '';
     this.showComposer.set(false);
     this.error.set('');
   }
-  private scrollToComposer() {
+  private scrollToComposer(
+    behavior: ScrollBehavior = 'smooth',
+    block: ScrollLogicalPosition = 'end',
+  ) {
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {
         const composer = document.querySelector<HTMLElement>('.composer');
-        composer?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        composer?.scrollIntoView({ behavior, block });
         composer?.querySelector<HTMLTextAreaElement>('textarea')?.focus();
       });
     });
   }
-  handleSubmitted() {
+  handleSubmitted(created: CommentItem) {
     const parentId = this.replyParentId;
     const wasReply = Boolean(parentId);
     this.error.set('');
     this.replyParentId = '';
     this.showComposer.set(false);
     if (wasReply) {
-      this.loadReplies(parentId);
-    } else {
-      this.cursor = null;
-      this.nextCursor = null;
-      this.cursorHistory = [];
-      this.updateUrl();
+      if (this.findComment(this.comments(), parentId)) {
+        this.comments.update((comments) => this.attachRealtimeReply(comments, created));
+        const loadedReplies = this.loadedReplies.get(parentId);
+        if (loadedReplies) {
+          this.loadedReplies.set(parentId, [
+            created,
+            ...loadedReplies.filter((reply) => reply.id !== created.id),
+          ]);
+        }
+      } else {
+        this.loadReplies(parentId);
+      }
+    } else if (this.isDefaultFirstPage()) {
+      this.comments.update((comments) => [
+        created,
+        ...comments.filter((comment) => comment.id !== created.id),
+      ]);
     }
   }
   openImage(image: { id: string; name: string }) {

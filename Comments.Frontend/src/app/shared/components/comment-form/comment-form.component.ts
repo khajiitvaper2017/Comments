@@ -21,7 +21,7 @@ import {
   lucideRefreshCw,
 } from '@ng-icons/lucide';
 import { CommentApiService } from '@app/core/services/comment-api.service';
-import { Captcha, CommentFormValue } from '@app/core/models/comment.models';
+import { Captcha, CommentFormValue, CommentItem } from '@app/core/models/comment.models';
 import { finalize } from 'rxjs';
 import {
   validateHomePage,
@@ -52,7 +52,7 @@ export class CommentFormComponent {
   @Input() captcha: Captcha | null = null;
   @Input() parentId = '';
   @Input() replyToName = '';
-  @Output() readonly submitted = new EventEmitter<void>();
+  @Output() readonly submitted = new EventEmitter<CommentItem>();
   @Output() readonly cancelled = new EventEmitter<void>();
   @Output() readonly captchaChanged = new EventEmitter<Captcha>();
   @Output() readonly errorChanged = new EventEmitter<string>();
@@ -176,7 +176,7 @@ export class CommentFormComponent {
       .createComment({ ...this.form, parentId: this.parentId }, this.captcha.id, this.file)
       .pipe(finalize(() => (this.isSubmitting = false)))
       .subscribe(
-        () => {
+        (created) => {
           this.isSubmitting = false;
           this.saveUserProfile();
           this.form = {
@@ -194,7 +194,7 @@ export class CommentFormComponent {
           this.captchaError = '';
           this.formError = '';
           this.homePageError = '';
-          this.submitted.emit();
+          this.submitted.emit(created);
         },
         (error: HttpErrorResponse) => {
           const message =
