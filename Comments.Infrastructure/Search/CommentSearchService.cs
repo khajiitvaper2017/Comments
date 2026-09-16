@@ -10,34 +10,57 @@ public sealed class CommentSearchService(
     IElasticService elastic,
     CommentsDbContext db) : ICommentSearch
 {
-    private const int PageSize = 25;
+    private const int SearchPageSize = 25;
 
     public async Task<CommentPageDto> SearchAsync(string query, bool partial, bool searchText,
         bool searchUserName, CancellationToken ct, string? cursor = null)
     {
-        query = query.Trim();
-        if (query.Length == 0 || (!searchText && !searchUserName))
+        var searchTerm = query.Trim();
+        if (searchTerm.Length == 0 || (!searchText && !searchUserName))
             return new CommentPageDto([], null, "search", false);
 
-        var documents = await elastic.SearchAsync(query, partial, searchText, searchUserName, cursor, ct);
-        var matchedIds = documents.Select(x => x.Id).ToHashSet();
-        var comments = await db.Comments.AsNoTracking()
-            .Where(x => !x.IsDeleted && matchedIds.Contains(x.Id))
-            .Include(x => x.Attachments)
-            .ToListAsync(ct);
-        var items = documents.Join(comments, document => document.Id, comment => comment.Id,
-            (document, comment) => MapSearchHit(comment, document)).ToList();
-        var nextCursor = documents.Count == PageSize ? documents[^1].Id.ToString() : null;
+        var documents = await elastic.SearchAsync(
+            searchTerm,
+            partial,
+            searchText,
+            searchUserName,
+            cursor,
+            ct);
+
+        if (documents.Count == 0)
+            return new CommentPageDto([], null, "search", false);
+
+        var comments = await LoadCommentsAsync(documents.Select(x => x.Id), ct);
+        var items = documents
+            .Where(document => comments.TryGetValue(document.Id, out _))
+            .Select(document => MapSearchHit(comments[document.Id], document))
+            .ToList();
+
+        var nextCursor = documents.Count == SearchPageSize
+            ? documents[^1].Id.ToString()
+            : null;
+
         return new CommentPageDto(items, nextCursor, "search", false);
+    }
+
+    private async Task<Dictionary<Guid, Comment>> LoadCommentsAsync(
+        IEnumerable<Guid> ids,
+        CancellationToken ct)
+    {
+        var commentIds = ids.ToHashSet();
+        return await db.Comments
+            .AsNoTracking()
+            .Where(comment => !comment.IsDeleted && commentIds.Contains(comment.Id))
+            .Include(comment => comment.Attachments)
+            .ToDictionaryAsync(comment => comment.Id, ct);
     }
 
     private static CommentDto MapSearchHit(Comment comment, CommentSearchDocument document)
     {
-        var replyCount = comment.DescendantCount;
         return new CommentDto(comment.Id, comment.ParentId, comment.UserName, comment.Email, comment.HomePage,
-            comment.SanitizedText, comment.CreatedAtUtc,
+            comment.Text, comment.CreatedAtUtc,
             comment.Attachments.Select(a => new AttachmentDto(a.Id, a.OriginalName, a.ContentType, a.Size,
-                a.Width, a.Height)).ToList(), [], replyCount, true)
+                a.Width, a.Height)).ToList(), [], comment.ReplyCount, true)
         {
             AncestorIds = document.AncestorIds
         };
