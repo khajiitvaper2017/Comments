@@ -6,27 +6,28 @@ namespace Comments.Infrastructure.Messaging.RabbitMq;
 
 public sealed class RabbitMqConnection(IOptions<RabbitMqOptions> options) : IDisposable
 {
-    private readonly Lazy<IConnection> connection = new(() =>
+    private readonly Lazy<Task<IConnection>> connection = new(() =>
     {
         var value = options.Value;
-        return new ConnectionFactory
+        var factory = new ConnectionFactory
         {
             HostName = value.Host,
             UserName = value.User,
             Password = value.Password,
-            DispatchConsumersAsync = true,
             AutomaticRecoveryEnabled = true,
             TopologyRecoveryEnabled = true,
             NetworkRecoveryInterval = TimeSpan.FromSeconds(5)
-        }.CreateConnection();
+        };
+        return factory.CreateConnectionAsync();
     });
 
     public void Dispose()
     {
-        if (connection.IsValueCreated) connection.Value.Dispose();
+        if (connection.IsValueCreated)
+            connection.Value.GetAwaiter().GetResult().Dispose();
     }
 
-    public IConnection Get()
+    public Task<IConnection> GetAsync()
     {
         return connection.Value;
     }

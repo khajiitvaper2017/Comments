@@ -5,33 +5,30 @@ namespace Comments.Infrastructure.Messaging.RabbitMq;
 
 public sealed class RabbitMqPublisher(RabbitMqConnection connection) : IDisposable
 {
-    private readonly object sync = new();
-    private IModel? channel;
+    private readonly SemaphoreSlim sync = new(1, 1);
+    private IChannel? channel;
 
     public void Dispose()
     {
-        lock (sync)
-        {
-            channel?.Dispose();
-            channel = null;
-        }
+        channel?.Dispose();
+        sync.Dispose();
     }
 
-    public void Publish(string type, string payload)
+    public async Task PublishAsync(string type, string payload, CancellationToken ct = default)
     {
-        lock (sync)
+        await sync.WaitAsync(ct);
+        try
         {
-            var publisherChannel = GetChannel();
+            var publisherChannel = await GetChannelAsync(ct);
             try
             {
-                var properties = publisherChannel.CreateBasicProperties();
-                properties.Persistent = true;
-                publisherChannel.BasicPublish(
+                await publisherChannel.BasicPublishAsync(
                     RabbitMqTopology.Exchange,
                     type,
-                    properties,
-                    Encoding.UTF8.GetBytes(payload));
-                publisherChannel.WaitForConfirmsOrDie(TimeSpan.FromSeconds(5));
+                    false,
+                    new BasicProperties { Persistent = true },
+                    Encoding.UTF8.GetBytes(payload),
+                    ct);
             }
             catch
             {
@@ -40,22 +37,22 @@ public sealed class RabbitMqPublisher(RabbitMqConnection connection) : IDisposab
                 throw;
             }
         }
+        finally
+        {
+            sync.Release();
+        }
     }
 
-    private IModel GetChannel()
+    private async Task<IChannel> GetChannelAsync(CancellationToken ct)
     {
         if (channel is { IsOpen: true }) return channel;
 
-        // Reusing the channel avoids a connection-level setup cost for every outbox event.
         channel?.Dispose();
-        channel = connection.Get().CreateModel();
-        DeclareExchange(channel);
-        channel.ConfirmSelect();
+        channel = await (await connection.GetAsync()).CreateChannelAsync(cancellationToken: ct);
+        await DeclareExchangeAsync(channel, ct);
         return channel;
     }
 
-    public static void DeclareExchange(IModel channel)
-    {
-        channel.ExchangeDeclare(RabbitMqTopology.Exchange, ExchangeType.Direct, true);
-    }
+    public static Task DeclareExchangeAsync(IChannel channel, CancellationToken ct = default) =>
+        channel.ExchangeDeclareAsync(RabbitMqTopology.Exchange, ExchangeType.Direct, true, cancellationToken: ct);
 }

@@ -39,7 +39,7 @@ public sealed class OutboxDispatcher(
                 foreach (var message in messages)
                     try
                     {
-                        publisher.Publish(message.Type, message.Payload);
+                        await publisher.PublishAsync(message.Type, message.Payload, stoppingToken);
                         message.ProcessedAtUtc = DateTime.UtcNow;
                         message.LastError = null;
                     }

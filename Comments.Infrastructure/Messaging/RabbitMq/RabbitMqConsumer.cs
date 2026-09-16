@@ -13,46 +13,38 @@ public sealed class RabbitMqConsumer(
     IServiceScopeFactory scopes,
     ILogger<RabbitMqConsumer> logger) : BackgroundService
 {
-    private readonly List<IModel> channels = [];
+    private readonly List<IChannel> channels = [];
 
-    protected override Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // Each queue has its own scoped handler, while this class owns transport concerns only.
-        CreateConsumer<CacheInvalidationHandler>(RabbitMqTopology.CacheQueue, stoppingToken);
-        CreateConsumer<RealtimeNotificationHandler>(RabbitMqTopology.RealtimeQueue, stoppingToken);
-        CreateConsumer<SearchIndexingHandler>(RabbitMqTopology.SearchQueue, stoppingToken);
-        CreateConsumer<AttachmentJobHandler>(RabbitMqTopology.AttachmentQueue, stoppingToken);
-        return Task.Delay(Timeout.Infinite, stoppingToken);
+        await CreateConsumerAsync<CacheInvalidationHandler>(RabbitMqTopology.CacheQueue, stoppingToken);
+        await CreateConsumerAsync<RealtimeNotificationHandler>(RabbitMqTopology.RealtimeQueue, stoppingToken);
+        await CreateConsumerAsync<SearchIndexingHandler>(RabbitMqTopology.SearchQueue, stoppingToken);
+        await CreateConsumerAsync<AttachmentJobHandler>(RabbitMqTopology.AttachmentQueue, stoppingToken);
+        await Task.Delay(Timeout.Infinite, stoppingToken);
     }
 
-    private void CreateConsumer<THandler>(
-        string queue,
-        CancellationToken stoppingToken)
+    private async Task CreateConsumerAsync<THandler>(string queue, CancellationToken stoppingToken)
         where THandler : IRabbitMessageHandler
     {
-        // Manual acknowledgements let failed messages be retried or dead-lettered explicitly.
-        var channel = connection.Get().CreateModel();
+        var channel = await (await connection.GetAsync()).CreateChannelAsync(cancellationToken: stoppingToken);
         channels.Add(channel);
-        DeclareQueue(channel, queue);
-        // Image conversion is CPU-heavy; keep it deliberately behind normal event consumers.
+        await DeclareQueueAsync(channel, queue, stoppingToken);
         var prefetch = queue == RabbitMqTopology.AttachmentQueue ? 1 : 4;
-        channel.BasicQos(0, (ushort)prefetch, false);
+        await channel.BasicQosAsync(0, (ushort)prefetch, false, stoppingToken);
         var consumer = new AsyncEventingBasicConsumer(channel);
-        consumer.Received += async (_, args) =>
+        consumer.ReceivedAsync += async (_, args) =>
         {
             try
             {
                 using var scope = scopes.CreateScope();
                 var handler = scope.ServiceProvider.GetRequiredService<THandler>();
-                await handler.HandleAsync(
-                    args.RoutingKey,
-                    Encoding.UTF8.GetString(args.Body.ToArray()),
-                    stoppingToken);
-                channel.BasicAck(args.DeliveryTag, false);
+                await handler.HandleAsync(args.RoutingKey, Encoding.UTF8.GetString(args.Body.ToArray()), stoppingToken);
+                await channel.BasicAckAsync(args.DeliveryTag, false, stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
-                channel.BasicNack(args.DeliveryTag, false, true);
+                await channel.BasicNackAsync(args.DeliveryTag, false, true, stoppingToken);
             }
             catch (Exception exception)
             {
@@ -60,25 +52,25 @@ public sealed class RabbitMqConsumer(
                 var retryCount = GetRetryCount(args.BasicProperties);
                 if (retryCount < 3)
                 {
-                    var properties = channel.CreateBasicProperties();
-                    properties.Persistent = true;
-                    properties.Headers = new Dictionary<string, object>
+                    var properties = new BasicProperties
                     {
-                        ["x-retry-count"] = retryCount + 1
+                        Persistent = true,
+                        Headers = new Dictionary<string, object?> { ["x-retry-count"] = retryCount + 1 }
                     };
-                    channel.BasicPublish(RabbitMqTopology.Exchange, args.RoutingKey, properties, args.Body);
-                    channel.BasicAck(args.DeliveryTag, false);
+                    await channel.BasicPublishAsync(
+                        RabbitMqTopology.Exchange, args.RoutingKey, false, properties, args.Body, stoppingToken);
+                    await channel.BasicAckAsync(args.DeliveryTag, false, stoppingToken);
                 }
                 else
                 {
-                    channel.BasicNack(args.DeliveryTag, false, false);
+                    await channel.BasicNackAsync(args.DeliveryTag, false, false, stoppingToken);
                 }
             }
         };
-        channel.BasicConsume(queue, false, consumer);
+        await channel.BasicConsumeAsync(queue, false, consumer, stoppingToken);
     }
 
-    private static int GetRetryCount(IBasicProperties properties)
+    private static int GetRetryCount(IReadOnlyBasicProperties properties)
     {
         if (properties.Headers is null || !properties.Headers.TryGetValue("x-retry-count", out var value)) return 0;
         return value switch
@@ -90,15 +82,14 @@ public sealed class RabbitMqConsumer(
         };
     }
 
-    private static void DeclareQueue(IModel channel, string queue)
+    private static async Task DeclareQueueAsync(IChannel channel, string queue, CancellationToken ct)
     {
-        // Dead-letter queues use the original event routing keys for inspection and replay.
-        RabbitMqPublisher.DeclareExchange(channel);
+        await RabbitMqPublisher.DeclareExchangeAsync(channel, ct);
         var deadExchange = $"{RabbitMqTopology.Exchange}.dead";
-        channel.ExchangeDeclare(deadExchange, ExchangeType.Direct, true);
-        channel.QueueDeclare($"{queue}.dead", true, false, false);
-        channel.QueueDeclare(queue, true, false, false,
-            new Dictionary<string, object> { ["x-dead-letter-exchange"] = deadExchange });
+        await channel.ExchangeDeclareAsync(deadExchange, ExchangeType.Direct, true, cancellationToken: ct);
+        await channel.QueueDeclareAsync($"{queue}.dead", true, false, false, cancellationToken: ct);
+        await channel.QueueDeclareAsync(queue, true, false, false,
+            new Dictionary<string, object?> { ["x-dead-letter-exchange"] = deadExchange }, cancellationToken: ct);
         var bindings = queue switch
         {
             RabbitMqTopology.CacheQueue => ["CommentCreated", "ReplyCreated"],
@@ -109,8 +100,8 @@ public sealed class RabbitMqConsumer(
         };
         foreach (var type in bindings)
         {
-            channel.QueueBind(queue, RabbitMqTopology.Exchange, type);
-            channel.QueueBind($"{queue}.dead", deadExchange, type);
+            await channel.QueueBindAsync(queue, RabbitMqTopology.Exchange, type, cancellationToken: ct);
+            await channel.QueueBindAsync($"{queue}.dead", deadExchange, type, cancellationToken: ct);
         }
     }
 
