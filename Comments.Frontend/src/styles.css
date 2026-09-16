@@ -163,6 +163,10 @@ button:disabled {
   }
 }
 .leave-comment-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
   padding: 0.65rem 1rem;
   border-radius: 5px;
   background: var(--color-action-strong);
@@ -545,6 +549,10 @@ mark {
   justify-content: center;
 }
 .pager button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
   padding: 0.4rem 0.65rem;
   border: 1px solid var(--color-border-strong);
 }
@@ -763,6 +771,10 @@ textarea {
   font-size: var(--font-size-caption);
 }
 .submit-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
   justify-self: start;
   padding: 0.65rem 1rem;
   border-radius: 5px;
