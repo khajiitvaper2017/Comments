@@ -10,6 +10,7 @@ public sealed class CommentSearchDocument
     {
     }
 
+    [SetsRequiredMembers]
     public CommentSearchDocument(Comment comment, IReadOnlyList<Guid> ancestors)
     {
         Id = comment.Id;
