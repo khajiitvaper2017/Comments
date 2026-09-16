@@ -12,9 +12,9 @@ describe('CommentCardsComponent reply switch', () => {
     } as unknown as CommentItem;
 
     expect(component.repliesAreVisible(comment)).toBe(true);
-    component.toggleOrLoadReplies(comment);
+    component.toggleRepliesOrLoadMore(comment);
     expect(component.repliesAreVisible(comment)).toBe(false);
-    component.toggleOrLoadReplies(comment);
+    component.toggleRepliesOrLoadMore(comment);
     expect(component.repliesAreVisible(comment)).toBe(true);
 
     const unloaded = {
@@ -24,7 +24,89 @@ describe('CommentCardsComponent reply switch', () => {
     } as unknown as CommentItem;
     let requested = '';
     component.loadRepliesRequested.subscribe((id: string) => (requested = id));
-    component.toggleOrLoadReplies(unloaded);
+    component.toggleRepliesOrLoadMore(unloaded);
     expect(requested).toBe('other');
+  });
+
+  it('counts loaded descendants when deciding whether more replies are available', () => {
+    const component = new CommentCardsComponent() as any;
+    const comment = {
+      id: 'root',
+      replyCount: 2,
+      replies: [
+        { id: 'reply-1', replies: [{ id: 'nested-reply', replies: [] }] },
+        { id: 'reply-2', replies: [] },
+      ],
+    } as unknown as CommentItem;
+
+    component.searchMode = true;
+    expect(component.hasUnloadedReplies(comment)).toBe(false);
+  });
+
+  it('keeps load-more available for a parent with its own unloaded descendants', () => {
+    const component = new CommentCardsComponent() as any;
+    component.searchMode = true;
+    const deepest = {
+      id: 'deepest',
+      replyCount: 2,
+      replies: [{ id: 'loaded', replies: [] }],
+    } as unknown as CommentItem;
+    const parent = {
+      id: 'parent',
+      replyCount: 3,
+      replies: [deepest],
+    } as unknown as CommentItem;
+
+    expect(component.hasUnloadedReplies(parent)).toBe(true);
+    expect(component.hasUnloadedReplies(deepest)).toBe(true);
+  });
+
+  it('shows load-more when a comment has some but not all of its own replies loaded', () => {
+    const component = new CommentCardsComponent() as any;
+    component.searchMode = true;
+    const comment = {
+      id: 'partially-loaded',
+      replyCount: 3,
+      replies: [{ id: 'loaded-reply', replies: [] }],
+    } as unknown as CommentItem;
+
+    expect(component.hasUnloadedReplies(comment)).toBe(true);
+    expect(component.hasUnloadedReplies(comment)).toBe(true);
+  });
+
+  it('shows more only for the root and last node in the displayed chain', () => {
+    const component = new CommentCardsComponent() as any;
+    component.searchMode = true;
+    const counts = [386, 10, 9, 8, 7, 6, 5];
+    let chain: CommentItem = {
+      id: 'last',
+      replyCount: counts[counts.length - 1],
+      replies: [],
+    } as unknown as CommentItem;
+
+    for (let index = counts.length - 2; index >= 0; index--) {
+      chain = {
+        id: `node-${index}`,
+        replyCount: counts[index],
+        replies: [chain],
+      } as unknown as CommentItem;
+    }
+
+    const nodes: CommentItem[] = [];
+    let current: CommentItem | undefined = chain;
+    while (current) {
+      nodes.push(current);
+      current = current.replies[0];
+    }
+
+    expect(nodes.map((node, depth) => component.shouldShowLoadMoreButton(node, depth))).toEqual([
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+    ]);
   });
 });

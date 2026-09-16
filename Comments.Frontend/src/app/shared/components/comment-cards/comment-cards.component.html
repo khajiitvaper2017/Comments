@@ -41,10 +41,10 @@
         <button
           class="reply-toggle"
           type="button"
-          [class.load-more]="isLoadMore(comment)"
-          [class.expanded]="repliesAreVisible(comment) && !needsMoreReplies(comment)"
+          [class.load-more]="shouldShowLoadMoreButton(comment, depth)"
+          [class.expanded]="repliesAreVisible(comment) && !shouldShowLoadMoreButton(comment, depth)"
           [title]="
-            needsMoreReplies(comment)
+            shouldShowLoadMoreButton(comment, depth)
               ? 'Show more replies'
               : repliesAreVisible(comment)
                 ? 'Hide replies'
@@ -55,14 +55,16 @@
             ' ' +
             (comment.replyCount === 1 ? 'reply' : 'replies') +
             '. ' +
-            (needsMoreReplies(comment)
+            (shouldShowLoadMoreButton(comment, depth)
               ? 'Show more replies'
               : repliesAreVisible(comment)
                 ? 'Hide replies'
                 : 'Show replies')
           "
-          [attr.aria-expanded]="repliesAreVisible(comment) && !needsMoreReplies(comment)"
-          (click)="toggleOrLoadReplies(comment)"
+          [attr.aria-expanded]="
+            repliesAreVisible(comment) && !shouldShowLoadMoreButton(comment, depth)
+          "
+          (click)="toggleRepliesOrLoadMore(comment, depth)"
         >
           <ng-icon name="lucideChevronDown" size="1rem" aria-hidden="true" />
         </button>
