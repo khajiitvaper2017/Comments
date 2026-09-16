@@ -72,7 +72,11 @@
                       type="button"
                       [attr.aria-label]="'Open ' + attachment.fileName"
                       (click)="
-                        imageRequested.emit({ id: attachment.id, name: attachment.fileName })
+                        imageRequested.emit({
+                          id: attachment.id,
+                          name: attachment.fileName,
+                          contentType: attachment.contentType,
+                        })
                       "
                     >
                       <img

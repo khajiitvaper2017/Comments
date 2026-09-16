@@ -88,7 +88,13 @@
             <button
               class="image-attachment"
               type="button"
-              (click)="imageRequested.emit({ id: attachment.id, name: attachment.fileName })"
+              (click)="
+                imageRequested.emit({
+                  id: attachment.id,
+                  name: attachment.fileName,
+                  contentType: attachment.contentType,
+                })
+              "
             >
               <img
                 [src]="'/api/attachments/' + attachment.id"
