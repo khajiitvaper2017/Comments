@@ -22,6 +22,24 @@ Open [http://localhost:8080](http://localhost:8080).
 
 Docker runs SQL Server, Redis, RabbitMQ, Elasticsearch, the ASP.NET API, and Angular separately. Nginx serves the Angular frontend and proxies `/api`, `/graphql`, and SignalR requests to the API. Docker stores the database in the `comments-db` volume, uploaded files in the `comments-files` volume, and the Elasticsearch index in the `comments-search` volume.
 
+## Deploy to Azure VM
+
+Run from this directory:
+
+```powershell
+az login
+az account set --subscription <subscription-id>
+.\deploy-azure.ps1 -DbPassword '<database-password>'
+```
+
+You may need to check and change the deployment region and VmSize in the script. 
+
+For later deployments:
+
+```powershell
+.\deploy-azure.ps1
+```
+
 ## API
 Interactive Swagger documentation is available at [http://localhost:8080/api/](http://localhost:8080/api/). The OpenAPI document is available at `/api/v1.json`.
 
