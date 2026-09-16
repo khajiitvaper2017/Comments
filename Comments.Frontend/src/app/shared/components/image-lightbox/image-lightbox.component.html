@@ -38,7 +38,7 @@
       <a
         class="lightbox-download"
         [href]="currentImage.url"
-        [download]="currentImage.name"
+        [download]="currentImage.downloadName || currentImage.name"
         title="Download image"
         aria-label="Download image"
         (click)="$event.stopPropagation()"

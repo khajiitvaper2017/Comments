@@ -19,7 +19,7 @@ import { lucideDownload, lucideMinus, lucidePlus, lucideX } from '@ng-icons/luci
   templateUrl: './image-lightbox.component.html',
 })
 export class ImageLightboxComponent implements OnChanges {
-  @Input() image: { url: string; name: string } | null = null;
+  @Input() image: { url: string; name: string; downloadName?: string } | null = null;
   @Output() readonly closed = new EventEmitter<void>();
   scale = 1;
   isClosing = false;

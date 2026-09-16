@@ -8,6 +8,8 @@ import { CommentFormComponent } from '@app/shared/components/comment-form/commen
 import { CommentListComponent } from '@app/shared/components/comment-list/comment-list.component';
 import { ImageLightboxComponent } from '@app/shared/components/image-lightbox/image-lightbox.component';
 import { TextPreviewComponent } from '@app/shared/components/text-preview/text-preview.component';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideMessageCirclePlus, lucideSearch } from '@ng-icons/lucide';
 import { finalize, Subscription } from 'rxjs';
 
 @Component({
@@ -20,7 +22,9 @@ import { finalize, Subscription } from 'rxjs';
     CommentFormComponent,
     ImageLightboxComponent,
     TextPreviewComponent,
+    NgIcon,
   ],
+  providers: [provideIcons({ lucideMessageCirclePlus, lucideSearch })],
   templateUrl: './comments-page.component.html',
 })
 export class CommentsPageComponent implements OnInit, OnDestroy {
@@ -30,7 +34,7 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   comments = signal<CommentItem[]>([]);
   captcha = signal<Captcha | null>(null);
-  selectedImage = signal<{ url: string; name: string } | null>(null);
+  selectedImage = signal<{ url: string; name: string; downloadName: string } | null>(null);
   selectedText = signal<{ name: string; content: string } | null>(null);
   error = signal('');
   loading = signal(false);
@@ -424,8 +428,24 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
       ]);
     }
   }
-  openImage(image: { id: string; name: string }) {
-    this.selectedImage.set({ url: `/api/attachments/${image.id}`, name: image.name });
+  openImage(image: { id: string; name: string; contentType: string }) {
+    this.selectedImage.set({
+      url: `/api/attachments/${image.id}`,
+      name: image.name,
+      downloadName: this.getImageDownloadName(image.name, image.contentType),
+    });
+  }
+
+  private getImageDownloadName(name: string, contentType: string): string {
+    const extension =
+      contentType.toLowerCase() === 'image/webp'
+        ? '.webp'
+        : contentType.toLowerCase() === 'image/png'
+          ? '.png'
+          : contentType.toLowerCase() === 'image/jpeg'
+            ? '.jpg'
+            : '.gif';
+    return `${name.replace(/\.[^.]+$/, '')}${extension}`;
   }
 
   openText(text: { id: string; name: string }) {

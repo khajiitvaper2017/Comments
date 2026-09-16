@@ -38,7 +38,11 @@ export class CommentListComponent {
   @Output() readonly replyRequested = new EventEmitter<string>();
   @Output() readonly loadRepliesRequested = new EventEmitter<string>();
   @Output() readonly loadAncestorsRequested = new EventEmitter<string>();
-  @Output() readonly imageRequested = new EventEmitter<{ id: string; name: string }>();
+  @Output() readonly imageRequested = new EventEmitter<{
+    id: string;
+    name: string;
+    contentType: string;
+  }>();
   @Output() readonly textRequested = new EventEmitter<{ id: string; name: string }>();
   @Output() readonly captchaChanged = new EventEmitter<Captcha>();
   @Output() readonly errorChanged = new EventEmitter<string>();
@@ -48,13 +52,5 @@ export class CommentListComponent {
   protected setViewMode(mode: 'cards' | 'table') {
     this.viewMode = mode;
     this.viewModeChanged.emit(mode);
-  }
-
-  protected get replyCount(): number {
-    return this.comments.reduce((count, comment) => count + this.countReplies(comment.replies), 0);
-  }
-
-  private countReplies(replies: CommentItem[]): number {
-    return replies.reduce((count, reply) => count + 1 + this.countReplies(reply.replies), 0);
   }
 }
