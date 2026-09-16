@@ -10,37 +10,14 @@ namespace Comments.Infrastructure.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropIndex(
-                name: "IX_Comments_Email",
-                table: "Comments");
-
-            migrationBuilder.DropIndex(
-                name: "IX_Comments_ParentId",
-                table: "Comments");
-
-            migrationBuilder.DropIndex(
-                name: "IX_Comments_ParentId_IsDeleted_CreatedAtUtc_Id",
-                table: "Comments");
-
-            migrationBuilder.DropIndex(
-                name: "IX_Comments_ParentId_IsDeleted_Email_Id",
-                table: "Comments");
-
-            migrationBuilder.DropIndex(
-                name: "IX_Comments_ParentId_IsDeleted_UserName_Id",
-                table: "Comments");
-
-            migrationBuilder.DropIndex(
-                name: "IX_Comments_RootId_CreatedAtUtc",
-                table: "Comments");
-
-            migrationBuilder.DropIndex(
-                name: "IX_Comments_RootId_IsDeleted_CreatedAtUtc_Id",
-                table: "Comments");
-
-            migrationBuilder.DropIndex(
-                name: "IX_Comments_UserName",
-                table: "Comments");
+            DropIndexIfExists(migrationBuilder, "IX_Comments_Email");
+            DropIndexIfExists(migrationBuilder, "IX_Comments_ParentId");
+            DropIndexIfExists(migrationBuilder, "IX_Comments_ParentId_IsDeleted_CreatedAtUtc_Id");
+            DropIndexIfExists(migrationBuilder, "IX_Comments_ParentId_IsDeleted_Email_Id");
+            DropIndexIfExists(migrationBuilder, "IX_Comments_ParentId_IsDeleted_UserName_Id");
+            DropIndexIfExists(migrationBuilder, "IX_Comments_RootId_CreatedAtUtc");
+            DropIndexIfExists(migrationBuilder, "IX_Comments_RootId_IsDeleted_CreatedAtUtc_Id");
+            DropIndexIfExists(migrationBuilder, "IX_Comments_UserName");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Comments_ActiveReplies_ParentId_CreatedAtUtc_Id",
@@ -135,6 +112,18 @@ namespace Comments.Infrastructure.Migrations
                 name: "IX_Comments_UserName",
                 table: "Comments",
                 column: "UserName");
+        }
+
+        private static void DropIndexIfExists(MigrationBuilder migrationBuilder, string indexName)
+        {
+            migrationBuilder.Sql($"""
+                IF EXISTS (
+                    SELECT 1
+                    FROM sys.indexes
+                    WHERE name = N'{indexName}'
+                      AND object_id = OBJECT_ID(N'[dbo].[Comments]'))
+                    DROP INDEX [{indexName}] ON [dbo].[Comments];
+                """);
         }
     }
 }
