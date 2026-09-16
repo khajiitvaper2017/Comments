@@ -9,34 +9,48 @@ namespace Comments.Api.Configuration;
 
 public static class ApplicationExtensions
 {
-    public static WebApplication UseCommentsApi(this WebApplication app)
+    extension(WebApplication app)
     {
-        app.UseMiddleware<SecurityHeadersMiddleware>();
-        app.UseSwagger(options => options.RouteTemplate = "api/{documentName}.json");
-        app.UseSwaggerUI(options =>
+        public WebApplication UseCommentsApi()
         {
-            options.RoutePrefix = "api";
-            options.SwaggerEndpoint("/api/v1.json", "Comments API");
-        });
+            app.UseMiddleware<SecurityHeadersMiddleware>();
 
-        if (!app.Environment.IsDevelopment())
-            app.UseHsts();
+            if (!app.Environment.IsDevelopment())
+                app.UseHsts();
 
-        ApplyDatabaseMigrations(app);
-        app.UseExceptionHandler(HandleExceptions);
+            ApplyDatabaseMigrations(app);
+            app.UseExceptionHandler(HandleExceptions);
 
-        if (app.Environment.IsDevelopment())
-            app.UseHttpsRedirection();
+            if (app.Environment.IsDevelopment())
+                app.UseHttpsRedirection();
 
-        if (!app.Configuration.GetValue<bool>("Captcha:EnableLoadTestBypass"))
-            app.UseRateLimiter();
+            if (!app.Configuration.GetValue<bool>("Captcha:EnableLoadTestBypass"))
+                app.UseRateLimiter();
 
-        app.MapHealthChecks("/health");
-        app.MapControllers();
-        app.MapGraphQL();
-        app.MapHub<DiscussionHub>("/hubs/discussions");
-        return app;
+            app.MapHealthChecks("/health");
+            app.MapControllers();
+            app.MapHub<DiscussionHub>("/hubs/discussions");
+            return app;
+        }
+
+        public WebApplication UseSwagger()
+        {
+            app.UseSwagger(options => options.RouteTemplate = "api/{documentName}.json");
+            app.UseSwaggerUI(options =>
+            {
+                options.RoutePrefix = "api";
+                options.SwaggerEndpoint("/api/v1.json", "Comments API");
+            });
+            return app;
+        }
+
+        public WebApplication UseGraphQL()
+        {
+            app.MapGraphQL();
+            return app;
+        }
     }
+
 
     private static void ApplyDatabaseMigrations(WebApplication app)
     {

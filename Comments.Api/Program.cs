@@ -2,6 +2,7 @@ using Comments.Api.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Infrastructure
 builder.Services
     .AddCommentsOptions(builder.Configuration)
     .AddDatabase(builder.Configuration)
@@ -11,10 +12,16 @@ builder.Services
     .AddCommentsRateLimiting(builder.Configuration)
     .AddRabbitMq();
 
-builder.Services.AddCommentsApi();
+// Api
+builder.Services
+    .AddCommentsApi()
+    .AddSwagger()
+    .AddGraphQL();
 
 var app = builder.Build();
 
 app.UseCommentsApi();
+app.UseSwagger();
+app.UseGraphQL();
 
 app.Run();
