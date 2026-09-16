@@ -37,26 +37,28 @@
           </button>
         </div>
       }
-      <div class="view-switch" role="group" aria-label="Comment view">
-        <button
-          type="button"
-          title="Card view"
-          aria-label="Card view"
-          [class.active]="viewMode === 'cards'"
-          (click)="setViewMode('cards')"
-        >
-          <ng-icon name="lucideList" size="1rem" aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          title="Table view"
-          aria-label="Table view"
-          [class.active]="viewMode === 'table'"
-          (click)="setViewMode('table')"
-        >
-          <ng-icon name="lucideTable2" size="1rem" aria-hidden="true" />
-        </button>
-      </div>
+      @if (!searchMode) {
+        <div class="view-switch" role="group" aria-label="Comment view">
+          <button
+            type="button"
+            title="Card view"
+            aria-label="Card view"
+            [class.active]="viewMode === 'cards'"
+            (click)="setViewMode('cards')"
+          >
+            <ng-icon name="lucideList" size="1rem" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            title="Table view"
+            aria-label="Table view"
+            [class.active]="viewMode === 'table'"
+            (click)="setViewMode('table')"
+          >
+            <ng-icon name="lucideTable2" size="1rem" aria-hidden="true" />
+          </button>
+        </div>
+      }
     </div>
   </div>
 
