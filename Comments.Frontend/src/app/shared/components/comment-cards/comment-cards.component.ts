@@ -38,9 +38,8 @@ export class CommentCardsComponent {
   protected readonly collapsedReplies = new Set<string>();
   private readonly loadedSearchReplies = new Set<string>();
 
-  protected toggleOrLoadReplies(comment: CommentItem) {
-    const needsSearchLoad = this.needsMoreReplies(comment);
-    if ((!comment.replies.length || needsSearchLoad) && comment.replyCount > 0) {
+  protected toggleRepliesOrLoadMore(comment: CommentItem, depth = this.baseDepth) {
+    if (this.shouldShowLoadMoreButton(comment, depth)) {
       this.loadedSearchReplies.add(comment.id);
       this.collapsedReplies.delete(comment.id);
       this.loadRepliesRequested.emit(comment.id);
@@ -58,7 +57,7 @@ export class CommentCardsComponent {
     return comment.replies.length > 0 && !this.collapsedReplies.has(comment.id);
   }
 
-  protected needsMoreReplies(comment: CommentItem) {
+  protected hasUnloadedReplies(comment: CommentItem) {
     return (
       this.searchMode &&
       this.countLoadedReplies(comment.replies) < comment.replyCount &&
@@ -66,8 +65,12 @@ export class CommentCardsComponent {
     );
   }
 
-  protected isLoadMore(comment: CommentItem) {
-    return comment.replyCount > 0 && (!comment.replies.length || this.needsMoreReplies(comment));
+  protected shouldShowLoadMoreButton(comment: CommentItem, depth = this.baseDepth) {
+    return (
+      comment.replyCount > 0 &&
+      (!comment.replies.length || this.hasUnloadedReplies(comment)) &&
+      (depth === this.baseDepth || comment.replies.length === 0)
+    );
   }
 
   private countLoadedReplies(replies: CommentItem[]): number {

@@ -266,7 +266,7 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
   private attachSearchAncestors(items: CommentItem[], ancestors: CommentItem[]): CommentItem[] {
     const byId = new Map(ancestors.map((ancestor) => [ancestor.id, ancestor]));
     return items.map((hit) => {
-      let current = hit;
+      let current: CommentItem = { ...hit, ancestorIds: [] };
       for (const ancestorId of [...(hit.ancestorIds ?? [])].reverse()) {
         const ancestor = byId.get(ancestorId);
         if (ancestor) current = { ...ancestor, replies: [current] };
