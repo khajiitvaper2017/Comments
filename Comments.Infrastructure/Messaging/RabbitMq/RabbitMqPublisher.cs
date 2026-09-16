@@ -53,6 +53,9 @@ public sealed class RabbitMqPublisher(RabbitMqConnection connection) : IDisposab
         return channel;
     }
 
-    public static Task DeclareExchangeAsync(IChannel channel, CancellationToken ct = default) =>
-        channel.ExchangeDeclareAsync(RabbitMqTopology.Exchange, ExchangeType.Direct, true, cancellationToken: ct);
+    public static Task DeclareExchangeAsync(IChannel channel, CancellationToken ct = default)
+    {
+        return channel.ExchangeDeclareAsync(RabbitMqTopology.Exchange, ExchangeType.Direct, true,
+            cancellationToken: ct);
+    }
 }

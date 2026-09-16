@@ -45,7 +45,7 @@ public sealed class CommentService(
             .ToListAsync(ct);
 
         var smallReplyIds = replies
-            .Where(x => x.DescendantCount > 0 && x.DescendantCount < AutoLoadReplyLimit)
+            .Where(x => x.ReplyCount > 0 && x.ReplyCount < AutoLoadReplyLimit)
             .Select(x => x.Id)
             .ToArray();
         var descendants = smallReplyIds.Length == 0
@@ -70,7 +70,7 @@ public sealed class CommentService(
             .ToListAsync(ct);
         var byId = comments.ToDictionary(x => x.Id);
         return requestedIds.Where(byId.ContainsKey)
-            .Select(id => ToDto(byId[id], [], byId[id].DescendantCount))
+            .Select(id => ToDto(byId[id], [], byId[id].ReplyCount))
             .ToList();
     }
 
@@ -108,10 +108,10 @@ public sealed class CommentService(
         var hasMore = roots.Count > RootPageSize;
         if (hasMore) roots.RemoveAt(RootPageSize);
         var smallRootIds = roots
-            .Where(x => x.DescendantCount > 0 && x.DescendantCount < AutoLoadReplyLimit)
+            .Where(x => x.ReplyCount > 0 && x.ReplyCount < AutoLoadReplyLimit)
             .Select(x => x.Id)
             .ToArray();
-        // A small root thread is bounded by DescendantCount, so its complete tree can be read
+        // A small root thread is bounded by ReplyCount, so its complete tree can be read
         // by RootId in one query instead of issuing one query per reply depth.
         var descendants = await LoadSmallRootDescendantsAsync(smallRootIds, ct);
         var all = roots.Concat(descendants).ToList();
@@ -144,8 +144,7 @@ public sealed class CommentService(
             UserName = request.UserName.Trim(),
             Email = request.Email.Trim(),
             HomePage = CommentRequestValidator.NormalizeHomePage(request.HomePage),
-            RawText = request.Text,
-            SanitizedText = text,
+            Text = text,
             IpAddress = ip,
             UserAgent = agent
         };
@@ -164,7 +163,7 @@ public sealed class CommentService(
                 await db.Comments
                     .Where(x => x.Id == ancestorId)
                     .ExecuteUpdateAsync(setters => setters
-                        .SetProperty(x => x.DescendantCount, x => x.DescendantCount + 1), ct);
+                        .SetProperty(x => x.ReplyCount, x => x.ReplyCount + 1), ct);
 
                 ancestorId = await db.Comments.AsNoTracking()
                     .Where(x => x.Id == ancestorId)
@@ -184,7 +183,7 @@ public sealed class CommentService(
         await db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
         await cache.InvalidateAsync(ct);
-        return ToDto(comment, [], comment.DescendantCount);
+        return ToDto(comment, [], comment.ReplyCount);
     }
 
     private async Task<List<Comment>> LoadDescendantsAsync(Guid[] parentIds, CancellationToken ct)
@@ -289,7 +288,7 @@ public sealed class CommentService(
 
     private static CommentDto Map(Comment comment, IReadOnlyList<Comment> all, int depth)
     {
-        var replyCount = comment.DescendantCount;
+        var replyCount = comment.ReplyCount;
         if (replyCount >= AutoLoadReplyLimit)
             return ToDto(comment, [], replyCount);
 
@@ -307,7 +306,7 @@ public sealed class CommentService(
         int replyCount)
     {
         return new CommentDto(comment.Id, comment.ParentId, comment.UserName, comment.Email, comment.HomePage,
-            comment.SanitizedText, comment.CreatedAtUtc,
+            comment.Text, comment.CreatedAtUtc,
             comment.Attachments.Select(a => new AttachmentDto(a.Id, a.OriginalName, a.ContentType, a.Size,
                 a.Width, a.Height)).ToList(), replies, replyCount);
     }

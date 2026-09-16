@@ -16,9 +16,8 @@ public sealed class CommentsDbContext(DbContextOptions<CommentsDbContext> option
         c.Property(x => x.UserName).HasMaxLength(100).IsRequired();
         c.Property(x => x.Email).HasMaxLength(254).IsRequired();
         c.Property(x => x.HomePage).HasMaxLength(2048);
-        c.Property(x => x.RawText).HasMaxLength(5000).IsRequired();
-        c.Property(x => x.SanitizedText).HasMaxLength(5000).IsRequired();
-        c.Property(x => x.DescendantCount).IsRequired();
+        c.Property(x => x.Text).HasMaxLength(5000).IsRequired();
+        c.Property(x => x.ReplyCount).IsRequired();
         c.Property(x => x.IpAddress).HasMaxLength(64);
         c.Property(x => x.UserAgent).HasMaxLength(512);
         c.HasOne(x => x.Parent).WithMany(x => x.Replies).HasForeignKey(x => x.ParentId)

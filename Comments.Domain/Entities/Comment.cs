@@ -8,14 +8,13 @@ public sealed class Comment
     public required string UserName { get; set; }
     public required string Email { get; set; }
     public string? HomePage { get; set; }
-    public required string RawText { get; set; }
-    public required string SanitizedText { get; set; }
+    public required string Text { get; set; }
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
     /// <summary>
     ///     The number of all descendants of this comment, including replies to replies.
     /// </summary>
-    public int DescendantCount { get; set; }
+    public int ReplyCount { get; set; }
 
     public bool IsDeleted { get; set; }
     public string? IpAddress { get; set; }

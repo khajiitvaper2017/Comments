@@ -18,7 +18,7 @@ public sealed class CommentSearchDocument
         RootId = comment.RootId;
         AncestorIds = ancestors;
         UserName = comment.UserName;
-        Text = comment.SanitizedText;
+        Text = comment.Text;
         CreatedAtUtc = comment.CreatedAtUtc;
     }
 

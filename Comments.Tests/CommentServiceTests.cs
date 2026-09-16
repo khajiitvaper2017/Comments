@@ -78,8 +78,7 @@ public sealed class CommentServiceTests
             RootId = Guid.NewGuid(),
             UserName = "Parent1",
             Email = "parent@example.com",
-            RawText = "Parent.",
-            SanitizedText = "Parent."
+            Text = "Parent."
         };
         database.Comments.Add(parent);
         await database.SaveChangesAsync();
@@ -92,7 +91,7 @@ public sealed class CommentServiceTests
         Assert.Equal("ReplyCreated", Assert.Single(database.OutboxMessages).Type);
         Assert.Equal(1, await database.Comments
             .Where(comment => comment.Id == parent.Id)
-            .Select(comment => comment.DescendantCount)
+            .Select(comment => comment.ReplyCount)
             .SingleAsync());
     }
 
@@ -104,9 +103,8 @@ public sealed class CommentServiceTests
         {
             UserName = "Root123",
             Email = "root@example.com",
-            RawText = "Root.",
-            SanitizedText = "Root.",
-            DescendantCount = 2
+            Text = "Root.",
+            ReplyCount = 2
         };
         var reply = new Comment
         {
@@ -114,9 +112,8 @@ public sealed class CommentServiceTests
             RootId = root.Id,
             UserName = "Reply123",
             Email = "reply@example.com",
-            RawText = "Reply.",
-            SanitizedText = "Reply.",
-            DescendantCount = 1
+            Text = "Reply.",
+            ReplyCount = 1
         };
         var nestedReply = new Comment
         {
@@ -124,8 +121,7 @@ public sealed class CommentServiceTests
             RootId = root.Id,
             UserName = "Nested123",
             Email = "nested@example.com",
-            RawText = "Nested reply.",
-            SanitizedText = "Nested reply."
+            Text = "Nested reply."
         };
         database.Comments.AddRange(root, reply, nestedReply);
         await database.SaveChangesAsync();
@@ -148,8 +144,7 @@ public sealed class CommentServiceTests
         {
             UserName = "Root123",
             Email = "root@example.com",
-            RawText = "Root.",
-            SanitizedText = "Root."
+            Text = "Root."
         };
         root.RootId = root.Id;
         var reply = new Comment
@@ -158,9 +153,8 @@ public sealed class CommentServiceTests
             RootId = root.Id,
             UserName = "Reply123",
             Email = "reply@example.com",
-            RawText = "Reply.",
-            SanitizedText = "Reply.",
-            DescendantCount = 5
+            Text = "Reply.",
+            ReplyCount = 5
         };
         var descendants = Enumerable.Range(1, 5).Select(index => new Comment
         {
@@ -168,8 +162,7 @@ public sealed class CommentServiceTests
             RootId = root.Id,
             UserName = $"Nested{index}",
             Email = $"nested{index}@example.com",
-            RawText = $"Nested {index}.",
-            SanitizedText = $"Nested {index}."
+            Text = $"Nested {index}."
         }).ToList();
         database.Comments.AddRange(new[] { root, reply }.Concat(descendants));
         await database.SaveChangesAsync();
