@@ -2,6 +2,9 @@ using Comments.Api.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
+
+var swaggerEnabled = builder.Configuration.GetValue("Swagger:Enabled", false);
+
 // Infrastructure
 builder.Services
     .AddCommentsOptions(builder.Configuration)
@@ -15,13 +18,17 @@ builder.Services
 // Api
 builder.Services
     .AddCommentsApi()
-    .AddSwagger()
     .AddGraphQL();
+
+if (swaggerEnabled)
+    builder.Services.AddSwagger();
 
 var app = builder.Build();
 
 app.UseCommentsApi();
-app.UseSwagger();
 app.UseGraphQL();
+
+if (swaggerEnabled)
+    app.UseSwagger();
 
 app.Run();

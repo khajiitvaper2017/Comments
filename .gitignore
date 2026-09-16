@@ -37,6 +37,8 @@ App_Data/uploads/
 .env
 .env.*
 !.env.example
+!.env.development.example
+!.env.production.example
 appsettings.Local.json
 
 # Temporary and OS files
