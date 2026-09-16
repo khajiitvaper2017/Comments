@@ -110,7 +110,11 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
     const sort = params.get('sort');
     this.sort = sort === 'userName' || sort === 'email' ? sort : 'createdAt';
     this.descending = params.get('descending') !== 'false';
-    this.viewMode = params.get('view') === 'table' ? 'table' : 'cards';
+    this.viewMode = this.activeSearchQuery
+      ? 'cards'
+      : params.get('view') === 'table'
+        ? 'table'
+        : 'cards';
 
     if (this.activeSearchQuery) {
       this.searchActive.set(true);
@@ -210,6 +214,7 @@ export class CommentsPageComponent implements OnInit, OnDestroy {
 
   search() {
     this.activeSearchQuery = this.searchQuery.trim();
+    this.viewMode = 'cards';
     this.cursor = null;
     this.nextCursor = null;
     this.cursorHistory = [];
