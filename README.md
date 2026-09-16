@@ -12,7 +12,7 @@ Requirements: Docker Desktop.
 Run PowerShell in root folder, set your database password and start the application, for example:
 
 ```powershell
-$env:COMMENTS_DB_PASSWORD = 'Comments-Db_2026!'
+Copy-Item .env.development.example .env
 docker compose up --build
 ```
 
