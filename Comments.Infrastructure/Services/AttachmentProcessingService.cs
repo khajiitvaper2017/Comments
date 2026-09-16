@@ -1,11 +1,9 @@
 using Comments.Application.Abstractions;
 using Comments.Domain.Entities;
 using Comments.Infrastructure.Persistence;
+using ImageMagick;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Webp;
-using SixLabors.ImageSharp.Processing;
 
 namespace Comments.Infrastructure.Services;
 
@@ -38,28 +36,35 @@ public sealed class AttachmentProcessingService(
 
         try
         {
-            using var source = await Image.LoadAsync(attachment.StorageReference, ct);
-            var ratio = Math.Min(320d / source.Width, 240d / source.Height);
-            if (ratio < 1)
-                source.Mutate(x => x.Resize((int)(source.Width * ratio), (int)(source.Height * ratio)));
+            using var images = new MagickImageCollection();
+            images.Read(attachment.StorageReference);
+            if (images.Count == 0)
+                throw new InvalidOperationException("The uploaded image could not be decoded.");
+
+            // Coalescing makes each animation frame complete before it is resized and encoded.
+            images.Coalesce();
+            var first = images[0];
+            var ratio = Math.Min(320d / first.Width, 240d / first.Height);
+            var width = Math.Max(1, (int)(first.Width * Math.Min(ratio, 1)));
+            var height = Math.Max(1, (int)(first.Height * Math.Min(ratio, 1)));
+            foreach (var image in images)
+            {
+                image.Resize((uint)width, (uint)height);
+                image.Quality = 80;
+            }
 
             var dir = Path.GetDirectoryName(attachment.StorageReference)!;
             var processedName = attachment.Id + ".webp";
             var processedPath = Path.Combine(dir, processedName);
-            await source.SaveAsWebpAsync(processedPath, new WebpEncoder
-            {
-                FileFormat = WebpFileFormatType.Lossy,
-                Quality = 80,
-                Method = WebpEncodingMethod.Fastest
-            }, ct);
+            images.Write(processedPath, MagickFormat.WebP);
             if (!string.Equals(processedPath, attachment.StorageReference, StringComparison.OrdinalIgnoreCase))
                 File.Delete(attachment.StorageReference);
 
             attachment.StoredName = processedName;
             attachment.ContentType = "image/webp";
             attachment.StorageReference = processedPath;
-            attachment.Width = source.Width;
-            attachment.Height = source.Height;
+            attachment.Width = (int)first.Width;
+            attachment.Height = (int)first.Height;
             attachment.ProcessingStatus = AttachmentProcessingStatus.Processed;
             await db.SaveChangesAsync(ct);
         }
