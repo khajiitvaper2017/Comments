@@ -53,12 +53,4 @@ export class CommentListComponent {
     this.viewMode = mode;
     this.viewModeChanged.emit(mode);
   }
-
-  protected get replyCount(): number {
-    return this.comments.reduce((count, comment) => count + this.countReplies(comment.replies), 0);
-  }
-
-  private countReplies(replies: CommentItem[]): number {
-    return replies.reduce((count, reply) => count + 1 + this.countReplies(reply.replies), 0);
-  }
 }
