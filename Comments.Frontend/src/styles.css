@@ -341,10 +341,12 @@ h2 span {
   gap: 0.35rem;
 }
 .reply-toggle {
-  display: grid;
-  width: 2rem;
+  display: inline-flex;
+  width: auto;
   height: 2rem;
-  place-items: center;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.85rem;
   border: 1px solid var(--color-border-strong);
   border-radius: 5px;
   background: var(--color-action-soft);
@@ -354,11 +356,12 @@ h2 span {
   font-variant-numeric: tabular-nums;
 }
 .ancestor-toggle {
-  display: grid;
-  width: 2rem;
+  display: inline-flex;
+  width: auto;
   height: 2rem;
-  place-items: center;
-  padding: 0;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.85rem;
   border: 1px solid var(--color-border-strong);
   border-radius: 5px;
   background: var(--color-action-soft);
@@ -411,7 +414,7 @@ h2 span {
   display: flex;
   align-items: center;
   min-height: 0;
-  padding: 0.5rem 6rem 0.5rem 0.75rem;
+  padding: 0.5rem 0.75rem;
   background: var(--color-surface-muted);
 }
 .avatar {
@@ -441,6 +444,15 @@ h2 span {
   color: var(--color-muted);
   font-size: var(--font-size-small);
 }
+.comment-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: auto;
+}
+.comment-header-actions button {
+  min-height: 2.5rem;
+}
 .reply-count {
   color: var(--color-muted);
   font-size: var(--font-size-caption);
@@ -454,25 +466,29 @@ h2 span {
   text-decoration: none;
 }
 .reply-button {
-  display: grid;
-  width: 2rem;
+  display: inline-flex;
+  width: auto;
   height: 2rem;
-  place-items: center;
+  align-items: center;
+  gap: 0.5rem;
   margin-left: auto;
-  padding: 0;
+  padding: 0 0.85rem;
   border-radius: 5px;
   background: var(--color-action-strong);
   color: #fff;
 }
 .comment-actions {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.75rem;
   display: flex;
-  flex-direction: row;
   align-items: center;
-  gap: 0.35rem;
-  justify-content: flex-start;
+  gap: 0.65rem;
+  justify-content: flex-end;
+  padding: 0.5rem 0.75rem;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface-muted);
+}
+.comment-actions button {
+  font-size: inherit;
+  min-height: 2.5rem;
 }
 .comment-actions .reply-button {
   margin-left: 0;
