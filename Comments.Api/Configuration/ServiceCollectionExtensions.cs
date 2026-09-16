@@ -9,7 +9,6 @@ using Comments.Infrastructure.Options;
 using Comments.Infrastructure.Persistence;
 using Comments.Infrastructure.Search;
 using Comments.Infrastructure.Services;
-using Elastic.Clients.Elasticsearch;
 using Microsoft.EntityFrameworkCore;
 using Path = System.IO.Path;
 
@@ -22,11 +21,7 @@ public static class ServiceCollectionExtensions
         public IServiceCollection AddCommentsApi()
         {
             services.AddHealthChecks();
-            services.AddControllers().AddJsonOptions(options =>
-            {
-                // The service limits reply nesting to 24 levels; leave room for the JSON envelope.
-                options.JsonSerializerOptions.MaxDepth = 64;
-            });
+            services.AddControllers().AddJsonOptions(options => { options.JsonSerializerOptions.MaxDepth = 64; });
             services.AddOpenApi();
             return services;
         }
@@ -42,9 +37,7 @@ public static class ServiceCollectionExtensions
         {
             services.AddGraphQLServer()
                 .AddQueryType<Query>()
-                // Keep GraphQL's cycle protection aligned with the application's 24-level reply limit.
-                .RemoveMaxAllowedFieldCycleDepthRule()
-                .AddMaxAllowedFieldCycleDepthRule(24);
+                .RemoveMaxAllowedFieldCycleDepthRule();
             return services;
         }
 
@@ -99,13 +92,10 @@ public static class ServiceCollectionExtensions
 
         public IServiceCollection AddElasticsearch(IConfiguration configuration)
         {
-            var options = configuration.GetSection("Elasticsearch").Get<ElasticsearchOptions>() ??
-                          new ElasticsearchOptions();
-            services.AddSingleton(new ElasticsearchClient(
-                new ElasticsearchClientSettings(new Uri(options.Uri))));
-            services.AddScoped<ICommentSearch, ElasticsearchCommentSearch>();
-            services.AddScoped<ICommentIndexer, ElasticsearchCommentSearch>();
-            services.AddScoped<ICommentIndexMaintenance, ElasticsearchCommentSearch>();
+            services.AddSingleton<IElasticService, ElasticService>();
+            services.AddScoped<ICommentSearch, CommentSearchService>();
+            services.AddScoped<ICommentIndexer, CommentIndexer>();
+            services.AddScoped<ICommentIndexMaintenance, ElasticsearchIndexMaintenance>();
             services.AddHostedService<ElasticsearchIndexInitializer>();
             return services;
         }

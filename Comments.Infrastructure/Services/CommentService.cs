@@ -21,8 +21,6 @@ public sealed class CommentService(
     IAttachmentStorageService attachments,
     ICommentCache cache) : ICommentService
 {
-    // AutoLoadReplyLimit controls branch size; this separately caps nesting if stored counters are stale or invalid.
-    private const int MaxReplyDepth = 24;
     private const int RootPageSize = 25;
 
     /// <summary>
@@ -160,7 +158,8 @@ public sealed class CommentService(
         if (parent is not null)
         {
             var ancestorId = parent.Id;
-            for (var depth = 0; depth < MaxReplyDepth && ancestorId != Guid.Empty; depth++)
+            var visited = new HashSet<Guid>();
+            while (ancestorId != Guid.Empty && visited.Add(ancestorId))
             {
                 await db.Comments
                     .Where(x => x.Id == ancestorId)
@@ -193,7 +192,7 @@ public sealed class CommentService(
         var descendants = new List<Comment>();
         var frontier = parentIds;
 
-        for (var depth = 0; depth < MaxReplyDepth && frontier.Length > 0; depth++)
+        while (frontier.Length > 0)
         {
             var children = await db.Comments.AsNoTracking()
                 .Where(x => x.ParentId.HasValue && frontier.Contains(x.ParentId.Value) && !x.IsDeleted)
@@ -291,7 +290,7 @@ public sealed class CommentService(
     private static CommentDto Map(Comment comment, IReadOnlyList<Comment> all, int depth)
     {
         var replyCount = comment.DescendantCount;
-        if (depth >= MaxReplyDepth || replyCount >= AutoLoadReplyLimit)
+        if (replyCount >= AutoLoadReplyLimit)
             return ToDto(comment, [], replyCount);
 
         var replies = all.Where(x => x.ParentId == comment.Id)

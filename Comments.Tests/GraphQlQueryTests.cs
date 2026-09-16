@@ -76,7 +76,7 @@ public sealed class GraphQlQueryTests
             .GetExecutorAsync();
 
         var selection = "id";
-        for (var depth = 0; depth < 24; depth++)
+        for (var depth = 0; depth < 64; depth++)
             selection = $"replies {{ {selection} }}";
 
         var result = await executor.ExecuteAsync(

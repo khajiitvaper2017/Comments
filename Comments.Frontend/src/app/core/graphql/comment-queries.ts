@@ -49,7 +49,7 @@ export const COMMENTS_QUERY = gql`
 
 export const REPLIES_QUERY = gql(`
   query Replies($parentId: UUID!) {
-    replies(parentId: $parentId) { ${commentFieldsWithReplies(24)} }
+    replies(parentId: $parentId) { ${commentFieldsWithReplies(64)} }
   }
 `);
 
