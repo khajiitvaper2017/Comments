@@ -90,7 +90,7 @@ public sealed class GraphQlQueryTests
         var services = new ServiceCollection();
         if (service is not null)
             services.AddSingleton(service);
-        services.AddCommentsApi();
+        services.AddGraphQL();
         return services.BuildServiceProvider();
     }
 }
