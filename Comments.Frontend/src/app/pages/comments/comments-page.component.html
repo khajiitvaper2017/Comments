@@ -52,7 +52,7 @@
     <button
       class="submit-button"
       type="submit"
-      [disabled]="searchLoading() || (!searchText && !searchUserName)"
+      [disabled]="searchLoading() || !searchQuery.trim() || (!searchText && !searchUserName)"
     >
       <ng-icon name="lucideSearch" size="1rem" aria-hidden="true" />
       {{ searchLoading() ? 'Searching...' : 'Search' }}
