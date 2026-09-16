@@ -39,11 +39,10 @@
           </button>
         </th>
         <th scope="col">Comment</th>
-        <th scope="col" aria-label="Actions"></th>
       </tr>
     </thead>
     <tbody>
-      @for (comment of comments; track comment.id) {
+      @for (comment of rootComments; track comment.id) {
         <tr class="root-comment-row">
           <td [innerHTML]="comment.userName | highlightSearch: highlightTerm : partialSearch"></td>
           <td>{{ comment.email }}</td>
@@ -98,99 +97,7 @@
               </div>
             }
           </td>
-          <td class="table-comment-actions">
-            @if (searchMode && comment.ancestorIds?.length) {
-              <button
-                class="ancestor-toggle"
-                type="button"
-                title="Show ancestors"
-                aria-label="Show ancestors"
-                (click)="loadAncestorsRequested.emit(comment.id)"
-              >
-                <ng-icon name="lucideGitBranch" size="1rem" aria-hidden="true" />
-              </button>
-            }
-            @if (comment.replyCount > 0) {
-              <button
-                class="reply-toggle"
-                type="button"
-                [class.load-more]="isLoadMore(comment)"
-                [class.expanded]="repliesAreVisible(comment.id) && !needsMoreReplies(comment)"
-                [title]="
-                  needsMoreReplies(comment)
-                    ? 'Show more replies'
-                    : repliesAreVisible(comment.id)
-                      ? 'Hide replies'
-                      : 'Show replies'
-                "
-                [attr.aria-label]="
-                  comment.replyCount +
-                  ' ' +
-                  (comment.replyCount === 1 ? 'reply' : 'replies') +
-                  '. ' +
-                  (needsMoreReplies(comment)
-                    ? 'Show more replies'
-                    : repliesAreVisible(comment.id)
-                      ? 'Hide replies'
-                      : 'Show replies')
-                "
-                [attr.aria-expanded]="repliesAreVisible(comment.id) && !needsMoreReplies(comment)"
-                [attr.aria-controls]="'replies-' + comment.id"
-                (click)="toggleOrLoadReplies(comment)"
-              >
-                <ng-icon name="lucideChevronDown" size="1rem" aria-hidden="true" />
-              </button>
-            }
-            <button
-              class="reply-button"
-              type="button"
-              title="Reply to this comment"
-              aria-label="Reply to this comment"
-              (click)="replyRequested.emit(comment.id)"
-            >
-              <ng-icon name="lucideReply" size="1rem" aria-hidden="true" />
-            </button>
-          </td>
         </tr>
-        @if (repliesAreVisible(comment.id)) {
-          <tr class="root-thread-row" [id]="'replies-' + comment.id">
-            <td colspan="5">
-              @if (replyParentId === comment.id) {
-                <article class="comment reply reply-composer" [style.--depth]="1">
-                  <app-comment-form
-                    [captcha]="captcha"
-                    [parentId]="comment.id"
-                    [replyToName]="comment.userName"
-                    (captchaChanged)="captchaChanged.emit($event)"
-                    (errorChanged)="errorChanged.emit($event)"
-                    (submitted)="submitted.emit($event)"
-                    (cancelled)="cancelled.emit()"
-                  >
-                  </app-comment-form>
-                </article>
-              }
-              <app-comment-cards
-                [comments]="comment.replies"
-                [searchMode]="searchMode"
-                [captcha]="captcha"
-                [replyParentId]="replyParentId"
-                [baseDepth]="1"
-                [highlightTerm]="highlightTerm"
-                [partialSearch]="partialSearch"
-                (replyRequested)="replyRequested.emit($event)"
-                (loadRepliesRequested)="loadRepliesRequested.emit($event)"
-                (loadAncestorsRequested)="loadAncestorsRequested.emit($event)"
-                (imageRequested)="imageRequested.emit($event)"
-                (textRequested)="textRequested.emit($event)"
-                (captchaChanged)="captchaChanged.emit($event)"
-                (errorChanged)="errorChanged.emit($event)"
-                (submitted)="submitted.emit($event)"
-                (cancelled)="cancelled.emit()"
-              >
-              </app-comment-cards>
-            </td>
-          </tr>
-        }
       }
     </tbody>
   </table>
