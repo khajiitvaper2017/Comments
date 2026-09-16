@@ -6,6 +6,7 @@
       </p>
     </div>
     <button class="leave-comment-button" type="button" (click)="openComposer()">
+      <ng-icon name="lucideMessageCirclePlus" size="1rem" aria-hidden="true" />
       Leave comment
     </button>
   </header>
@@ -53,6 +54,7 @@
       type="submit"
       [disabled]="searchLoading() || (!searchText && !searchUserName)"
     >
+      <ng-icon name="lucideSearch" size="1rem" aria-hidden="true" />
       {{ searchLoading() ? 'Searching...' : 'Search' }}
     </button>
   </form>

@@ -8,6 +8,8 @@ import { CommentFormComponent } from '@app/shared/components/comment-form/commen
 import { CommentListComponent } from '@app/shared/components/comment-list/comment-list.component';
 import { ImageLightboxComponent } from '@app/shared/components/image-lightbox/image-lightbox.component';
 import { TextPreviewComponent } from '@app/shared/components/text-preview/text-preview.component';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideMessageCirclePlus, lucideSearch } from '@ng-icons/lucide';
 import { finalize, Subscription } from 'rxjs';
 
 @Component({
@@ -20,7 +22,9 @@ import { finalize, Subscription } from 'rxjs';
     CommentFormComponent,
     ImageLightboxComponent,
     TextPreviewComponent,
+    NgIcon,
   ],
+  providers: [provideIcons({ lucideMessageCirclePlus, lucideSearch })],
   templateUrl: './comments-page.component.html',
 })
 export class CommentsPageComponent implements OnInit, OnDestroy {
