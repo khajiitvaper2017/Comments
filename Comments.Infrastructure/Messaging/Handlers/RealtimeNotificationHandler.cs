@@ -1,12 +1,17 @@
 using System.Text.Json;
 using Comments.Application.Abstractions;
+using Comments.Application.DTOs;
 using Comments.Application.Events;
+using Comments.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace Comments.Infrastructure.Messaging.Handlers;
 
-public sealed class RealtimeNotificationHandler(IRealtimeNotifier notifier) : IRabbitMessageHandler
+public sealed class RealtimeNotificationHandler(
+    IRealtimeNotifier notifier,
+    CommentsDbContext db) : IRabbitMessageHandler
 {
-    public Task HandleAsync(string type, string payload, CancellationToken ct)
+    public async Task HandleAsync(string type, string payload, CancellationToken ct)
     {
         var commentId = type switch
         {
@@ -15,6 +20,26 @@ public sealed class RealtimeNotificationHandler(IRealtimeNotifier notifier) : IR
             _ => throw new InvalidOperationException($"Unsupported realtime event '{type}'.")
         };
 
-        return notifier.NotifyCommentChangedAsync(commentId, ct);
+        var comment = await db.Comments
+            .AsNoTracking()
+            .Include(x => x.Attachments)
+            .SingleOrDefaultAsync(x => x.Id == commentId && !x.IsDeleted, ct);
+        if (comment is null) return;
+
+        var dto = new CommentDto(
+            comment.Id,
+            comment.ParentId,
+            comment.UserName,
+            comment.Email,
+            comment.HomePage,
+            comment.Text,
+            comment.CreatedAtUtc,
+            comment.Attachments
+                .Select(a => new AttachmentDto(a.Id, a.OriginalName, a.ContentType, a.Size, a.Width, a.Height))
+                .ToList(),
+            [],
+            comment.ReplyCount);
+
+        await notifier.NotifyCommentChangedAsync(dto, ct);
     }
 }

@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using Microsoft.AspNetCore.SignalR.Client;
 using NBomber.Contracts;
 using NBomber.CSharp;
 using NBomber.Http;
@@ -20,6 +21,7 @@ const int rootWriteRatePerSecond = 10; // 10 root comments per second
 const int AttachmentEveryNMessages = 10;
 const int AncestorReadRatePerSecond = 5;
 const int AttachmentReadRatePerSecond = 5;
+const int HubConnectionRatePerSecond = 10;
 
 string[] sortFields = ["createdAt", "userName", "email"];
 string[] searchTerms =
@@ -56,6 +58,8 @@ var searchVariants = new[]
 };
 var rootContinuations = new ConcurrentBag<RootContinuation>();
 var searchContinuations = new ConcurrentDictionary<string, ConcurrentBag<string>>();
+var hubConnections = new ConcurrentBag<HubConnection>();
+var hubEventsReceived = 0L;
 var testAttachments = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "TestAttachments"))
     .Select(path => new
     {
@@ -148,13 +152,38 @@ var writeReplies = Scenario.Create("write_replies", async context =>
     .WithWarmUpDuration(TimeSpan.FromSeconds(WarmUpSeconds))
     .WithLoadSimulations(Inject(ReplyWriteRatePerSecond));
 
+var connectDiscussionHubs = Scenario.Create("connect_discussion_hubs", async _ =>
+    {
+        var connection = new HubConnectionBuilder()
+            .WithUrl($"{BaseUrl}/hubs/discussions")
+            .WithAutomaticReconnect()
+            .Build();
+        connection.On<JsonElement>("commentChanged", _ =>
+            Interlocked.Increment(ref hubEventsReceived));
+
+        try
+        {
+            await connection.StartAsync();
+            hubConnections.Add(connection);
+            return Response.Ok();
+        }
+        catch
+        {
+            await connection.DisposeAsync();
+            throw;
+        }
+    })
+    .WithWarmUpDuration(TimeSpan.FromSeconds(WarmUpSeconds))
+    .WithLoadSimulations(Inject(HubConnectionRatePerSecond));
+
 var scenarios = new List<ScenarioProps>
 {
     readComments,
     readReplies,
     searchComments,
     writeComments,
-    writeReplies
+    writeReplies,
+    connectDiscussionHubs
 };
 
 if (seed.AncestorIds.Length > 0)
@@ -198,6 +227,10 @@ NBomberRunner
     .WithReportFolder(reportFolder)
     .WithReportFileName("comments-load-test")
     .Run();
+
+Console.WriteLine($"SignalR commentChanged events received: {Interlocked.Read(ref hubEventsReceived)}");
+foreach (var connection in hubConnections)
+    await connection.DisposeAsync();
 
 async Task<IResponse> SendComment(long invocationNumber, Guid? parentId)
 {
