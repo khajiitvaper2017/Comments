@@ -44,7 +44,7 @@
     <tbody>
       @for (comment of rootComments; track comment.id) {
         <tr class="root-comment-row">
-          <td [innerHTML]="comment.userName | highlightSearch: highlightTerm : partialSearch"></td>
+          <td>{{ comment.userName }}</td>
           <td>{{ comment.email }}</td>
           <td>{{ comment.createdAtUtc | date: 'dd.MM.yy HH:mm' }}</td>
           <td class="comment-table-content">
@@ -58,10 +58,7 @@
                 {{ comment.homePage | homePageLabel }}
               </a>
             }
-            <div
-              class="comment-body"
-              [innerHTML]="comment.text | highlightSearch: highlightTerm : partialSearch"
-            ></div>
+            <div class="comment-body" [innerHTML]="comment.text"></div>
             @if (comment.attachments.length) {
               <div class="attachments">
                 @for (attachment of comment.attachments; track attachment.id) {
