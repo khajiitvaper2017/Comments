@@ -78,6 +78,8 @@ public static class ServiceCollectionExtensions
         {
             services.AddDbContext<CommentsDbContext>(options =>
                 options.UseSqlServer(configuration.GetConnectionString("Comments")));
+            // below is used to generate mysql .sql script
+            //options.UseMySQL("Server=db;Port=3306;Database=Comments;User Id=comments;Password=REPLACE_WITH_ACTUAL_PASSWORD"));
             return services;
         }
 
