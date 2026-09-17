@@ -39,7 +39,7 @@ export class CommentsPageStore {
     .withUrl('/hubs/discussions')
     .withAutomaticReconnect()
     .build();
-  private readonly cursorHistory: Array<string | null> = [];
+  private readonly cursorHistory = signal<Array<string | null>>([]);
   private readonly loadedReplies = new Map<string, CommentItem[]>();
   private readonly loadingReplies = new Set<string>();
   private readonly loadingAncestors = new Set<string>();
@@ -67,7 +67,7 @@ export class CommentsPageStore {
   readonly searchActive = computed(() => this.query().search !== null);
   readonly searchLoading = computed(() => this.searchActive() && this.loading());
   readonly commentsLoading = computed(() => !this.searchActive() && this.loading());
-  readonly hasPreviousPage = computed(() => this.cursorHistory.length > 0);
+  readonly hasPreviousPage = computed(() => this.cursorHistory().length > 0);
   readonly selectedImage = computed(() => {
     const preview = this.preview();
     return preview?.kind === 'image' ? preview : null;
@@ -144,13 +144,15 @@ export class CommentsPageStore {
     if (direction === 'next') {
       const next = this.nextCursor();
       if (!next) return;
-      this.cursorHistory.push(current.cursor);
+      this.cursorHistory.update((history) => [...history, current.cursor]);
       this.pendingCursorNavigation = next;
       this.navigate({ ...current, cursor: next });
       return;
     }
-    const previous = this.cursorHistory.pop();
+    const history = this.cursorHistory();
+    const previous = history.at(-1);
     if (previous === undefined) return;
+    this.cursorHistory.set(history.slice(0, -1));
     this.pendingCursorNavigation = previous;
     this.navigate({ ...current, cursor: previous });
   }
@@ -243,7 +245,7 @@ export class CommentsPageStore {
   private applyRouteQuery(query: CommentsQuery) {
     const preservesHistory = this.pendingCursorNavigation === query.cursor;
     this.pendingCursorNavigation = undefined;
-    if (!preservesHistory) this.cursorHistory.length = 0;
+    if (!preservesHistory) this.cursorHistory.set([]);
     this.query.set(query);
     this.searchDraft.set(query.search ?? defaultSearchCriteria());
     this.load(query);
@@ -257,7 +259,7 @@ export class CommentsPageStore {
   }
 
   private resetPagination(query: CommentsQuery): CommentsQuery {
-    this.cursorHistory.length = 0;
+    this.cursorHistory.set([]);
     this.nextCursor.set(null);
     return { ...query, cursor: null };
   }
