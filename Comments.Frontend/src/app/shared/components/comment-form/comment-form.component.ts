@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
   Component,
@@ -32,7 +31,7 @@ import {
 @Component({
   selector: 'app-comment-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgIcon],
+  imports: [FormsModule, NgIcon],
   providers: [
     provideIcons({
       lucideBold,
@@ -177,7 +176,6 @@ export class CommentFormComponent {
       .pipe(finalize(() => (this.isSubmitting = false)))
       .subscribe(
         (created) => {
-          this.isSubmitting = false;
           this.saveUserProfile();
           this.form = {
             userName: '',
