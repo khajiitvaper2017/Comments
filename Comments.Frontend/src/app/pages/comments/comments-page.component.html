@@ -11,15 +11,32 @@
     </button>
   </header>
   <form class="search-bar" (ngSubmit)="store.submitSearch()">
-    <label for="comment-search">
-      <span>Search</span>
-      <input
-        id="comment-search"
-        name="searchQuery"
-        [ngModel]="store.searchDraft().query"
-        (ngModelChange)="store.setSearchQuery($event)"
-        placeholder="Search text or user name"
-      />
+    <div class="search-input-row">
+      <label class="search-query-label" for="comment-search">
+        <span>Search</span>
+        <input
+          id="comment-search"
+          name="searchQuery"
+          [ngModel]="store.searchDraft().query"
+          (ngModelChange)="store.setSearchQuery($event)"
+          placeholder="Search text or user name"
+        />
+      </label>
+      <button
+        class="submit-button"
+        type="submit"
+        [disabled]="
+          store.searchLoading() ||
+          !store.searchDraft().query.trim() ||
+          (!store.searchDraft().fields.text && !store.searchDraft().fields.userName) ||
+          (!store.searchDraft().targets.comments && !store.searchDraft().targets.replies)
+        "
+      >
+        <ng-icon name="lucideSearch" size="1rem" aria-hidden="true" />
+        {{ store.searchLoading() ? 'Searching...' : 'Search' }}
+      </button>
+    </div>
+    <div class="search-options">
       <span class="partial-search-option">
         <input
           id="partial-search"
@@ -74,20 +91,7 @@
           <span>Search replies</span>
         </span>
       </span>
-    </label>
-    <button
-      class="submit-button"
-      type="submit"
-      [disabled]="
-        store.searchLoading() ||
-        !store.searchDraft().query.trim() ||
-        (!store.searchDraft().fields.text && !store.searchDraft().fields.userName) ||
-        (!store.searchDraft().targets.comments && !store.searchDraft().targets.replies)
-      "
-    >
-      <ng-icon name="lucideSearch" size="1rem" aria-hidden="true" />
-      {{ store.searchLoading() ? 'Searching...' : 'Search' }}
-    </button>
+    </div>
   </form>
   @if (store.commentsLoading()) {
     <div class="loading-state" role="status" aria-live="polite">
