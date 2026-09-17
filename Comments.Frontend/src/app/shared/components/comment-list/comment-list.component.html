@@ -91,23 +91,13 @@
   } @else {
     <app-comment-table
       [comments]="comments"
-      [searchMode]="searchMode"
       [sort]="sort"
       [descending]="descending"
-      [captcha]="captcha"
-      [replyParentId]="replyParentId"
       [highlightTerm]="highlightTerm"
       [partialSearch]="partialSearch"
       (sortChanged)="sortChanged.emit($event)"
-      (replyRequested)="replyRequested.emit($event)"
-      (loadRepliesRequested)="loadRepliesRequested.emit($event)"
-      (loadAncestorsRequested)="loadAncestorsRequested.emit($event)"
       (imageRequested)="imageRequested.emit($event)"
       (textRequested)="textRequested.emit($event)"
-      (captchaChanged)="captchaChanged.emit($event)"
-      (errorChanged)="errorChanged.emit($event)"
-      (submitted)="submitted.emit($event)"
-      (cancelled)="cancelled.emit()"
     />
   }
 

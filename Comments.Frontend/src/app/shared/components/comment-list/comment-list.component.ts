@@ -1,4 +1,3 @@
-import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideList, lucideTable2 } from '@ng-icons/lucide';
@@ -10,13 +9,7 @@ import { CommentTableComponent } from '@app/shared/components/comment-table/comm
 @Component({
   selector: 'app-comment-list',
   standalone: true,
-  imports: [
-    CommonModule,
-    CommentCardsComponent,
-    CommentPagerComponent,
-    CommentTableComponent,
-    NgIcon,
-  ],
+  imports: [CommentCardsComponent, CommentPagerComponent, CommentTableComponent, NgIcon],
   providers: [provideIcons({ lucideList, lucideTable2 })],
   templateUrl: './comment-list.component.html',
 })

@@ -54,7 +54,7 @@ public sealed class CommentService(
         var all = replies.Concat(descendants).ToList();
 
         return replies
-            .Select(x => Map(x, all, 0))
+            .Select(x => Map(x, all))
             .ToList();
     }
 
@@ -116,7 +116,7 @@ public sealed class CommentService(
         var descendants = await LoadSmallRootDescendantsAsync(smallRootIds, ct);
         var all = roots.Concat(descendants).ToList();
         var result = new CommentPageDto(
-            roots.Select(x => Map(x, all, 0)).ToList(),
+            roots.Select(x => Map(x, all)).ToList(),
             hasMore ? EncodeCursor(roots[^1], sort, descending) : null,
             sort,
             descending);
@@ -286,7 +286,7 @@ public sealed class CommentService(
         });
     }
 
-    private static CommentDto Map(Comment comment, IReadOnlyList<Comment> all, int depth)
+    private static CommentDto Map(Comment comment, IReadOnlyList<Comment> all)
     {
         var replyCount = comment.ReplyCount;
         if (replyCount >= AutoLoadReplyLimit)
@@ -294,7 +294,7 @@ public sealed class CommentService(
 
         var replies = all.Where(x => x.ParentId == comment.Id)
             .OrderBy(x => x.CreatedAtUtc)
-            .Select(x => Map(x, all, depth + 1))
+            .Select(x => Map(x, all))
             .ToList();
         return ToDto(comment, replies, replyCount);
     }

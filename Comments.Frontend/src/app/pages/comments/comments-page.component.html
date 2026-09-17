@@ -1,22 +1,21 @@
 <main>
   <header class="page-header">
     <div>
-      <p class="eyebrow">
-        <a routerLink="/">Community discussion</a>
-      </p>
+      <p class="eyebrow"><a routerLink="/">Community discussion</a></p>
     </div>
     <button class="leave-comment-button" type="button" (click)="openComposer()">
       <ng-icon name="lucideMessageCirclePlus" size="1rem" aria-hidden="true" />
       Leave comment
     </button>
   </header>
-  <form class="search-bar" (ngSubmit)="search()">
+  <form class="search-bar" (ngSubmit)="store.submitSearch()">
     <label for="comment-search">
       <span>Search</span>
       <input
         id="comment-search"
         name="searchQuery"
-        [(ngModel)]="searchQuery"
+        [ngModel]="store.searchDraft().query"
+        (ngModelChange)="store.setSearchQuery($event)"
         placeholder="Search text or user name"
       />
       <span class="partial-search-option">
@@ -24,7 +23,8 @@
           id="partial-search"
           name="partialSearch"
           type="checkbox"
-          [(ngModel)]="partialSearch"
+          [ngModel]="store.searchDraft().partial"
+          (ngModelChange)="store.setPartialSearch($event)"
         />
         <span>Match partial words</span>
       </span>
@@ -34,7 +34,8 @@
             type="checkbox"
             name="searchText"
             aria-label="Search comment text"
-            [(ngModel)]="searchText"
+            [ngModel]="store.searchDraft().fields.text"
+            (ngModelChange)="store.setSearchField('text', $event)"
           />
           <span>Search text</span>
         </span>
@@ -43,7 +44,8 @@
             type="checkbox"
             name="searchUserName"
             aria-label="Search usernames"
-            [(ngModel)]="searchUserName"
+            [ngModel]="store.searchDraft().fields.userName"
+            (ngModelChange)="store.setSearchField('userName', $event)"
           />
           <span>Search usernames</span>
         </span>
@@ -52,58 +54,59 @@
     <button
       class="submit-button"
       type="submit"
-      [disabled]="searchLoading() || !searchQuery.trim() || (!searchText && !searchUserName)"
+      [disabled]="
+        store.searchLoading() ||
+        !store.searchDraft().query.trim() ||
+        (!store.searchDraft().fields.text && !store.searchDraft().fields.userName)
+      "
     >
       <ng-icon name="lucideSearch" size="1rem" aria-hidden="true" />
-      {{ searchLoading() ? 'Searching...' : 'Search' }}
+      {{ store.searchLoading() ? 'Searching...' : 'Search' }}
     </button>
   </form>
-  @if (loading()) {
+  @if (store.commentsLoading()) {
     <div class="loading-state" role="status" aria-live="polite">
-      <span class="loading-spinner" aria-hidden="true"></span>
-      <span>Loading comments...</span>
+      <span class="loading-spinner" aria-hidden="true"></span><span>Loading comments...</span>
     </div>
   }
-  @if (showComposer()) {
+  @if (store.composer().kind === 'root') {
     <app-comment-form
-      [captcha]="captcha()"
-      [parentId]="replyParentId"
-      (captchaChanged)="captcha.set($event)"
-      (errorChanged)="error.set($event)"
+      [captcha]="store.captcha()"
+      parentId=""
+      (captchaChanged)="store.captcha.set($event)"
+      (errorChanged)="store.error.set($event)"
       (submitted)="handleSubmitted($event)"
       (cancelled)="cancelComposer()"
-    >
-    </app-comment-form>
+    />
   }
   <app-comment-list
-    [comments]="comments()"
-    [nextCursor]="nextCursor"
-    [hasPreviousPage]="hasPreviousPage"
-    [sort]="sort"
-    [descending]="descending"
-    [searchMode]="searchActive()"
-    [highlightTerm]="searchActive() ? activeSearchQuery : ''"
-    [partialSearch]="partialSearch"
-    [viewMode]="viewMode"
-    [captcha]="captcha()"
-    [replyParentId]="replyParentId"
+    [comments]="store.comments()"
+    [nextCursor]="store.nextCursor()"
+    [hasPreviousPage]="store.hasPreviousPage()"
+    [sort]="store.query().sort.field"
+    [descending]="store.query().sort.descending"
+    [searchMode]="store.searchActive()"
+    [highlightTerm]="store.query().search?.query ?? ''"
+    [partialSearch]="store.query().search?.partial ?? false"
+    [viewMode]="store.query().viewMode"
+    [captcha]="store.captcha()"
+    [replyParentId]="store.replyParentId()"
     (sortChanged)="changeSort($event)"
-    (pageChanged)="changePage($event)"
+    (pageChanged)="store.changePage($event)"
     (viewModeChanged)="changeViewMode($event)"
     (replyRequested)="setReplyParent($event)"
-    (loadRepliesRequested)="loadReplies($event)"
-    (loadAncestorsRequested)="loadAncestors($event)"
-    (imageRequested)="openImage($event)"
-    (textRequested)="openText($event)"
-    (captchaChanged)="captcha.set($event)"
-    (errorChanged)="error.set($event)"
+    (loadRepliesRequested)="store.loadReplies($event)"
+    (loadAncestorsRequested)="store.loadAncestors($event)"
+    (imageRequested)="store.openImage($event)"
+    (textRequested)="store.openText($event)"
+    (captchaChanged)="store.captcha.set($event)"
+    (errorChanged)="store.error.set($event)"
     (submitted)="handleSubmitted($event)"
     (cancelled)="cancelComposer()"
-  >
-  </app-comment-list>
-  @if (error()) {
-    <p class="error" role="alert">{{ error() }}</p>
+  />
+  @if (store.error()) {
+    <p class="error" role="alert">{{ store.error() }}</p>
   }
 </main>
-<app-image-lightbox [image]="selectedImage()" (closed)="closeImage()"></app-image-lightbox>
-<app-text-preview [text]="selectedText()" (closed)="closeText()"></app-text-preview>
+<app-image-lightbox [image]="store.selectedImage()" (closed)="store.closePreview()" />
+<app-text-preview [text]="store.selectedText()" (closed)="store.closePreview()" />
