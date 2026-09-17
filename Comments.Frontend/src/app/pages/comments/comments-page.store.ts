@@ -122,9 +122,21 @@ export class CommentsPageStore {
     }));
   }
 
+  setSearchTarget(target: keyof SearchCriteria['targets'], enabled: boolean) {
+    this.searchDraft.update((draft) => ({
+      ...draft,
+      targets: { ...draft.targets, [target]: enabled },
+    }));
+  }
+
   submitSearch() {
     const search = this.normalizedSearch(this.searchDraft());
-    if (!search.query || (!search.fields.text && !search.fields.userName)) return;
+    if (
+      !search.query ||
+      (!search.fields.text && !search.fields.userName) ||
+      (!search.targets.comments && !search.targets.replies)
+    )
+      return;
     this.navigate(this.resetPagination({ ...this.query(), search, viewMode: 'cards' }));
   }
 
@@ -274,6 +286,8 @@ export class CommentsPageStore {
           query.search.partial,
           query.search.fields.text,
           query.search.fields.userName,
+          query.search.targets.comments,
+          query.search.targets.replies,
           query.cursor,
         )
       : this.api.getComments(query.sort.field, query.sort.descending, query.cursor);
@@ -360,6 +374,11 @@ export class CommentsPageStore {
   }
 
   private normalizedSearch(search: SearchCriteria): SearchCriteria {
-    return { ...search, query: search.query.trim(), fields: { ...search.fields } };
+    return {
+      ...search,
+      query: search.query.trim(),
+      fields: { ...search.fields },
+      targets: { ...search.targets },
+    };
   }
 }

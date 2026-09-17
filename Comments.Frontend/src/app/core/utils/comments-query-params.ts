@@ -10,6 +10,10 @@ export interface SearchCriteria {
     text: boolean;
     userName: boolean;
   };
+  targets: {
+    comments: boolean;
+    replies: boolean;
+  };
 }
 
 export interface CommentsQuery {
@@ -26,6 +30,7 @@ export const defaultSearchCriteria = (): SearchCriteria => ({
   query: '',
   partial: false,
   fields: { text: true, userName: true },
+  targets: { comments: true, replies: true },
 });
 
 export const defaultCommentsQuery = (): CommentsQuery => ({
@@ -44,6 +49,10 @@ export function parseCommentsQuery(params: Pick<ParamMap, 'get'>): CommentsQuery
         fields: {
           text: params.get('text') !== 'false',
           userName: params.get('user') !== 'false',
+        },
+        targets: {
+          comments: params.get('comments') !== 'false',
+          replies: params.get('replies') !== 'false',
         },
       }
     : null;
@@ -68,6 +77,8 @@ export function toCommentsQueryParams(
     partial: search?.partial ? true : null,
     text: search && !search.fields.text ? false : null,
     user: search && !search.fields.userName ? false : null,
+    comments: search && !search.targets.comments ? false : null,
+    replies: search && !search.targets.replies ? false : null,
     sort: query.sort.field === 'createdAt' ? null : query.sort.field,
     descending: query.sort.descending ? null : false,
     view: query.viewMode === 'cards' ? null : query.viewMode,
