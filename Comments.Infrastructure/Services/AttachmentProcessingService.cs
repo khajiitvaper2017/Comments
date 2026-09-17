@@ -49,7 +49,12 @@ public sealed class AttachmentProcessingService(
             var height = Math.Max(1, (int)(first.Height * Math.Min(ratio, 1)));
             foreach (var image in images)
             {
-                image.Resize((uint)width, (uint)height);
+                // The dimensions above already preserve the source aspect ratio. Without this,
+                // ImageMagick fits the image again and may remove a pixel from one edge.
+                image.Resize(new MagickGeometry((uint)width, (uint)height)
+                {
+                    IgnoreAspectRatio = true
+                });
                 image.Quality = 80;
             }
 
