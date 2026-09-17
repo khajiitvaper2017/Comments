@@ -44,15 +44,3 @@ CREATE INDEX `IX_Comments_Email` ON `Comments` (`Email`);
 CREATE INDEX `IX_Comments_ParentId` ON `Comments` (`ParentId`);
 CREATE INDEX `IX_Comments_RootId_CreatedAtUtc` ON `Comments` (`RootId`, `CreatedAtUtc`);
 CREATE INDEX `IX_Comments_UserName` ON `Comments` (`UserName`);
-
-CREATE TABLE IF NOT EXISTS `OutboxMessages` (
-    `Id` char(36) NOT NULL,
-    `Type` varchar(200) NOT NULL,
-    `Payload` longtext NOT NULL,
-    `OccurredAtUtc` datetime(6) NOT NULL,
-    `AttemptCount` int NOT NULL,
-    `ProcessedAtUtc` datetime(6) NULL,
-    `LastError` varchar(2000) NULL,
-    CONSTRAINT `PK_OutboxMessages` PRIMARY KEY (`Id`),
-    INDEX `IX_OutboxMessages_ProcessedAtUtc_OccurredAtUtc` (`ProcessedAtUtc`, `OccurredAtUtc`)
-) ENGINE=InnoDB;
