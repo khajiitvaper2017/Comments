@@ -22,6 +22,10 @@ export class CommentListComponent {
   @Input() searchMode = false;
   @Input() highlightTerm = '';
   @Input() partialSearch = false;
+  @Input() highlightText = false;
+  @Input() highlightUserName = false;
+  @Input() highlightComments = false;
+  @Input() highlightReplies = false;
   @Input() viewMode: 'cards' | 'table' = 'cards';
   @Input() captcha: Captcha | null = null;
   @Input() replyParentId = '';

@@ -1,7 +1,9 @@
 <main>
   <header class="page-header">
     <div>
-      <p class="eyebrow"><a routerLink="/">Community discussion</a></p>
+      <p class="eyebrow">
+        <a routerLink="/">Community discussion</a>
+      </p>
     </div>
     <button class="leave-comment-button" type="button" (click)="openComposer()">
       <ng-icon name="lucideMessageCirclePlus" size="1rem" aria-hidden="true" />
@@ -50,6 +52,28 @@
           <span>Search usernames</span>
         </span>
       </span>
+      <span class="search-fields">
+        <span class="search-field-option">
+          <input
+            type="checkbox"
+            name="searchComments"
+            aria-label="Search comments"
+            [ngModel]="store.searchDraft().targets.comments"
+            (ngModelChange)="store.setSearchTarget('comments', $event)"
+          />
+          <span>Search comments</span>
+        </span>
+        <span class="search-field-option">
+          <input
+            type="checkbox"
+            name="searchReplies"
+            aria-label="Search replies"
+            [ngModel]="store.searchDraft().targets.replies"
+            (ngModelChange)="store.setSearchTarget('replies', $event)"
+          />
+          <span>Search replies</span>
+        </span>
+      </span>
     </label>
     <button
       class="submit-button"
@@ -57,7 +81,8 @@
       [disabled]="
         store.searchLoading() ||
         !store.searchDraft().query.trim() ||
-        (!store.searchDraft().fields.text && !store.searchDraft().fields.userName)
+        (!store.searchDraft().fields.text && !store.searchDraft().fields.userName) ||
+        (!store.searchDraft().targets.comments && !store.searchDraft().targets.replies)
       "
     >
       <ng-icon name="lucideSearch" size="1rem" aria-hidden="true" />
@@ -88,6 +113,10 @@
     [searchMode]="store.searchActive()"
     [highlightTerm]="store.query().search?.query ?? ''"
     [partialSearch]="store.query().search?.partial ?? false"
+    [highlightText]="store.query().search?.fields?.text ?? false"
+    [highlightUserName]="store.query().search?.fields?.userName ?? false"
+    [highlightComments]="store.query().search?.targets?.comments ?? false"
+    [highlightReplies]="store.query().search?.targets?.replies ?? false"
     [viewMode]="store.query().viewMode"
     [captcha]="store.captcha()"
     [replyParentId]="store.replyParentId()"

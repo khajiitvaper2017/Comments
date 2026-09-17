@@ -37,10 +37,13 @@ public sealed class Query
         bool partial = false,
         bool searchText = true,
         bool searchUserName = true,
+        bool searchComments = true,
+        bool searchReplies = true,
         [Service] ICommentSearch search = null!,
         CancellationToken cancellationToken = default,
         string? cursor = null)
     {
-        return search.SearchAsync(query, partial, searchText, searchUserName, cancellationToken, cursor);
+        return search.SearchAsync(query, partial, searchText, searchUserName, searchComments,
+            searchReplies, cancellationToken, cursor);
     }
 }

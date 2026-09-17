@@ -60,8 +60,8 @@ export const ANCESTORS_QUERY = gql(`
 `);
 
 export const SEARCH_QUERY = gql(`
-  query Search($query: String!, $partial: Boolean!, $searchText: Boolean!, $searchUserName: Boolean!, $cursor: String) {
-    search(query: $query, partial: $partial, searchText: $searchText, searchUserName: $searchUserName, cursor: $cursor) {
+  query Search($query: String!, $partial: Boolean!, $searchText: Boolean!, $searchUserName: Boolean!, $searchComments: Boolean!, $searchReplies: Boolean!, $cursor: String) {
+    search(query: $query, partial: $partial, searchText: $searchText, searchUserName: $searchUserName, searchComments: $searchComments, searchReplies: $searchReplies, cursor: $cursor) {
       items { ${COMMENT_FIELDS} }
       nextCursor
       sort

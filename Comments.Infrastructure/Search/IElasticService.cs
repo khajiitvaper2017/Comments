@@ -11,6 +11,8 @@ public interface IElasticService
         bool partial,
         bool searchText,
         bool searchUserName,
+        bool searchComments,
+        bool searchReplies,
         string? cursor,
         CancellationToken ct);
 

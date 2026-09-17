@@ -13,10 +13,12 @@ public sealed class CommentSearchService(
     private const int SearchPageSize = 25;
 
     public async Task<CommentPageDto> SearchAsync(string query, bool partial, bool searchText,
-        bool searchUserName, CancellationToken ct, string? cursor = null)
+        bool searchUserName, bool searchComments, bool searchReplies, CancellationToken ct,
+        string? cursor = null)
     {
         var searchTerm = query.Trim();
-        if (searchTerm.Length == 0 || (!searchText && !searchUserName))
+        if (searchTerm.Length == 0 || (!searchText && !searchUserName) ||
+            (!searchComments && !searchReplies))
             return new CommentPageDto([], null, "search", false);
 
         var documents = await elastic.SearchAsync(
@@ -24,6 +26,8 @@ public sealed class CommentSearchService(
             partial,
             searchText,
             searchUserName,
+            searchComments,
+            searchReplies,
             cursor,
             ct);
 

@@ -61,12 +61,22 @@ export class CommentApiService {
     partial = false,
     searchText = true,
     searchUserName = true,
+    searchComments = true,
+    searchReplies = true,
     cursor: string | null = null,
   ) {
     return this.apollo
       .query<SearchQuery>({
         query: SEARCH_QUERY,
-        variables: { query, partial, searchText, searchUserName, cursor },
+        variables: {
+          query,
+          partial,
+          searchText,
+          searchUserName,
+          searchComments,
+          searchReplies,
+          cursor,
+        },
       })
       .pipe(map((result) => result.data!.search));
   }

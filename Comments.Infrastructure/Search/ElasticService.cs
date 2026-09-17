@@ -47,6 +47,8 @@ public sealed class ElasticService : IElasticService
         bool partial,
         bool searchText,
         bool searchUserName,
+        bool searchComments,
+        bool searchReplies,
         string? cursor,
         CancellationToken ct)
     {
@@ -60,20 +62,24 @@ public sealed class ElasticService : IElasticService
 
             request.Query(queryDefinition =>
             {
-                if (partial && searchUserName)
+                if (searchComments && searchReplies)
                 {
-                    queryDefinition.Bool(boolQuery => boolQuery.Should(
-                        innerQuery => innerQuery.MultiMatch(multiMatch =>
-                            ConfigureTextSearch(multiMatch, query, searchText, searchUserName)),
-                        innerQuery => innerQuery.Wildcard(wildcard => wildcard
-                            .Field("userName.keyword")
-                            .Value($"*{EscapeWildcard(query)}*")
-                            .CaseInsensitive())));
+                    ConfigureSearchQuery(queryDefinition, query, partial, searchText, searchUserName);
                     return;
                 }
 
-                queryDefinition.MultiMatch(multiMatch =>
-                    ConfigureTextSearch(multiMatch, query, searchText, searchUserName, partial));
+                queryDefinition.Bool(boolQuery =>
+                {
+                    if (searchComments)
+                        boolQuery.MustNot(innerQuery => innerQuery.Exists(exists => exists
+                            .Field(document => document.ParentId)));
+                    else
+                        boolQuery.Filter(innerQuery => innerQuery.Exists(exists => exists
+                            .Field(document => document.ParentId)));
+
+                    boolQuery.Must(innerQuery => ConfigureSearchQuery(
+                        innerQuery, query, partial, searchText, searchUserName));
+                });
             });
         }, ct);
 
@@ -81,8 +87,9 @@ public sealed class ElasticService : IElasticService
 
         logger.LogError(
             "Elasticsearch search failed for cursor {Cursor}, partial={Partial}, searchText={SearchText}, " +
-            "searchUserName={SearchUserName}, status={StatusCode}, error={ProductError}. {DebugInformation}",
-            cursor, partial, searchText, searchUserName,
+            "searchUserName={SearchUserName}, searchComments={SearchComments}, searchReplies={SearchReplies}, " +
+            "status={StatusCode}, error={ProductError}. {DebugInformation}",
+            cursor, partial, searchText, searchUserName, searchComments, searchReplies,
             response.ApiCallDetails.HttpStatusCode,
             response.ApiCallDetails.ProductError,
             response.ApiCallDetails.DebugInformation);
@@ -138,6 +145,29 @@ public sealed class ElasticService : IElasticService
                 break;
             }
         }
+    }
+
+    private static void ConfigureSearchQuery(
+        QueryDescriptor<CommentSearchDocument> descriptor,
+        string query,
+        bool partial,
+        bool searchText,
+        bool searchUserName)
+    {
+        if (partial && searchUserName)
+        {
+            descriptor.Bool(boolQuery => boolQuery.Should(
+                innerQuery => innerQuery.MultiMatch(multiMatch =>
+                    ConfigureTextSearch(multiMatch, query, searchText, searchUserName)),
+                innerQuery => innerQuery.Wildcard(wildcard => wildcard
+                    .Field("userName.keyword")
+                    .Value($"*{EscapeWildcard(query)}*")
+                    .CaseInsensitive())));
+            return;
+        }
+
+        descriptor.MultiMatch(multiMatch =>
+            ConfigureTextSearch(multiMatch, query, searchText, searchUserName, partial));
     }
 
     private static string EscapeWildcard(string value)

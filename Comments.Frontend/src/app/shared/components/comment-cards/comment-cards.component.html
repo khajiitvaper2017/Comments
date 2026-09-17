@@ -10,7 +10,12 @@
     <header class="comment-header">
       <div class="avatar" aria-hidden="true">{{ comment.userName.charAt(0).toUpperCase() }}</div>
       <div class="identity">
-        <strong [innerHTML]="comment.userName | highlightSearch: highlightTerm : partialSearch">
+        <strong
+          [innerHTML]="
+            comment.userName
+              | highlightSearch: highlightTermFor(comment, 'userName') : partialSearch
+          "
+        >
         </strong>
         <span>{{ comment.createdAtUtc | date: 'dd.MM.yy HH:mm' }}</span>
         @if (comment.replyCount) {
@@ -81,7 +86,9 @@
     </div>
     <div
       class="comment-body"
-      [innerHTML]="comment.text | highlightSearch: highlightTerm : partialSearch"
+      [innerHTML]="
+        comment.text | highlightSearch: highlightTermFor(comment, 'text') : partialSearch
+      "
     ></div>
     @if (comment.attachments.length) {
       <div class="attachments">
