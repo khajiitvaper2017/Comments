@@ -109,4 +109,20 @@ describe('CommentCardsComponent reply switch', () => {
       true,
     ]);
   });
+
+  it('only supplies a highlight term for selected fields and targets', () => {
+    const component = new CommentCardsComponent() as any;
+    component.highlightTerm = 'match';
+    component.highlightText = true;
+    component.highlightUserName = false;
+    component.highlightComments = true;
+    component.highlightReplies = false;
+
+    const root = { parentId: null } as unknown as CommentItem;
+    const reply = { parentId: 'root-id' } as unknown as CommentItem;
+
+    expect(component.highlightTermFor(root, 'text')).toBe('match');
+    expect(component.highlightTermFor(root, 'userName')).toBe('');
+    expect(component.highlightTermFor(reply, 'text')).toBe('');
+  });
 });

@@ -22,6 +22,10 @@ export class CommentCardsComponent {
   @Input() baseDepth = 0;
   @Input() highlightTerm = '';
   @Input() partialSearch = false;
+  @Input() highlightText = false;
+  @Input() highlightUserName = false;
+  @Input() highlightComments = false;
+  @Input() highlightReplies = false;
   @Output() readonly replyRequested = new EventEmitter<string>();
   @Output() readonly loadRepliesRequested = new EventEmitter<string>();
   @Output() readonly loadAncestorsRequested = new EventEmitter<string>();
@@ -71,6 +75,12 @@ export class CommentCardsComponent {
       (!comment.replies.length || this.hasUnloadedReplies(comment)) &&
       (depth === this.baseDepth || comment.replies.length === 0)
     );
+  }
+
+  protected highlightTermFor(comment: CommentItem, field: 'text' | 'userName') {
+    const targetIsSelected = comment.parentId ? this.highlightReplies : this.highlightComments;
+    const fieldIsSelected = field === 'text' ? this.highlightText : this.highlightUserName;
+    return targetIsSelected && fieldIsSelected ? this.highlightTerm : '';
   }
 
   private countLoadedReplies(replies: CommentItem[]): number {
