@@ -10,7 +10,7 @@ namespace Comments.Infrastructure.Services;
 public sealed class CaptchaService : ICaptchaService
 {
     // This is a local placeholder. Production should use a managed token-based provider like Turnstile
-    private const string Alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    private const string SymbolSet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
     private readonly ConcurrentDictionary<string, (string Answer, DateTime Expiry)> entries = new();
 
     public CaptchaDto Create()
@@ -32,7 +32,7 @@ public sealed class CaptchaService : ICaptchaService
     {
         var answer = new StringBuilder(5);
         for (var i = 0; i < 5; i++)
-            answer.Append(Alphabet[Random.Shared.Next(Alphabet.Length)]);
+            answer.Append(SymbolSet[Random.Shared.Next(SymbolSet.Length)]);
         return answer.ToString();
     }
 
