@@ -9,7 +9,7 @@ This application is organized into separate Domain, Application, Infrastructure,
 
 Requirements: Docker Desktop.
 
-Run PowerShell in root folder, set your database password and start the application, for example:
+Run PowerShell in root folder, set your database password in the `.env` file, and start the application, for example:
 
 ```powershell
 Copy-Item .env.development.example .env
@@ -21,6 +21,8 @@ docker compose up --build
 Open [http://localhost:8080](http://localhost:8080).
 
 Docker runs SQL Server, Redis, RabbitMQ, Elasticsearch, the ASP.NET API, and Angular separately. Nginx serves the Angular frontend and proxies `/api`, `/graphql`, and SignalR requests to the API. Docker stores the database in the `comments-db` volume, uploaded files in the `comments-files` volume, and the Elasticsearch index in the `comments-search` volume.
+
+The API applies database migrations on startup.
 
 ## Deploy to Azure VM
 
@@ -41,35 +43,37 @@ For later deployments:
 ```
 
 ## API
-Interactive Swagger documentation is available at [http://localhost:8080/api/](http://localhost:8080/api/). The OpenAPI document is available at `/api/v1.json`.
+The API is exposed through the same host as the frontend. In Docker, its base URL is `http://localhost:8080`. JSON property names are camel-cased. Interactive Swagger documentation is available at [http://localhost:8080/api/](http://localhost:8080/api/) when Swagger is enabled; its OpenAPI document is `/api/v1.json`.
 
-| Method | Endpoint | Purpose |
+### REST
+
+| Method | Endpoint | Parameters / result |
 | --- | --- | --- |
-| `GET` | `/api/comments?sort=createdAt&descending=true` | Get a bounded root slice. Pass the returned `nextCursor` as `cursor` to continue. Supported sorting fields are `createdAt`, `userName`, and `email`. |
-| `GET` | `/api/comments/{parentId}/replies` | Load direct replies and permitted small descendant trees for one comment. |
-| `GET` | `/api/comments/ancestors?ids={id1}&ids={id2}` | Load specific ancestor comments for a search result. |
-| `POST` | `/api/comments` | Create a comment or reply. Accepts multipart form data, including optional attachments and CAPTCHA fields. |
-| `GET` | `/api/captcha` | Create a CAPTCHA challenge. |
-| `GET` | `/api/attachments/{id}` | Display or download an uploaded attachment. |
-| `GET` | `/api/search?q=term` | Search sanitized comment text and user names through Elasticsearch. Pass the returned `nextCursor` as `cursor` to continue. |
-| `GET` | `/health` | Check whether the API is running. |
+| `GET` | `/api/comments` | Root-comment page. Query: `sort` (`createdAt`, `userName`, or `email`; defaults to `createdAt`), `descending` (defaults to `true`), and optional `cursor`. |
+| `GET` | `/api/comments/{parentId}/replies` | Up to 24 direct replies, with descendants included for small reply trees. |
+| `GET` | `/api/comments/ancestors` | Requested ancestor comments in input order. Repeat `ids`, for example `?ids=<id1>&ids=<id2>`. |
+| `POST` | `/api/comments` | Creates a root comment or reply from `multipart/form-data`. |
+| `GET` | `/api/captcha` | Creates a single-use CAPTCHA challenge that expires after five minutes. |
+| `GET` | `/api/attachments/{id}` | Serves an image inline; downloads a text attachment. |
+| `GET` | `/api/search` | Elasticsearch search page. See search parameters below. |
+| `GET` | `/health` | Health-check endpoint. |
 
-SignalR clients connect to `/hubs/discussions`.
+`GET /api/comments` returns at most 25 root comments. Send the returned `nextCursor` as the next request's `cursor`. An invalid sort is treated as `createdAt`, and a cursor that does not match the requested sort/direction is ignored.
+
+Search accepts a required `q` plus these optional flags: `partial=false`, `searchText=true`, `searchUserName=true`, `searchComments=true`, `searchReplies=true`, and `cursor`.
+
+SignalR clients connect to `/hubs/discussions` and receive a `commentChanged` event with a comment payload after asynchronous processing.
 
 ### GraphQL
 
-GraphQL is available at `POST /graphql` and exposes read-only operations:
+GraphQL is a read-only endpoint at `POST /graphq`. Its query fields mirror the REST reads:
 
-| Operation | Purpose |
+| Field | Arguments |
 | --- | --- |
-| `comments(sort, descending, cursor)` | Load bounded root comment slices. Use the returned `nextCursor` to continue. |
-| `search(query, partial, searchText, searchUserName, cursor)` | Search comments through Elasticsearch with cursor continuation. |
-| `replies(parentId)` | Load replies for one comment. |
-| `ancestors(ids)` | Load specific ancestors for a search result. |
-
-The Angular queries are defined in `Comments.Frontend/src/app/core/graphql/comment-queries.ts`.
-
-The API applies database migrations on startup. Invalid input returns an HTTP `400` response with an `error` message; unexpected server errors return HTTP `500`.
+| `comments` | `sort: String = "createdAt"`, `descending: Boolean = true`, `cursor: String` |
+| `replies` | `parentId: UUID!` |
+| `ancestors` | `ids: [UUID!]!` |
+| `search` | `query: String!`, `partial: Boolean = false`, `searchText: Boolean = true`, `searchUserName: Boolean = true`, `searchComments: Boolean = true`, `searchReplies: Boolean = true`, `cursor: String` |
 
 ## Features
 
@@ -121,4 +125,4 @@ npm run lint
 npm run build
 ```
 
-`schema.sql` is a MySQL-compatible schema script for replicating the database in MySQL. It is maintained separately from the SQL Server EF Core migrations used by the application.
+`schema.sql` is a MySQL-compatible schema script for replicating the database in MySQL. It is available at `mysql` branch.
