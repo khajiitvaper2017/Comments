@@ -10,5 +10,13 @@ Comments.Frontend
 Comments.Storage
 App_Data
 .env
+.env.*
+!.env.*.example
 *.user
 *.suo
+*.log
+**/TestResults
+**/coverage
+Comments.Tests
+*.key
+*.pem

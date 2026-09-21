@@ -3,3 +3,14 @@ dist
 .angular
 .git
 *.log
+coverage
+tmp
+out-tsc
+bazel-out
+.vscode
+.idea
+*.key
+*.pem
+.env
+.env.*
+!.env.*.example
