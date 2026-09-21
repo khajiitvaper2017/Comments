@@ -104,8 +104,8 @@
       parentId=""
       (captchaChanged)="store.captcha.set($event)"
       (errorChanged)="store.error.set($event)"
-      (submitted)="handleSubmitted($event)"
-      (cancelled)="cancelComposer()"
+      (submitted)="store.applyCreatedComment($event)"
+      (cancelled)="store.closeComposer()"
     />
   }
   <app-comment-list
@@ -124,9 +124,9 @@
     [viewMode]="store.query().viewMode"
     [captcha]="store.captcha()"
     [replyParentId]="store.replyParentId()"
-    (sortChanged)="changeSort($event)"
+    (sortChanged)="store.changeSort($event)"
     (pageChanged)="store.changePage($event)"
-    (viewModeChanged)="changeViewMode($event)"
+    (viewModeChanged)="store.changeViewMode($event)"
     (replyRequested)="setReplyParent($event)"
     (loadRepliesRequested)="store.loadReplies($event)"
     (loadAncestorsRequested)="store.loadAncestors($event)"
@@ -134,8 +134,8 @@
     (textRequested)="store.openText($event)"
     (captchaChanged)="store.captcha.set($event)"
     (errorChanged)="store.error.set($event)"
-    (submitted)="handleSubmitted($event)"
-    (cancelled)="cancelComposer()"
+    (submitted)="store.applyCreatedComment($event)"
+    (cancelled)="store.closeComposer()"
   />
   @if (store.error()) {
     <p class="error" role="alert">{{ store.error() }}</p>

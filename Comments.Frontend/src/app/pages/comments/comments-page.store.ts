@@ -1,7 +1,7 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
-import { finalize, Subscription } from 'rxjs';
+import { finalize } from 'rxjs';
 import { Captcha, CommentItem } from '@app/core/models/comment.models';
 import { CommentApiService } from '@app/core/services/comment-api.service';
 import { imageDownloadName } from '@app/core/utils/attachment-naming';
@@ -22,6 +22,7 @@ import {
   prependRootComment,
   replaceReplies,
 } from '@app/core/utils/comment-tree';
+import { CommentsPageRealtime, prependRealtimeComments } from './comments-page-realtime';
 
 type ComposerState = { kind: 'closed' } | { kind: 'root' } | { kind: 'reply'; parentId: string };
 type Preview =
@@ -33,23 +34,24 @@ type Preview =
 export class CommentsPageStore {
   private static readonly autoLoadReplyLimit = 5;
   private readonly api = inject(CommentApiService);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly hub: HubConnection = new HubConnectionBuilder()
-    .withUrl('/hubs/discussions')
-    .withAutomaticReconnect()
-    .build();
+  private readonly realtime = new CommentsPageRealtime(
+    () => this.isDefaultFirstPage(),
+    (pending) => this.comments.update((comments) => prependRealtimeComments(comments, pending)),
+  );
   private readonly cursorHistory = signal<Array<string | null>>([]);
   private readonly loadedReplies = new Map<string, CommentItem[]>();
   private readonly loadingReplies = new Set<string>();
   private readonly loadingAncestors = new Set<string>();
-  private readonly pendingRealtimeComments = new Map<string, CommentItem>();
   private pendingCursorNavigation: string | null | undefined;
-  private realtimeFlushTimer?: number;
-  private scrollEndTimer?: number;
-  private isScrolling = false;
   private requestVersion = 0;
-  private querySubscription?: Subscription;
+
+  constructor() {
+    this.initialize();
+    this.destroyRef.onDestroy(() => this.destroy());
+  }
 
   readonly comments = signal<CommentItem[]>([]);
   readonly captcha = signal<Captcha | null>(null);
@@ -77,34 +79,15 @@ export class CommentsPageStore {
     return preview?.kind === 'text' ? preview : null;
   });
 
-  private readonly handleWindowScroll = () => {
-    this.isScrolling = true;
-    if (this.scrollEndTimer !== undefined) window.clearTimeout(this.scrollEndTimer);
-    this.scrollEndTimer = window.setTimeout(() => {
-      this.scrollEndTimer = undefined;
-      this.isScrolling = false;
-      if (this.pendingRealtimeComments.size > 0 && this.realtimeFlushTimer === undefined) {
-        this.flushRealtimeComments();
-      }
-    }, 150);
-  };
-
-  initialize() {
-    this.hub.on('commentChanged', (comment: CommentItem) => this.handleRealtimeComment(comment));
-    void this.hub.start().catch(() => undefined);
-    this.handleWindowScroll();
-    window.addEventListener('scroll', this.handleWindowScroll, { passive: true, capture: true });
-    this.querySubscription = this.route.queryParamMap.subscribe((params) =>
-      this.applyRouteQuery(parseCommentsQuery(params)),
-    );
+  private initialize() {
+    this.realtime.start();
+    this.route.queryParamMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((params) => this.applyRouteQuery(parseCommentsQuery(params)));
   }
 
-  destroy() {
-    this.querySubscription?.unsubscribe();
-    if (this.realtimeFlushTimer !== undefined) window.clearTimeout(this.realtimeFlushTimer);
-    if (this.scrollEndTimer !== undefined) window.clearTimeout(this.scrollEndTimer);
-    window.removeEventListener('scroll', this.handleWindowScroll, true);
-    void this.hub.stop();
+  private destroy() {
+    this.realtime.destroy();
   }
 
   setSearchQuery(query: string) {
@@ -343,29 +326,6 @@ export class CommentsPageStore {
     return [...merged, ...loadedReplies.filter((reply) => !serverIds.has(reply.id))];
   }
 
-  private handleRealtimeComment(comment: CommentItem) {
-    if (!this.isDefaultFirstPage()) return;
-    this.pendingRealtimeComments.set(comment.id, comment);
-    if (this.realtimeFlushTimer !== undefined) return;
-    this.realtimeFlushTimer = window.setTimeout(() => {
-      this.realtimeFlushTimer = undefined;
-      if (!this.isScrolling) this.flushRealtimeComments();
-    }, 1000);
-  }
-
-  private flushRealtimeComments() {
-    const pending = [...this.pendingRealtimeComments.values()];
-    this.pendingRealtimeComments.clear();
-    if (!this.isDefaultFirstPage()) return;
-    this.comments.update((comments) =>
-      pending.reduce(
-        (updated, comment) =>
-          comment.parentId ? prependReply(updated, comment) : prependRootComment(updated, comment),
-        comments,
-      ),
-    );
-  }
-
   private isDefaultFirstPage() {
     const query = this.query();
     return (
@@ -374,11 +334,6 @@ export class CommentsPageStore {
   }
 
   private normalizedSearch(search: SearchCriteria): SearchCriteria {
-    return {
-      ...search,
-      query: search.query.trim(),
-      fields: { ...search.fields },
-      targets: { ...search.targets },
-    };
+    return { ...search, query: search.query.trim() };
   }
 }
