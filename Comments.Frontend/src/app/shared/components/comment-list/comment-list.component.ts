@@ -2,6 +2,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideList, lucideTable2 } from '@ng-icons/lucide';
 import { Captcha, CommentItem } from '@app/core/models/comment.models';
+import { CommentSort } from '@app/core/utils/comments-query-params';
 import { CommentCardsComponent } from '@app/shared/components/comment-cards/comment-cards.component';
 import { CommentPagerComponent } from '@app/shared/components/comment-pager/comment-pager.component';
 import { CommentTableComponent } from '@app/shared/components/comment-table/comment-table.component';
@@ -17,7 +18,7 @@ export class CommentListComponent {
   @Input() comments: CommentItem[] = [];
   @Input() nextCursor: string | null = null;
   @Input() hasPreviousPage = false;
-  @Input() sort = 'createdAt';
+  @Input() sort: CommentSort = 'createdAt';
   @Input() descending = true;
   @Input() searchMode = false;
   @Input() highlightTerm = '';
@@ -29,7 +30,7 @@ export class CommentListComponent {
   @Input() viewMode: 'cards' | 'table' = 'cards';
   @Input() captcha: Captcha | null = null;
   @Input() replyParentId = '';
-  @Output() readonly sortChanged = new EventEmitter<string>();
+  @Output() readonly sortChanged = new EventEmitter<CommentSort>();
   @Output() readonly pageChanged = new EventEmitter<'next' | 'previous'>();
   @Output() readonly viewModeChanged = new EventEmitter<'cards' | 'table'>();
   @Output() readonly replyRequested = new EventEmitter<string>();
