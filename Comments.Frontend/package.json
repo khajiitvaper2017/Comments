@@ -29,7 +29,6 @@
     "@ng-icons/lucide": "^36.0.0",
     "apollo-angular": "^14.2.0",
     "graphql": "^17.0.2",
-    "jest-editor-support": "*",
     "run-script-os": "*",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"

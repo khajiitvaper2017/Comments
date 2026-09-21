@@ -22,7 +22,6 @@ public static class ServiceCollectionExtensions
         {
             services.AddHealthChecks();
             services.AddControllers().AddJsonOptions(options => { options.JsonSerializerOptions.MaxDepth = 64; });
-            services.AddOpenApi();
             return services;
         }
 
