@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommentItem } from '@app/core/models/comment.models';
+import { CommentSort } from '@app/core/utils/comments-query-params';
 import { HomePageLabelPipe } from '@app/shared/pipes/home-page-label.pipe';
 
 @Component({
@@ -11,9 +12,9 @@ import { HomePageLabelPipe } from '@app/shared/pipes/home-page-label.pipe';
 })
 export class CommentTableComponent {
   @Input() comments: CommentItem[] = [];
-  @Input() sort = 'createdAt';
+  @Input() sort: CommentSort = 'createdAt';
   @Input() descending = true;
-  @Output() readonly sortChanged = new EventEmitter<string>();
+  @Output() readonly sortChanged = new EventEmitter<CommentSort>();
   @Output() readonly imageRequested = new EventEmitter<{
     id: string;
     name: string;
