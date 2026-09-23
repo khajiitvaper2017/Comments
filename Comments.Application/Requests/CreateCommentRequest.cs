@@ -1,3 +1,5 @@
+using Comments.Application.Data;
+
 namespace Comments.Application.Requests;
 
 public sealed record CreateCommentRequest(
@@ -7,4 +9,7 @@ public sealed record CreateCommentRequest(
     string Text,
     string CaptchaId,
     string CaptchaAnswer,
-    Guid? ParentId);
+    Guid? ParentId,
+    IReadOnlyList<AttachmentInput> Attachments,
+    string? IpAddress,
+    string? UserAgent);

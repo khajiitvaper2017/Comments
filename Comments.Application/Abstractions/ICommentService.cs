@@ -1,4 +1,3 @@
-using Comments.Application.Data;
 using Comments.Application.DTOs;
 using Comments.Application.Requests;
 
@@ -14,6 +13,5 @@ public interface ICommentService
     Task<IReadOnlyList<CommentDto>> GetAncestorsAsync(IReadOnlyList<Guid> ids,
         CancellationToken cancellationToken);
 
-    Task<CommentDto> CreateAsync(CreateCommentRequest request, IReadOnlyList<AttachmentInput> attachments, string? ip,
-        string? userAgent, CancellationToken cancellationToken);
+    Task<CommentDto> CreateAsync(CreateCommentRequest request, CancellationToken cancellationToken);
 }

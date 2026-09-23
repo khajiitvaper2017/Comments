@@ -3,7 +3,6 @@ using Comments.Application.Abstractions;
 using Comments.Application.Data;
 using Comments.Application.DTOs;
 using Comments.Application.Requests;
-using Comments.Infrastructure.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Comments.Api.Controllers;
@@ -52,18 +51,13 @@ public sealed class CommentsController(ICommentService service) : ControllerBase
             files.Add(new AttachmentInput(file.FileName, file.ContentType, ms.ToArray()));
         }
 
-        try
-        {
-            return Ok(await service.CreateAsync(
-                new CreateCommentRequest(formModel.UserName, formModel.Email, formModel.HomePage, formModel.Text,
-                    formModel.CaptchaId,
-                    formModel.CaptchaAnswer, formModel.ParentId), files,
-                HttpContext.Connection.RemoteIpAddress?.ToString(),
-                Request.Headers.UserAgent.ToString(), ct));
-        }
-        catch (ValidationException exception)
-        {
-            return BadRequest(new { error = exception.Message });
-        }
+        var createCommentRequest = new CreateCommentRequest(
+            formModel.UserName, formModel.Email, formModel.HomePage, formModel.Text,
+            formModel.CaptchaId, formModel.CaptchaAnswer, formModel.ParentId,
+            files,
+            HttpContext.Connection.RemoteIpAddress?.ToString(),
+            Request.Headers.UserAgent.ToString());
+
+        return Ok(await service.CreateAsync(createCommentRequest, ct));
     }
 }

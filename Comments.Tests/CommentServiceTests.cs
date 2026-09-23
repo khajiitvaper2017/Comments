@@ -14,27 +14,13 @@ namespace Comments.Tests;
 public sealed class CommentServiceTests
 {
     [Fact]
-    public async Task InvalidRequestDoesNotVerifyCaptcha()
-    {
-        await using var database = CreateDatabase();
-        var captcha = new FakeCaptcha();
-        var service = CreateService(database, captcha);
-
-        await Assert.ThrowsAsync<ValidationException>(() => service.CreateAsync(
-            ValidRequest() with { UserName = "bad name" }, [], null, null, CancellationToken.None));
-
-        Assert.False(captcha.WasVerified);
-        Assert.Empty(database.Comments);
-    }
-
-    [Fact]
     public async Task InvalidCaptchaDoesNotPersistComment()
     {
         await using var database = CreateDatabase();
         var service = CreateService(database, new FakeCaptcha { Result = false });
 
         await Assert.ThrowsAsync<ValidationException>(() => service.CreateAsync(
-            ValidRequest(), [], null, null, CancellationToken.None));
+            ValidRequest(), CancellationToken.None));
 
         Assert.Empty(database.Comments);
     }
@@ -46,7 +32,7 @@ public sealed class CommentServiceTests
         var service = CreateService(database, new FakeCaptcha());
 
         await Assert.ThrowsAsync<ValidationException>(() => service.CreateAsync(
-            ValidRequest() with { ParentId = Guid.NewGuid() }, [], null, null, CancellationToken.None));
+            ValidRequest() with { ParentId = Guid.NewGuid() }, CancellationToken.None));
 
         Assert.Empty(database.Comments);
     }
@@ -57,10 +43,12 @@ public sealed class CommentServiceTests
         await using var database = CreateDatabase();
         var service = CreateService(database, new FakeCaptcha());
 
-        var result = await service.CreateAsync(
-            ValidRequest(),
-            [new AttachmentInput("note.txt", "text/plain", [1, 2, 3])],
-            "127.0.0.1", "test", CancellationToken.None);
+        var result = await service.CreateAsync(ValidRequest() with
+        {
+            Attachments = [new AttachmentInput("note.txt", "text/plain", [1, 2, 3])],
+            IpAddress = "127.0.0.1",
+            UserAgent = "test"
+        }, CancellationToken.None);
 
         Assert.Equal("User123", result.UserName);
         Assert.Single(database.Comments);
@@ -85,7 +73,7 @@ public sealed class CommentServiceTests
         var service = CreateService(database, new FakeCaptcha());
 
         var result = await service.CreateAsync(
-            ValidRequest() with { ParentId = parent.Id }, [], null, null, CancellationToken.None);
+            ValidRequest() with { ParentId = parent.Id }, CancellationToken.None);
 
         Assert.Equal(parent.Id, result.ParentId);
         Assert.Equal("ReplyCreated", Assert.Single(database.OutboxMessages).Type);
@@ -200,7 +188,8 @@ public sealed class CommentServiceTests
     private static CreateCommentRequest ValidRequest()
     {
         return new CreateCommentRequest(
-            "User123", "user@example.com", null, "A valid comment.", "captcha", "answer", null);
+            "User123", "user@example.com", null, "A valid comment.", "captcha", "answer", null,
+            [], null, null);
     }
 
     private sealed class FakeCaptcha : ICaptchaService

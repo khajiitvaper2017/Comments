@@ -2,7 +2,6 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using Comments.Application.Abstractions;
-using Comments.Application.Data;
 using Comments.Application.DTOs;
 using Comments.Application.Events;
 using Comments.Application.Jobs;
@@ -124,8 +123,7 @@ public sealed class CommentService(
         return result;
     }
 
-    public async Task<CommentDto> CreateAsync(CreateCommentRequest request,
-        IReadOnlyList<AttachmentInput> files, string? ip, string? agent, CancellationToken ct)
+    public async Task<CommentDto> CreateAsync(CreateCommentRequest request, CancellationToken ct)
     {
         // Files are stored before the transaction so the database row can reference their paths;
         // image conversion is deferred to the attachment queue.
@@ -144,11 +142,11 @@ public sealed class CommentService(
             Email = request.Email.Trim(),
             HomePage = string.IsNullOrWhiteSpace(request.HomePage) ? null : request.HomePage.Trim(),
             Text = text,
-            IpAddress = ip,
-            UserAgent = agent
+            IpAddress = request.IpAddress,
+            UserAgent = request.UserAgent
         };
         if (parent is null) comment.RootId = comment.Id;
-        foreach (var file in files) comment.Attachments.Add(await attachments.SaveAsync(file, ct));
+        foreach (var file in request.Attachments) comment.Attachments.Add(await attachments.SaveAsync(file, ct));
 
         // The comment and its outbox messages must commit or roll back together.
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
