@@ -47,10 +47,11 @@
       <label>
         Home page
         <input
-          type="text"
+          type="url"
           name="homePage"
           #homePage="ngModel"
           [(ngModel)]="form.homePage"
+          maxlength="254"
           (ngModelChange)="onHomePageChange($event)"
         />
         @if ((submittedForm || homePage.touched) && homePageError) {

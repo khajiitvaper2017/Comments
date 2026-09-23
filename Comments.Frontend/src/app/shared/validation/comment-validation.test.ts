@@ -14,7 +14,9 @@ describe('comment validation', () => {
     expect(validateUserName('a'.repeat(101))).not.toBe('');
     expect(validateEmail('user@example.com')).toBe('');
     expect(validateEmail('invalid')).not.toBe('');
-    expect(validateHomePage('example.com')).toBe('');
+    expect(validateHomePage('example.com')).not.toBe('');
+    expect(validateHomePage('https://example.com')).toBe('');
+    expect(validateHomePage(`https://${'a'.repeat(250)}.com`)).not.toBe('');
     expect(validateHomePage('ftp://example.com')).not.toBe('');
   });
 

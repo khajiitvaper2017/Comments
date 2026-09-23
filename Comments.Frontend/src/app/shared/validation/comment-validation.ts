@@ -9,15 +9,15 @@ export function validateUserName(value: string): string {
 }
 
 export function validateEmail(value: string): string {
-  return emailPattern.test(value) ? '' : 'A valid e-mail is required.';
+  return value.length <= 254 && emailPattern.test(value) ? '' : 'A valid e-mail is required.';
 }
 
 export function validateHomePage(value: string): string {
   const trimmed = value.trim();
   if (!trimmed) return '';
-  const normalized = trimmed.includes('://') ? trimmed : `https://${trimmed}`;
+  if (trimmed.length > 254) return 'Home page must be at most 254 characters.';
   try {
-    const url = new URL(normalized);
+    const url = new URL(trimmed);
     return ['http:', 'https:'].includes(url.protocol) && !!url.hostname
       ? ''
       : 'Home page must be a valid HTTP(S) URL.';

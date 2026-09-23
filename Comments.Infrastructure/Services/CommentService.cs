@@ -129,7 +129,6 @@ public sealed class CommentService(
     {
         // Files are stored before the transaction so the database row can reference their paths;
         // image conversion is deferred to the attachment queue.
-        CommentRequestValidator.Validate(request);
         if (!captcha.Verify(request.CaptchaId, request.CaptchaAnswer))
             throw new ValidationException("CAPTCHA is invalid or expired.");
         var text = validationService.SanitizeAndValidate(request.Text);
@@ -143,7 +142,7 @@ public sealed class CommentService(
             RootId = parent?.RootId ?? Guid.Empty,
             UserName = request.UserName.Trim(),
             Email = request.Email.Trim(),
-            HomePage = CommentRequestValidator.NormalizeHomePage(request.HomePage),
+            HomePage = string.IsNullOrWhiteSpace(request.HomePage) ? null : request.HomePage.Trim(),
             Text = text,
             IpAddress = ip,
             UserAgent = agent
