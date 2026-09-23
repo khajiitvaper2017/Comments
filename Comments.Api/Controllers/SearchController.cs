@@ -1,5 +1,6 @@
 using Comments.Application.Abstractions;
 using Comments.Application.DTOs;
+using Comments.Application.Requests;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Comments.Api.Controllers;
@@ -19,7 +20,8 @@ public sealed class SearchController(ICommentSearch search) : ControllerBase
         [FromQuery] string? cursor = null,
         CancellationToken ct = default)
     {
-        return search.SearchAsync(q, partial, searchText, searchUserName, searchComments,
-            searchReplies, cursor, ct);
+        var request = new SearchCommentRequest(q, partial, searchText, searchUserName, searchComments,
+            searchReplies, cursor);
+        return search.SearchAsync(request, ct);
     }
 }

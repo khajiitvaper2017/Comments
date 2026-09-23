@@ -1,10 +1,9 @@
 using Comments.Application.DTOs;
+using Comments.Application.Requests;
 
 namespace Comments.Application.Abstractions;
 
 public interface ICommentSearch
 {
-    Task<CommentPageDto> SearchAsync(string query, bool partial, bool searchText,
-        bool searchUserName, bool searchComments, bool searchReplies, string? cursor = null,
-        CancellationToken ct = default);
+    Task<CommentPageDto> SearchAsync(SearchCommentRequest request, CancellationToken ct = default);
 }

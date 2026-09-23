@@ -9,6 +9,7 @@ using Comments.Application.Requests;
 using Comments.Domain.Entities;
 using Comments.Infrastructure.Exceptions;
 using Comments.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace Comments.Infrastructure.Services;
 

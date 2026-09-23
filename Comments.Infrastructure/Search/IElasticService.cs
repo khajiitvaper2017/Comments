@@ -1,3 +1,5 @@
+using Comments.Application.Requests;
+
 namespace Comments.Infrastructure.Search;
 
 public interface IElasticService
@@ -7,13 +9,7 @@ public interface IElasticService
     Task BulkIndexAsync(IReadOnlyCollection<CommentSearchDocument> documents, CancellationToken ct);
 
     Task<IReadOnlyList<CommentSearchDocument>> SearchAsync(
-        string query,
-        bool partial,
-        bool searchText,
-        bool searchUserName,
-        bool searchComments,
-        bool searchReplies,
-        string? cursor,
+        SearchCommentRequest searchRequest,
         CancellationToken ct);
 
     Task<bool> IndexExistsAsync(CancellationToken ct);

@@ -2,9 +2,12 @@ using Comments.Application.Abstractions;
 using Comments.Application.Data;
 using Comments.Application.DTOs;
 using Comments.Application.Requests;
+using Comments.Domain.Entities;
 using Comments.Infrastructure.Exceptions;
 using Comments.Infrastructure.Persistence;
 using Comments.Infrastructure.Services;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 
 namespace Comments.Tests;
 

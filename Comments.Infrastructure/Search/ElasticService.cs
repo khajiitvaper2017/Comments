@@ -1,3 +1,4 @@
+using Comments.Application.Requests;
 using Comments.Infrastructure.Options;
 using Elastic.Clients.Elasticsearch;
 using Elastic.Clients.Elasticsearch.QueryDsl;
@@ -15,7 +16,6 @@ public sealed class ElasticService : IElasticService
 
     public ElasticService(IOptions<ElasticsearchOptions> options, ILogger<ElasticService> logger)
     {
-        ArgumentNullException.ThrowIfNull(options);
         var value = options.Value;
         if (!Uri.TryCreate(value.Uri, UriKind.Absolute, out var uri))
             throw new InvalidOperationException("Elasticsearch:Uri must be an absolute URI.");
@@ -37,62 +37,35 @@ public sealed class ElasticService : IElasticService
     public async Task BulkIndexAsync(IReadOnlyCollection<CommentSearchDocument> documents, CancellationToken ct)
     {
         if (documents.Count == 0) return;
+
         var response = await client.IndexManyAsync(documents, index, ct);
         if (!response.IsValidResponse || response.Errors)
             throw new InvalidOperationException("Elasticsearch bulk indexing failed.");
     }
 
     public async Task<IReadOnlyList<CommentSearchDocument>> SearchAsync(
-        string query,
-        bool partial,
-        bool searchText,
-        bool searchUserName,
-        bool searchComments,
-        bool searchReplies,
-        string? cursor,
+        SearchCommentRequest searchRequest,
         CancellationToken ct)
     {
         var response = await client.SearchAsync<CommentSearchDocument>(request =>
         {
             request.Indices(index)
                 .Size(PageSize)
-                .Sort(sort => sort.Field("id.keyword", SortOrder.Asc));
-            if (!string.IsNullOrWhiteSpace(cursor))
-                request.SearchAfter(FieldValue.String(cursor));
+                .Sort(sort => sort.Field(document => document.Id, SortOrder.Asc));
 
-            request.Query(queryDefinition =>
-            {
-                if (searchComments && searchReplies)
-                {
-                    ConfigureSearchQuery(queryDefinition, query, partial, searchText, searchUserName);
-                    return;
-                }
+            if (!string.IsNullOrWhiteSpace(searchRequest.Cursor))
+                request.SearchAfter(FieldValue.String(searchRequest.Cursor));
 
-                queryDefinition.Bool(boolQuery =>
-                {
-                    if (searchComments)
-                        boolQuery.MustNot(innerQuery => innerQuery.Exists(exists => exists
-                            .Field(document => document.ParentId)));
-                    else
-                        boolQuery.Filter(innerQuery => innerQuery.Exists(exists => exists
-                            .Field(document => document.ParentId)));
-
-                    boolQuery.Must(innerQuery => ConfigureSearchQuery(
-                        innerQuery, query, partial, searchText, searchUserName));
-                });
-            });
+            request.Query(query => ConfigureQuery(query, searchRequest));
         }, ct);
 
         if (response.IsValidResponse) return response.Documents.ToList();
 
         logger.LogError(
-            "Elasticsearch search failed for cursor {Cursor}, partial={Partial}, searchText={SearchText}, " +
-            "searchUserName={SearchUserName}, searchComments={SearchComments}, searchReplies={SearchReplies}, " +
-            "status={StatusCode}, error={ProductError}. {DebugInformation}",
-            cursor, partial, searchText, searchUserName, searchComments, searchReplies,
-            response.ApiCallDetails.HttpStatusCode,
-            response.ApiCallDetails.ProductError,
-            response.ApiCallDetails.DebugInformation);
+            "Elasticsearch search failed for request {SearchRequest}. " +
+            "API call details: {ApiCallDetails}",
+            searchRequest,
+            response.ApiCallDetails);
         throw new InvalidOperationException("Elasticsearch search failed.");
     }
 
@@ -106,13 +79,11 @@ public sealed class ElasticService : IElasticService
 
     public async Task<long> CountAsync(CancellationToken ct)
     {
-        var response = await client.SearchAsync<CommentSearchDocument>(request => request
-            .Indices(index)
-            .Size(0)
-            .TrackTotalHits(true), ct);
+        var response = await client.CountAsync<CommentSearchDocument>(
+            request => request.Indices(index), ct);
         return !response.IsValidResponse
             ? throw new InvalidOperationException("Elasticsearch document count failed.")
-            : response.Total;
+            : response.Count;
     }
 
     public async Task DeleteIndexAsync(CancellationToken ct)
@@ -122,57 +93,76 @@ public sealed class ElasticService : IElasticService
             throw new InvalidOperationException("Elasticsearch index deletion failed.");
     }
 
+    private static void ConfigureQuery(
+        QueryDescriptor<CommentSearchDocument> descriptor,
+        SearchCommentRequest search)
+    {
+        if (search is { SearchComments: true, SearchReplies: true })
+        {
+            ConfigureTextQuery(descriptor, search);
+            return;
+        }
+
+        descriptor.Bool(boolQuery =>
+        {
+            if (search.SearchComments)
+                boolQuery.MustNot(query => query.Exists(exists => exists.Field(document => document.ParentId)));
+            else
+                boolQuery.Filter(query => query.Exists(exists => exists.Field(document => document.ParentId)));
+
+            boolQuery.Must(query => ConfigureTextQuery(query, search));
+        });
+    }
+
+    private static void ConfigureTextQuery(
+        QueryDescriptor<CommentSearchDocument> descriptor,
+        SearchCommentRequest search)
+    {
+        if (search is { Partial: true, SearchUserName: true })
+        {
+            descriptor.Bool(boolQuery => boolQuery.Should(
+                query => query.MultiMatch(multiMatch => ConfigureTextSearch(multiMatch, search)),
+                query => query.Wildcard(wildcard => wildcard
+                    .Field("userName.keyword")
+                    .Value($"*{EscapeWildcard(search.Query)}*")
+                    .CaseInsensitive())));
+            return;
+        }
+
+        descriptor.MultiMatch(multiMatch => ConfigureTextSearch(multiMatch, search));
+    }
+
     private static void ConfigureTextSearch(
         MultiMatchQueryDescriptor<CommentSearchDocument> descriptor,
-        string query,
-        bool searchText,
-        bool searchUserName,
-        bool partial = true)
+        SearchCommentRequest search)
     {
-        descriptor.Query(query).Type(partial ? TextQueryType.PhrasePrefix : TextQueryType.Phrase);
-        switch (searchText)
+        descriptor.Query(search.Query)
+            .Type(search.Partial ? TextQueryType.PhrasePrefix : TextQueryType.Phrase);
+
+        switch (search.SearchText)
         {
-            case true when searchUserName:
+            case true when search.SearchUserName:
+
                 descriptor.Fields(document => document.Text, document => document.UserName);
                 break;
             case true:
+
                 descriptor.Fields(document => document.Text);
                 break;
             default:
             {
-                if (searchUserName)
+                if (search.SearchUserName)
+
                     descriptor.Fields(document => document.UserName);
                 break;
             }
         }
     }
 
-    private static void ConfigureSearchQuery(
-        QueryDescriptor<CommentSearchDocument> descriptor,
-        string query,
-        bool partial,
-        bool searchText,
-        bool searchUserName)
-    {
-        if (partial && searchUserName)
-        {
-            descriptor.Bool(boolQuery => boolQuery.Should(
-                innerQuery => innerQuery.MultiMatch(multiMatch =>
-                    ConfigureTextSearch(multiMatch, query, searchText, searchUserName)),
-                innerQuery => innerQuery.Wildcard(wildcard => wildcard
-                    .Field("userName.keyword")
-                    .Value($"*{EscapeWildcard(query)}*")
-                    .CaseInsensitive())));
-            return;
-        }
-
-        descriptor.MultiMatch(multiMatch =>
-            ConfigureTextSearch(multiMatch, query, searchText, searchUserName, partial));
-    }
-
     private static string EscapeWildcard(string value)
     {
-        return value.Replace("\\", "\\\\", StringComparison.Ordinal)
+        return value
+            .Replace("\\", "\\\\", StringComparison.Ordinal)
             .Replace("*", "\\*", StringComparison.Ordinal)
             .Replace("?", "\\?", StringComparison.Ordinal);
     }

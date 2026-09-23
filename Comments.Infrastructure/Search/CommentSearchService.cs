@@ -1,5 +1,6 @@
 using Comments.Application.Abstractions;
 using Comments.Application.DTOs;
+using Comments.Application.Requests;
 using Comments.Domain.Entities;
 using Comments.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -12,24 +13,14 @@ public sealed class CommentSearchService(
 {
     private const int SearchPageSize = 25;
 
-    public async Task<CommentPageDto> SearchAsync(string query, bool partial, bool searchText,
-        bool searchUserName, bool searchComments, bool searchReplies, string? cursor = null,
-        CancellationToken ct = default)
+    public async Task<CommentPageDto> SearchAsync(SearchCommentRequest request, CancellationToken ct = default)
     {
-        var searchTerm = query.Trim();
-        if (searchTerm.Length == 0 || (!searchText && !searchUserName) ||
-            (!searchComments && !searchReplies))
+        request = request with { Query = request.Query.Trim() };
+        if (request.Query.Length == 0 || request is { SearchText: false, SearchUserName: false } ||
+            request is { SearchComments: false, SearchReplies: false })
             return new CommentPageDto([], null, "search", false);
 
-        var documents = await elastic.SearchAsync(
-            searchTerm,
-            partial,
-            searchText,
-            searchUserName,
-            searchComments,
-            searchReplies,
-            cursor,
-            ct);
+        var documents = await elastic.SearchAsync(request, ct);
 
         if (documents.Count == 0)
             return new CommentPageDto([], null, "search", false);

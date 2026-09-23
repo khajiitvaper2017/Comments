@@ -1,5 +1,6 @@
 using Comments.Application.Abstractions;
 using Comments.Application.DTOs;
+using Comments.Application.Requests;
 
 namespace Comments.Api.GraphQL;
 
@@ -43,7 +44,9 @@ public sealed class Query
         string? cursor = null,
         CancellationToken cancellationToken = default)
     {
-        return search.SearchAsync(query, partial, searchText, searchUserName, searchComments,
-            searchReplies, cursor, cancellationToken);
+        var request = new SearchCommentRequest(query, partial, searchText, searchUserName, searchComments,
+            searchReplies, cursor);
+
+        return search.SearchAsync(request, cancellationToken);
     }
 }
