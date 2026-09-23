@@ -23,7 +23,7 @@ public sealed class RealtimeNotificationHandler(
         var comment = await db.Comments
             .AsNoTracking()
             .Include(x => x.Attachments)
-            .SingleOrDefaultAsync(x => x.Id == commentId && !x.IsDeleted, ct);
+            .SingleOrDefaultAsync(x => x.Id == commentId, ct);
         if (comment is null) return;
 
         var dto = new CommentDto(

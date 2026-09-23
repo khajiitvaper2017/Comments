@@ -23,7 +23,6 @@ public sealed class ElasticsearchIndexMaintenance(
             await elasticService.DeleteIndexAsync(ct);
 
         var parentIds = await db.Comments.AsNoTracking()
-            .Where(x => !x.IsDeleted)
             .Select(x => new { x.Id, x.ParentId })
             .ToDictionaryAsync(x => x.Id, x => x.ParentId, ct);
 
@@ -43,7 +42,7 @@ public sealed class ElasticsearchIndexMaintenance(
     {
         if (!await elasticService.IndexExistsAsync(ct)) return true;
 
-        var expected = await db.Comments.AsNoTracking().CountAsync(x => !x.IsDeleted, ct);
+        var expected = await db.Comments.AsNoTracking().CountAsync(ct);
         return await elasticService.CountAsync(ct) != expected;
     }
 
@@ -52,7 +51,7 @@ public sealed class ElasticsearchIndexMaintenance(
         IReadOnlyDictionary<Guid, Guid?> parentIds,
         CancellationToken ct)
     {
-        var query = db.Comments.AsNoTracking().Where(x => !x.IsDeleted);
+        var query = db.Comments.AsNoTracking();
         if (lastId is Guid id)
             query = query.Where(x => x.Id.CompareTo(id) > 0);
 

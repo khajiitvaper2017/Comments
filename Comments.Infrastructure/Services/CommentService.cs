@@ -37,7 +37,7 @@ public sealed class CommentService(
     public async Task<IReadOnlyList<CommentDto>> GetRepliesAsync(Guid parentId, CancellationToken ct)
     {
         var replies = await db.Comments.AsNoTracking()
-            .Where(x => x.ParentId == parentId && !x.IsDeleted)
+            .Where(x => x.ParentId == parentId)
             .Include(x => x.Attachments)
             .OrderBy(x => x.CreatedAtUtc)
             .Take(ReplyPageSize)
@@ -64,7 +64,7 @@ public sealed class CommentService(
         if (requestedIds.Length == 0) return [];
 
         var comments = await db.Comments.AsNoTracking()
-            .Where(x => !x.IsDeleted && requestedIds.Contains(x.Id))
+            .Where(x => requestedIds.Contains(x.Id))
             .Include(x => x.Attachments)
             .ToListAsync(ct);
         var byId = comments.ToDictionary(x => x.Id);
@@ -81,7 +81,7 @@ public sealed class CommentService(
         sort = new[] { "userName", "email", "createdAt" }.Contains(sort) ? sort : "createdAt";
         var cached = await cache.GetAsync(sort, descending, cursor, ct);
         if (cached is not null) return cached;
-        var query = db.Comments.AsNoTracking().Where(x => x.ParentId == null && !x.IsDeleted);
+        var query = db.Comments.AsNoTracking().Where(x => x.ParentId == null);
         var position = DecodeCursor(cursor);
         if (position is not null)
         {
@@ -191,7 +191,7 @@ public sealed class CommentService(
         while (frontier.Length > 0)
         {
             var children = await db.Comments.AsNoTracking()
-                .Where(x => x.ParentId.HasValue && frontier.Contains(x.ParentId.Value) && !x.IsDeleted)
+                .Where(x => x.ParentId.HasValue && frontier.Contains(x.ParentId.Value))
                 .Include(x => x.Attachments)
                 .OrderBy(x => x.CreatedAtUtc)
                 .ToListAsync(ct);
@@ -267,7 +267,7 @@ public sealed class CommentService(
         if (rootIds.Length == 0) return [];
 
         return await db.Comments.AsNoTracking()
-            .Where(x => x.ParentId.HasValue && !x.IsDeleted && rootIds.Contains(x.RootId))
+            .Where(x => x.ParentId.HasValue && rootIds.Contains(x.RootId))
             .Include(x => x.Attachments)
             .OrderBy(x => x.CreatedAtUtc)
             .ToListAsync(ct);

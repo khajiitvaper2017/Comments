@@ -11,7 +11,7 @@ public sealed class CommentIndexer(
     public async Task IndexAsync(Guid commentId, CancellationToken ct)
     {
         var comment = await db.Comments.AsNoTracking().SingleOrDefaultAsync(x => x.Id == commentId, ct);
-        if (comment is null || comment.IsDeleted) return;
+        if (comment is null) return;
 
         var ancestors = new List<Guid>();
         var parentId = comment.ParentId;
@@ -20,7 +20,7 @@ public sealed class CommentIndexer(
         {
             ancestors.Add(currentId);
             parentId = await db.Comments.AsNoTracking()
-                .Where(x => !x.IsDeleted && x.Id == currentId)
+                .Where(x => x.Id == currentId)
                 .Select(x => x.ParentId)
                 .SingleOrDefaultAsync(ct);
         }

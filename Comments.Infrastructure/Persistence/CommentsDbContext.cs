@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Comments.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,6 +12,19 @@ public sealed class CommentsDbContext(DbContextOptions<CommentsDbContext> option
 
     protected override void OnModelCreating(ModelBuilder b)
     {
+        base.OnModelCreating(b);
+
+        foreach (var entityType in b.Model.GetEntityTypes())
+        {
+            var property = entityType.ClrType.GetProperty("IsDeleted");
+            if (property?.PropertyType != typeof(bool)) continue;
+
+            var parameter = Expression.Parameter(entityType.ClrType, "entity");
+            var isDeleted = Expression.Property(parameter, property);
+            b.Entity(entityType.ClrType).HasQueryFilter(
+                Expression.Lambda(Expression.Not(isDeleted), parameter));
+        }
+
         var c = b.Entity<Comment>();
         c.HasKey(x => x.Id);
         c.Property(x => x.UserName).HasMaxLength(100).IsRequired();
@@ -53,5 +67,29 @@ public sealed class CommentsDbContext(DbContextOptions<CommentsDbContext> option
         o.Property(x => x.Payload).IsRequired();
         o.Property(x => x.LastError).HasMaxLength(2000);
         o.HasIndex(x => new { x.ProcessedAtUtc, x.DeadLetteredAtUtc, x.OccurredAtUtc });
+    }
+
+    private void HandleSoftDeleted()
+    {
+        foreach (var entry in ChangeTracker.Entries())
+        {
+            if (entry.State != EntityState.Deleted ||
+                entry.Metadata.FindProperty("IsDeleted")?.ClrType != typeof(bool)) continue;
+
+            entry.CurrentValues["IsDeleted"] = true;
+            entry.State = EntityState.Modified;
+        }
+    }
+
+    public override int SaveChanges()
+    {
+        HandleSoftDeleted();
+        return base.SaveChanges();
+    }
+
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        HandleSoftDeleted();
+        return base.SaveChangesAsync(cancellationToken);
     }
 }

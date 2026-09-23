@@ -84,6 +84,27 @@ public sealed class CommentServiceTests
     }
 
     [Fact]
+    public async Task RemovingCommentSoftDeletesItAndHidesItFromQueries()
+    {
+        await using var database = CreateDatabase();
+        var comment = new Comment
+        {
+            UserName = "User123",
+            Email = "user@example.com",
+            Text = "A comment."
+        };
+        database.Comments.Add(comment);
+        await database.SaveChangesAsync();
+
+        database.Comments.Remove(comment);
+        await database.SaveChangesAsync();
+
+        Assert.Empty(await database.Comments.ToListAsync());
+        var deleted = await database.Comments.IgnoreQueryFilters().SingleAsync();
+        Assert.True(deleted.IsDeleted);
+    }
+
+    [Fact]
     public async Task RootReplyCountIncludesAllDescendants()
     {
         await using var database = CreateDatabase();

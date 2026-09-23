@@ -45,7 +45,7 @@ public sealed class CommentSearchService(
         var commentIds = ids.ToHashSet();
         return await db.Comments
             .AsNoTracking()
-            .Where(comment => !comment.IsDeleted && commentIds.Contains(comment.Id))
+            .Where(comment => commentIds.Contains(comment.Id))
             .Include(comment => comment.Attachments)
             .ToDictionaryAsync(comment => comment.Id, ct);
     }
