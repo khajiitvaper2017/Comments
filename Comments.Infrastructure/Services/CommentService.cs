@@ -9,7 +9,6 @@ using Comments.Application.Requests;
 using Comments.Domain.Entities;
 using Comments.Infrastructure.Exceptions;
 using Comments.Infrastructure.Persistence;
-using Microsoft.EntityFrameworkCore;
 
 namespace Comments.Infrastructure.Services;
 
@@ -75,11 +74,11 @@ public sealed class CommentService(
 
     /// <summary>Loads one bounded root slice together with its permitted replies.</summary>
     public async Task<CommentPageDto> GetRootsAsync(string sort, bool descending,
-        CancellationToken ct, string? cursor = null)
+        string? cursor = null, CancellationToken ct = default)
     {
         // Cache the complete bounded section because the frontend needs roots and replies together.
         sort = new[] { "userName", "email", "createdAt" }.Contains(sort) ? sort : "createdAt";
-        var cached = await cache.GetAsync(sort, descending, ct, cursor);
+        var cached = await cache.GetAsync(sort, descending, cursor, ct);
         if (cached is not null) return cached;
         var query = db.Comments.AsNoTracking().Where(x => x.ParentId == null && !x.IsDeleted);
         var position = DecodeCursor(cursor);
@@ -119,7 +118,7 @@ public sealed class CommentService(
             hasMore ? EncodeCursor(roots[^1], sort, descending) : null,
             sort,
             descending);
-        await cache.SetAsync(sort, descending, result, ct, cursor);
+        await cache.SetAsync(sort, descending, result, cursor, ct);
         return result;
     }
 

@@ -14,14 +14,14 @@ public sealed class CommentsController(ICommentService service) : ControllerBase
     /// <summary>Returns the next bounded section of root comments.</summary>
     /// <param name="sort">The sort field: createdAt, userName, or email.</param>
     /// <param name="descending">Whether to sort in descending order.</param>
-    /// <param name="ct">The cancellation token for the request.</param>
     /// <param name="cursor">The continuation token returned by the previous response.</param>
+    /// <param name="ct">The cancellation token for the request.</param>
     [HttpGet]
     public Task<CommentPageDto> Get([FromQuery] string sort = "createdAt",
-        [FromQuery] bool descending = true, CancellationToken ct = default,
-        [FromQuery] string? cursor = null)
+        [FromQuery] bool descending = true, [FromQuery] string? cursor = null,
+        CancellationToken ct = default)
     {
-        return service.GetRootsAsync(sort, descending, ct, cursor);
+        return service.GetRootsAsync(sort, descending, cursor, ct);
     }
 
     /// <summary>Returns the next bounded section of replies for a comment.</summary>

@@ -16,10 +16,10 @@ public sealed class SearchController(ICommentSearch search) : ControllerBase
         [FromQuery] bool searchUserName = true,
         [FromQuery] bool searchComments = true,
         [FromQuery] bool searchReplies = true,
-        CancellationToken ct = default,
-        [FromQuery] string? cursor = null)
+        [FromQuery] string? cursor = null,
+        CancellationToken ct = default)
     {
         return search.SearchAsync(q, partial, searchText, searchUserName, searchComments,
-            searchReplies, ct, cursor);
+            searchReplies, cursor, ct);
     }
 }

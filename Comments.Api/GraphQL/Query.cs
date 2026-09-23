@@ -10,10 +10,10 @@ public sealed class Query
         string sort = "createdAt",
         bool descending = true,
         [Service] ICommentService service = null!,
-        CancellationToken cancellationToken = default,
-        string? cursor = null)
+        string? cursor = null,
+        CancellationToken cancellationToken = default)
     {
-        return service.GetRootsAsync(sort, descending, cancellationToken, cursor);
+        return service.GetRootsAsync(sort, descending, cursor, cancellationToken);
     }
 
     public Task<IReadOnlyList<CommentDto>> Replies(
@@ -40,10 +40,10 @@ public sealed class Query
         bool searchComments = true,
         bool searchReplies = true,
         [Service] ICommentSearch search = null!,
-        CancellationToken cancellationToken = default,
-        string? cursor = null)
+        string? cursor = null,
+        CancellationToken cancellationToken = default)
     {
         return search.SearchAsync(query, partial, searchText, searchUserName, searchComments,
-            searchReplies, cancellationToken, cursor);
+            searchReplies, cursor, cancellationToken);
     }
 }

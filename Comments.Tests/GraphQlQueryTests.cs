@@ -15,14 +15,14 @@ public sealed class GraphQlQueryTests
     {
         var service = new Mock<ICommentService>();
         var expected = new CommentPageDto([], null, "userName", false);
-        service.Setup(x => x.GetRootsAsync("userName", false, It.IsAny<CancellationToken>(), null))
+        service.Setup(x => x.GetRootsAsync("userName", false, null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(expected);
 
         var result = await new Query().Comments(
-            "userName", false, service.Object, CancellationToken.None);
+            "userName", false, service.Object, null, CancellationToken.None);
 
         Assert.Same(expected, result);
-        service.Verify(x => x.GetRootsAsync("userName", false, It.IsAny<CancellationToken>(), null), Times.Once);
+        service.Verify(x => x.GetRootsAsync("userName", false, null, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -46,15 +46,15 @@ public sealed class GraphQlQueryTests
         var search = new Mock<ICommentSearch>();
         var expected = new CommentPageDto([], null, "search", false);
         search.Setup(x => x.SearchAsync("term", true, true, true, true, true,
-                It.IsAny<CancellationToken>(), null))
+                null, It.IsAny<CancellationToken>()))
             .ReturnsAsync(expected);
 
         var result = await new Query().Search("term", true, true, true, true, true, search.Object,
-            CancellationToken.None);
+            null, CancellationToken.None);
 
         Assert.Same(expected, result);
         search.Verify(x => x.SearchAsync("term", true, true, true, true, true,
-            It.IsAny<CancellationToken>(), null), Times.Once);
+            null, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

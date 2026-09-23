@@ -13,8 +13,8 @@ public sealed class CommentSearchService(
     private const int SearchPageSize = 25;
 
     public async Task<CommentPageDto> SearchAsync(string query, bool partial, bool searchText,
-        bool searchUserName, bool searchComments, bool searchReplies, CancellationToken ct,
-        string? cursor = null)
+        bool searchUserName, bool searchComments, bool searchReplies, string? cursor = null,
+        CancellationToken ct = default)
     {
         var searchTerm = query.Trim();
         if (searchTerm.Length == 0 || (!searchText && !searchUserName) ||

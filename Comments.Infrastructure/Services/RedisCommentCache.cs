@@ -10,16 +10,16 @@ public sealed class RedisCommentCache(IDistributedCache cache) : ICommentCache
     // Versioned keys keep cursor slices isolated after writes.
     private const string VersionKey = "comments:cache-version:v6";
 
-    public async Task<CommentPageDto?> GetAsync(string sort, bool descending, CancellationToken ct,
-        string? cursor = null)
+    public async Task<CommentPageDto?> GetAsync(string sort, bool descending, string? cursor = null,
+        CancellationToken ct = default)
     {
         var version = await GetVersionAsync(ct);
         var value = await cache.GetStringAsync(Key(version, cursor, sort, descending), ct);
         return value is null ? null : JsonSerializer.Deserialize<CommentPageDto>(value);
     }
 
-    public async Task SetAsync(string sort, bool descending, CommentPageDto value, CancellationToken ct,
-        string? cursor = null)
+    public async Task SetAsync(string sort, bool descending, CommentPageDto value, string? cursor = null,
+        CancellationToken ct = default)
     {
         var version = await GetVersionAsync(ct);
         await cache.SetStringAsync(

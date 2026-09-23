@@ -2,12 +2,9 @@ using Comments.Application.Abstractions;
 using Comments.Application.Data;
 using Comments.Application.DTOs;
 using Comments.Application.Requests;
-using Comments.Domain.Entities;
 using Comments.Infrastructure.Exceptions;
 using Comments.Infrastructure.Persistence;
 using Comments.Infrastructure.Services;
-using Microsoft.Data.Sqlite;
-using Microsoft.EntityFrameworkCore;
 
 namespace Comments.Tests;
 
@@ -115,7 +112,7 @@ public sealed class CommentServiceTests
         await database.SaveChangesAsync();
         var service = CreateService(database, new FakeCaptcha());
 
-        var result = await service.GetRootsAsync("createdAt", true, CancellationToken.None);
+        var result = await service.GetRootsAsync("createdAt", true, null, CancellationToken.None);
 
         var loadedRoot = Assert.Single(result.Items);
         Assert.Equal(2, loadedRoot.ReplyCount);
@@ -226,14 +223,14 @@ public sealed class CommentServiceTests
 
     private sealed class FakeCommentCache : ICommentCache
     {
-        public Task<CommentPageDto?> GetAsync(string sort, bool descending, CancellationToken ct,
-            string? cursor = null)
+        public Task<CommentPageDto?> GetAsync(string sort, bool descending, string? cursor = null,
+            CancellationToken ct = default)
         {
             return Task.FromResult<CommentPageDto?>(null);
         }
 
-        public Task SetAsync(string sort, bool descending, CommentPageDto value, CancellationToken ct,
-            string? cursor = null)
+        public Task SetAsync(string sort, bool descending, CommentPageDto value, string? cursor = null,
+            CancellationToken ct = default)
         {
             return Task.CompletedTask;
         }
