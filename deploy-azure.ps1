@@ -1,7 +1,7 @@
 param(
     [string] $RepositoryUrl = 'https://github.com/khajiitvaper2017/Comments.git',
     [string] $Branch = 'production',
-    [string] $DbPassword,
+    [SecureString] $DbPassword,
     [string] $ResourceGroup = 'comments-rg',
     [string] $Location = 'swedencentral',
     [string] $VmName = 'comments-vm',
