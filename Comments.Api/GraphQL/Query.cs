@@ -1,12 +1,15 @@
 using Comments.Application.Abstractions;
 using Comments.Application.DTOs;
 using Comments.Application.Requests;
+using JetBrains.Annotations;
 
 namespace Comments.Api.GraphQL;
 
 /// <summary>Read-only GraphQL entry points for comments and search.</summary>
+[UsedImplicitly]
 public sealed class Query
 {
+    [UsedImplicitly]
     public Task<CommentPageDto> Comments(
         string sort = "createdAt",
         bool descending = true,
@@ -17,6 +20,7 @@ public sealed class Query
         return service.GetRootsAsync(sort, descending, cursor, cancellationToken);
     }
 
+    [UsedImplicitly]
     public Task<IReadOnlyList<CommentDto>> Replies(
         Guid parentId,
         [Service] ICommentService service,
@@ -25,6 +29,7 @@ public sealed class Query
         return service.GetRepliesAsync(parentId, cancellationToken);
     }
 
+    [UsedImplicitly]
     public Task<IReadOnlyList<CommentDto>> Ancestors(
         IReadOnlyList<Guid> ids,
         [Service] ICommentService service,
@@ -33,6 +38,7 @@ public sealed class Query
         return service.GetAncestorsAsync(ids, cancellationToken);
     }
 
+    [UsedImplicitly]
     public Task<CommentPageDto> Search(
         string query,
         bool partial = false,
