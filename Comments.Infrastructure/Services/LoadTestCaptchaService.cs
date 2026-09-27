@@ -5,8 +5,8 @@ namespace Comments.Infrastructure.Services;
 
 public sealed class LoadTestCaptchaService : ICaptchaService
 {
-    public const string Id = "load-test";
-    public const string Answer = "bypass";
+    private const string Id = "load-test";
+    private const string Answer = "bypass";
 
     public CaptchaDto Create()
     {
