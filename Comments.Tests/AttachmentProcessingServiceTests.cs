@@ -55,13 +55,13 @@ public sealed class AttachmentProcessingServiceTests : IDisposable
     [Fact]
     public async Task ProcessAsync_MarksUndecodableFixtureAsFailed()
     {
-        const string fileName = "logs.txt";
+        const string FileName = "logs.txt";
         Directory.CreateDirectory(storageDirectory);
-        var sourcePath = Path.Combine(storageDirectory, fileName);
-        File.Copy(FixturePath(fileName), sourcePath);
+        var sourcePath = Path.Combine(storageDirectory, FileName);
+        File.Copy(FixturePath(FileName), sourcePath);
 
         await using var database = CreateDatabase();
-        var attachment = await AddAttachmentAsync(database, sourcePath, fileName);
+        var attachment = await AddAttachmentAsync(database, sourcePath, FileName);
         var service = new AttachmentProcessingService(database, NullLogger<AttachmentProcessingService>.Instance);
 
         await Assert.ThrowsAnyAsync<Exception>(() => service.ProcessAsync(attachment.Id, CancellationToken.None));
