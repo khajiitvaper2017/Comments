@@ -162,7 +162,7 @@ public sealed class ElasticService : IElasticService
     private static string EscapeWildcard(string value)
     {
         return value
-            .Replace("\\", "\\\\", StringComparison.Ordinal)
+            .Replace("\\", @"\\", StringComparison.Ordinal)
             .Replace("*", "\\*", StringComparison.Ordinal)
             .Replace("?", "\\?", StringComparison.Ordinal);
     }
