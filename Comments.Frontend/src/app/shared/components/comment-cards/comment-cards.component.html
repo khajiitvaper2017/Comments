@@ -117,8 +117,10 @@
               type="button">
               <img
                 [alt]="attachment.fileName"
-                [src]="'/api/attachments/' + attachment.id"
-                loading="lazy" />
+                [ngSrc]="'/api/attachments/' + attachment.id"
+                height="240"
+                loading="lazy"
+                width="320" />
             </button>
           } @else {
             <button

@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+import { CommonModule, NgOptimizedImage } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
@@ -16,6 +16,7 @@ import { HighlightSearchPipe } from '@app/shared/pipes/highlight-search.pipe';
   standalone: true,
   imports: [
     CommonModule,
+    NgOptimizedImage,
     CommentFormComponent,
     HomePageLabelPipe,
     HighlightSearchPipe,
