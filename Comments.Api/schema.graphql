@@ -1,0 +1,49 @@
+type Query {
+  comments(sort: String! = "createdAt", descending: Boolean! = true, cursor: String): CommentPageDto!
+  replies(parentId: UUID!): [CommentDto!]!
+  ancestors(ids: [UUID!]!): [CommentDto!]!
+  search(
+    query: String!
+    partial: Boolean! = false
+    searchText: Boolean! = true
+    searchUserName: Boolean! = true
+    searchComments: Boolean! = true
+    searchReplies: Boolean! = true
+    cursor: String
+  ): CommentPageDto!
+}
+
+type CommentPageDto {
+  items: [CommentDto!]!
+  nextCursor: String
+  sort: String!
+  descending: Boolean!
+}
+
+type CommentDto {
+  id: UUID!
+  parentId: UUID
+  userName: String!
+  email: String!
+  homePage: String
+  text: String!
+  createdAtUtc: DateTime!
+  attachments: [AttachmentDto!]!
+  replies: [CommentDto!]!
+  replyCount: Int!
+  isSearchMatch: Boolean!
+  ancestorIds: [UUID!]!
+}
+
+type AttachmentDto {
+  id: UUID!
+  fileName: String!
+  contentType: String!
+  size: Long!
+  width: Int
+  height: Int
+}
+
+scalar UUID
+scalar DateTime
+scalar Long
