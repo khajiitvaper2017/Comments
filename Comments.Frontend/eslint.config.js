@@ -1,7 +1,8 @@
 const angular = require('angular-eslint');
 const prettierRecommended = require('eslint-plugin-prettier/recommended');
 
-const withFiles = (configs, files) => configs.map(config => ({ ...config, files }));
+const withFiles = (configs, files) =>
+  configs.map(config => ({ ...config, files }));
 
 module.exports = [
   {
