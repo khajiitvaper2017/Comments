@@ -37,7 +37,7 @@ public sealed class AttachmentProcessingService(
         try
         {
             using var images = new MagickImageCollection();
-            images.Read(attachment.StorageReference);
+            await images.ReadAsync(attachment.StorageReference, ct);
             if (images.Count == 0)
                 throw new InvalidOperationException("The uploaded image could not be decoded.");
 
@@ -61,7 +61,7 @@ public sealed class AttachmentProcessingService(
             var dir = Path.GetDirectoryName(attachment.StorageReference)!;
             var processedName = attachment.Id + ".webp";
             var processedPath = Path.Combine(dir, processedName);
-            images.Write(processedPath, MagickFormat.WebP);
+            await images.WriteAsync(processedPath, MagickFormat.WebP, ct);
             if (!string.Equals(processedPath, attachment.StorageReference, StringComparison.OrdinalIgnoreCase))
                 File.Delete(attachment.StorageReference);
 
