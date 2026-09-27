@@ -20,6 +20,7 @@ public static class ServiceCollectionExtensions
     {
         public IServiceCollection AddCommentsApi()
         {
+            services.AddProblemDetails();
             services.AddHealthChecks();
             services.AddControllers().AddJsonOptions(options => { options.JsonSerializerOptions.MaxDepth = 64; });
             return services;

@@ -1,8 +1,6 @@
 using Comments.Api.Middleware;
 using Comments.Api.Realtime;
-using Comments.Infrastructure.Exceptions;
 using Comments.Infrastructure.Persistence;
-using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 
 namespace Comments.Api.Configuration;
@@ -19,7 +17,7 @@ public static class ApplicationExtensions
                 app.UseHsts();
 
             ApplyDatabaseMigrations(app);
-            app.UseExceptionHandler(HandleExceptions);
+            app.UseExceptionHandler();
 
             if (app.Environment.IsDevelopment())
                 app.UseHttpsRedirection();
@@ -57,19 +55,5 @@ public static class ApplicationExtensions
         using var scope = app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<CommentsDbContext>();
         db.Database.Migrate();
-    }
-
-    private static void HandleExceptions(IApplicationBuilder builder)
-    {
-        builder.Run(async context =>
-        {
-            var error = context.Features.Get<IExceptionHandlerFeature>()?.Error;
-            context.Response.StatusCode = error is ValidationException ? 400 : 500;
-            context.Response.ContentType = "application/json";
-            await context.Response.WriteAsJsonAsync(new
-            {
-                error = error is ValidationException ? error.Message : "An unexpected error occurred."
-            });
-        });
     }
 }
