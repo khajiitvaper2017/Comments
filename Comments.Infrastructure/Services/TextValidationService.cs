@@ -5,10 +5,8 @@ using Ganss.Xss;
 
 namespace Comments.Infrastructure.Services;
 
-public sealed class TextValidationService : ITextValidationService
+public sealed partial class TextValidationService : ITextValidationService
 {
-    // This policy is shared by the client-facing validation and the server sanitizer.
-    private const string AllowedTags = "a|code|i|strong";
     private static readonly HtmlSanitizer Sanitizer = CreateSanitizer();
 
     public string SanitizeAndValidate(string input)
@@ -17,17 +15,15 @@ public sealed class TextValidationService : ITextValidationService
         // rather than silently rewritten into a different comment.
         if (string.IsNullOrWhiteSpace(input) || input.Length > 5000)
             throw new ValidationException("Text is required and must be at most 5000 characters.");
-        if (Regex.IsMatch(input, "<[^>]*$") ||
-            Regex.IsMatch(input, "</?\\s*(a|code|i|strong)\\b[^>]*$", RegexOptions.IgnoreCase))
+        if (UnclosedTagRegex().IsMatch(input) || IncompleteAllowedTagRegex().IsMatch(input))
             throw new ValidationException("Invalid XHTML.");
 
-        var allowed = Regex.Replace(input, $"</?({AllowedTags})(?:\\s+[^>]*)?>", "", RegexOptions.IgnoreCase);
+        var allowed = AllowedTagRegex().Replace(input, "");
         if (allowed.Contains('<') || allowed.Contains('>'))
             throw new ValidationException("Invalid XHTML.");
 
         var stack = new Stack<string>();
-        foreach (Match match in Regex.Matches(input, $"<(/?)({AllowedTags})(?:\\s+[^>]*)?/?>",
-                     RegexOptions.IgnoreCase))
+        foreach (Match match in CompleteAllowedTagRegex().Matches(input))
             if (match.Groups[1].Value == "/")
             {
                 if (stack.Count == 0 || stack.Pop() != match.Groups[2].Value.ToLowerInvariant())
@@ -54,4 +50,16 @@ public sealed class TextValidationService : ITextValidationService
         sanitizer.AllowedSchemes.UnionWith(["http", "https"]);
         return sanitizer;
     }
+
+    [GeneratedRegex(@"<[^>]*$")]
+    private static partial Regex UnclosedTagRegex();
+
+    [GeneratedRegex(@"</?\s*(a|code|i|strong)\b[^>]*$", RegexOptions.IgnoreCase)]
+    private static partial Regex IncompleteAllowedTagRegex();
+
+    [GeneratedRegex(@"</?(a|code|i|strong)(?:\s+[^>]*)?>", RegexOptions.IgnoreCase)]
+    private static partial Regex AllowedTagRegex();
+
+    [GeneratedRegex(@"<(/?)(a|code|i|strong)(?:\s+[^>]*)?/?>", RegexOptions.IgnoreCase)]
+    private static partial Regex CompleteAllowedTagRegex();
 }
