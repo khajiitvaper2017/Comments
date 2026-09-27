@@ -1,5 +1,8 @@
 import { provideHttpClient } from '@angular/common/http';
-import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import {
+  HttpTestingController,
+  provideHttpClientTesting,
+} from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { InMemoryCache } from '@apollo/client';
 import { provideApollo } from 'apollo-angular';
@@ -40,7 +43,9 @@ describe('CommentApiService Apollo reads', () => {
       sort: 'userName',
       descending: false,
     };
-    const resultPromise = firstValueFrom(service.getComments('userName', false));
+    const resultPromise = firstValueFrom(
+      service.getComments('userName', false)
+    );
 
     const request = http.expectOne('/graphql');
     expect(request.request.method).toBe('POST');

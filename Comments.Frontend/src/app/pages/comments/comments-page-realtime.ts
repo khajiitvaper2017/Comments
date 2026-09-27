@@ -12,34 +12,41 @@ export class CommentsPageRealtime {
   private scrollEndTimer?: number;
   private scrolling = false;
 
+  constructor(
+    private readonly shouldApply: () => boolean,
+    private readonly apply: (comments: CommentItem[]) => void
+  ) {}
+
+  start() {
+    this.hub.on('commentChanged', (comment: CommentItem) =>
+      this.queue(comment)
+    );
+    void this.hub.start().catch(() => undefined);
+    this.handleScroll();
+    window.addEventListener('scroll', this.handleScroll, {
+      passive: true,
+      capture: true,
+    });
+  }
+
+  destroy() {
+    if (this.flushTimer !== undefined) window.clearTimeout(this.flushTimer);
+    if (this.scrollEndTimer !== undefined)
+      window.clearTimeout(this.scrollEndTimer);
+    window.removeEventListener('scroll', this.handleScroll, true);
+    void this.hub.stop();
+  }
+
   private readonly handleScroll = () => {
     this.scrolling = true;
-    if (this.scrollEndTimer !== undefined) window.clearTimeout(this.scrollEndTimer);
+    if (this.scrollEndTimer !== undefined)
+      window.clearTimeout(this.scrollEndTimer);
     this.scrollEndTimer = window.setTimeout(() => {
       this.scrollEndTimer = undefined;
       this.scrolling = false;
       if (this.pending.size > 0 && this.flushTimer === undefined) this.flush();
     }, 150);
   };
-
-  constructor(
-    private readonly shouldApply: () => boolean,
-    private readonly apply: (comments: CommentItem[]) => void,
-  ) {}
-
-  start() {
-    this.hub.on('commentChanged', (comment: CommentItem) => this.queue(comment));
-    void this.hub.start().catch(() => undefined);
-    this.handleScroll();
-    window.addEventListener('scroll', this.handleScroll, { passive: true, capture: true });
-  }
-
-  destroy() {
-    if (this.flushTimer !== undefined) window.clearTimeout(this.flushTimer);
-    if (this.scrollEndTimer !== undefined) window.clearTimeout(this.scrollEndTimer);
-    window.removeEventListener('scroll', this.handleScroll, true);
-    void this.hub.stop();
-  }
 
   private queue(comment: CommentItem) {
     if (!this.shouldApply()) return;
@@ -58,10 +65,15 @@ export class CommentsPageRealtime {
   }
 }
 
-export function prependRealtimeComments(comments: CommentItem[], pending: CommentItem[]) {
+export function prependRealtimeComments(
+  comments: CommentItem[],
+  pending: CommentItem[]
+) {
   return pending.reduce(
     (updated, comment) =>
-      comment.parentId ? prependReply(updated, comment) : prependRootComment(updated, comment),
-    comments,
+      comment.parentId
+        ? prependReply(updated, comment)
+        : prependRootComment(updated, comment),
+    comments
   );
 }

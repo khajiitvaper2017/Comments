@@ -1,8 +1,12 @@
-<section class="composer" aria-labelledby="composer-title">
+<section aria-labelledby="composer-title" class="composer">
   <div class="section-heading">
     <div>
       <h2 id="composer-title">
-        {{ replyToName ? 'Leave a reply to ' + replyToName + "'s comment" : 'Leave a comment' }}
+        {{
+          replyToName
+            ? 'Leave a reply to ' + replyToName + "'s comment"
+            : 'Leave a comment'
+        }}
       </h2>
     </div>
     <span class="required-note">Required fields marked *</span>
@@ -12,13 +16,12 @@
       <label>
         User Name *
         <input
-          name="userName"
           #userName="ngModel"
           [(ngModel)]="form.userName"
-          required
           maxlength="100"
+          name="userName"
           pattern="[A-Za-z0-9]+"
-        />
+          required />
         @if ((submittedForm || userName.touched) && userName.invalid) {
           <span class="form-error">
             @if (userName.errors?.['required']) {
@@ -33,13 +36,12 @@
       <label>
         E-mail *
         <input
-          type="email"
-          name="email"
           #email="ngModel"
           [(ngModel)]="form.email"
-          required
+          name="email"
           pattern="^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$"
-        />
+          required
+          type="email" />
         @if ((submittedForm || email.touched) && email.invalid) {
           <span class="form-error"> Enter a valid e-mail address. </span>
         }
@@ -47,13 +49,12 @@
       <label>
         Home page
         <input
-          type="url"
-          name="homePage"
           #homePage="ngModel"
+          (ngModelChange)="onHomePageChange($event)"
           [(ngModel)]="form.homePage"
           maxlength="254"
-          (ngModelChange)="onHomePageChange($event)"
-        />
+          name="homePage"
+          type="url" />
         @if ((submittedForm || homePage.touched) && homePageError) {
           <span class="form-error">{{ homePageError }}</span>
         }
@@ -63,95 +64,98 @@
       <label for="comment-text">Text *</label>
       <div class="text-toolbar">
         @if (textMode === 'code') {
-          <div class="format-toolbar" aria-label="Formatting toolbar">
+          <div aria-label="Formatting toolbar" class="format-toolbar">
             <button
-              type="button"
-              title="Bold"
-              aria-label="Bold"
               (click)="insertTag('<strong>', '</strong>')"
-            >
-              <ng-icon name="lucideBold" size="1rem" aria-hidden="true" />
+              aria-label="Bold"
+              title="Bold"
+              type="button">
+              <ng-icon aria-hidden="true" name="lucideBold" size="1rem" />
             </button>
             <button
-              type="button"
-              title="Italic"
-              aria-label="Italic"
               (click)="insertTag('<i>', '</i>')"
-            >
-              <ng-icon name="lucideItalic" size="1rem" aria-hidden="true" />
+              aria-label="Italic"
+              title="Italic"
+              type="button">
+              <ng-icon aria-hidden="true" name="lucideItalic" size="1rem" />
             </button>
             <button
-              type="button"
-              title="Code"
-              aria-label="Code"
               (click)="insertTag('<code>', '</code>')"
-            >
-              <ng-icon name="lucideCode2" size="1rem" aria-hidden="true" />
+              aria-label="Code"
+              title="Code"
+              type="button">
+              <ng-icon aria-hidden="true" name="lucideCode2" size="1rem" />
             </button>
-            <button type="button" title="Link" aria-label="Link" (click)="insertLink()">
-              <ng-icon name="lucideLink" size="1rem" aria-hidden="true" />
+            <button
+              (click)="insertLink()"
+              aria-label="Link"
+              title="Link"
+              type="button">
+              <ng-icon aria-hidden="true" name="lucideLink" size="1rem" />
             </button>
           </div>
         }
-        <div class="text-mode-switch" role="group" aria-label="Text display mode">
+        <div
+          aria-label="Text display mode"
+          class="text-mode-switch"
+          role="group">
           <button
-            type="button"
-            title="Edit code"
-            aria-label="Edit code"
-            [class.active]="textMode === 'code'"
             (click)="setTextMode('code')"
-          >
-            <ng-icon name="lucideCode2" size="1.1rem" aria-hidden="true" />
+            [class.active]="textMode === 'code'"
+            aria-label="Edit code"
+            title="Edit code"
+            type="button">
+            <ng-icon aria-hidden="true" name="lucideCode2" size="1.1rem" />
           </button>
           <button
-            type="button"
-            title="Preview text"
-            aria-label="Preview text"
-            [class.active]="textMode === 'preview'"
             (click)="setTextMode('preview')"
-          >
-            <ng-icon name="lucideEye" size="1.1rem" aria-hidden="true" />
+            [class.active]="textMode === 'preview'"
+            aria-label="Preview text"
+            title="Preview text"
+            type="button">
+            <ng-icon aria-hidden="true" name="lucideEye" size="1.1rem" />
           </button>
         </div>
       </div>
       @if (textMode === 'code') {
         <textarea
-          #textInput
-          id="comment-text"
-          name="text"
           #text="ngModel"
+          #textInput
           [(ngModel)]="form.text"
-          required
+          id="comment-text"
           maxlength="5000"
+          name="text"
           placeholder="Write your comment..."
-        ></textarea>
+          required></textarea>
         @if (submittedForm && text.invalid) {
           <span class="form-error"> Text is required. </span>
         }
       }
       @if (textMode === 'preview') {
         <div
-          class="text-preview"
-          role="button"
-          tabindex="0"
-          aria-label="Click to edit comment text"
-          title="Click to edit"
           (click)="setTextMode('code')"
           (keydown.enter)="setTextMode('code')"
           (keydown.space)="$event.preventDefault(); setTextMode('code')"
           [innerHTML]="form.text || 'Nothing to preview yet.'"
-        ></div>
+          aria-label="Click to edit comment text"
+          class="text-preview"
+          role="button"
+          tabindex="0"
+          title="Click to edit"></div>
       }
     </div>
     <div class="form-bottom">
       <label
         class="file-field"
-        title="JPG, JPEG, GIF, and PNG images are resized to a maximum of 320 × 240 px. TXT files must be no larger than 100 KB."
-      >
+        title="JPG, JPEG, GIF, and PNG images are resized to a maximum of 320 × 240 px. TXT files must be no larger than 100 KB.">
         <span class="file-label">
-          <ng-icon name="lucidePaperclip" size="1rem" aria-hidden="true" /> Attachment
+          <ng-icon aria-hidden="true" name="lucidePaperclip" size="1rem" />
+          Attachment
         </span>
-        <input type="file" accept=".jpg,.jpeg,.gif,.png,.txt" (change)="chooseFile($event)" />
+        <input
+          (change)="chooseFile($event)"
+          accept=".jpg,.jpeg,.gif,.png,.txt"
+          type="file" />
       </label>
     </div>
     @if (formError) {
@@ -159,56 +163,59 @@
     }
     <div class="form-actions">
       <button class="submit-button" type="submit">Post comment</button>
-      <button class="cancel-button" type="button" (click)="cancelled.emit()">Cancel</button>
+      <button (click)="cancelled.emit()" class="cancel-button" type="button">
+        Cancel
+      </button>
     </div>
   </form>
 </section>
 @if (showCaptcha) {
-  <div class="captcha-modal" role="presentation" (click)="closeCaptcha()">
+  <div (click)="closeCaptcha()" class="captcha-modal" role="presentation">
     <section
-      class="captcha-dialog"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="captcha-title"
       (click)="$event.stopPropagation()"
-    >
+      aria-labelledby="captcha-title"
+      aria-modal="true"
+      class="captcha-dialog"
+      role="dialog">
       <div class="section-heading">
         <h2 id="captcha-title">Verify you are human</h2>
-        <button type="button" class="text-button" (click)="closeCaptcha()">Cancel</button>
+        <button (click)="closeCaptcha()" class="text-button" type="button">
+          Cancel
+        </button>
       </div>
       <p>Enter the code shown below to post your comment.</p>
       @if (captcha; as currentCaptcha) {
         <div class="captcha">
           <img [src]="currentCaptcha.imageDataUrl" alt="CAPTCHA challenge" />
           <button
-            class="text-button"
-            type="button"
-            title="Get a new CAPTCHA code"
             (click)="refreshCaptcha()"
             [disabled]="captchaLoading"
-          >
-            <ng-icon name="lucideRefreshCw" size="0.95rem" aria-hidden="true" /> New code
+            class="text-button"
+            title="Get a new CAPTCHA code"
+            type="button">
+            <ng-icon aria-hidden="true" name="lucideRefreshCw" size="0.95rem" />
+            New code
           </button>
           <input
-            name="captchaAnswer"
-            [(ngModel)]="form.captchaAnswer"
-            placeholder="Enter code *"
-            [disabled]="captchaLoading"
             (keyup.enter)="submit()"
-          />
+            [(ngModel)]="form.captchaAnswer"
+            [disabled]="captchaLoading"
+            name="captchaAnswer"
+            placeholder="Enter code *" />
         </div>
       }
       @if (captchaError) {
         <p class="captcha-error" role="alert">{{ captchaError }}</p>
       }
       <button
-        class="submit-button"
-        type="button"
-        [disabled]="captchaLoading || isSubmitting"
         (click)="submit()"
-      >
+        [disabled]="captchaLoading || isSubmitting"
+        class="submit-button"
+        type="button">
         @if (isSubmitting) {
-          <span class="loading-spinner loading-spinner-light" aria-hidden="true"></span>
+          <span
+            aria-hidden="true"
+            class="loading-spinner loading-spinner-light"></span>
           Posting...
         } @else {
           Verify and post

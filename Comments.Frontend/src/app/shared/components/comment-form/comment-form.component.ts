@@ -3,10 +3,10 @@ import {
   Component,
   ElementRef,
   EventEmitter,
+  inject,
   Input,
   Output,
   ViewChild,
-  inject,
 } from '@angular/core';
 import { FormsModule, NgForm } from '@angular/forms';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -20,7 +20,11 @@ import {
   lucideRefreshCw,
 } from '@ng-icons/lucide';
 import { CommentApiService } from '@app/core/services/comment-api.service';
-import { Captcha, CommentFormValue, CommentItem } from '@app/core/models/comment.models';
+import {
+  Captcha,
+  CommentFormValue,
+  CommentItem,
+} from '@app/core/models/comment.models';
 import { finalize } from 'rxjs';
 import {
   validateHomePage,
@@ -47,7 +51,6 @@ import {
 })
 export class CommentFormComponent {
   private static readonly profileStorageKey = 'comments.user-profile';
-  @ViewChild('textInput') private textInput?: ElementRef<HTMLTextAreaElement>;
   @Input() captcha: Captcha | null = null;
   @Input() parentId = '';
   @Input() replyToName = '';
@@ -55,7 +58,6 @@ export class CommentFormComponent {
   @Output() readonly cancelled = new EventEmitter<void>();
   @Output() readonly captchaChanged = new EventEmitter<Captcha>();
   @Output() readonly errorChanged = new EventEmitter<string>();
-  private readonly api = inject(CommentApiService);
   form: CommentFormValue = {
     userName: '',
     email: '',
@@ -73,6 +75,8 @@ export class CommentFormComponent {
   isSubmitting = false;
   formError = '';
   homePageError = '';
+  @ViewChild('textInput') private textInput?: ElementRef<HTMLTextAreaElement>;
+  private readonly api = inject(CommentApiService);
 
   constructor() {
     this.restoreUserProfile();
@@ -85,7 +89,7 @@ export class CommentFormComponent {
   refreshCaptcha() {
     this.captchaError = '';
     this.captchaLoading = true;
-    this.api.getCaptcha().subscribe((captcha) => {
+    this.api.getCaptcha().subscribe(captcha => {
       this.captchaLoading = false;
       this.captchaChanged.emit(captcha);
     });
@@ -120,7 +124,11 @@ export class CommentFormComponent {
     const end = textarea.selectionEnd;
     const selected = this.form.text.slice(start, end) || 'text';
     this.form.text =
-      this.form.text.slice(0, start) + open + selected + close + this.form.text.slice(end);
+      this.form.text.slice(0, start) +
+      open +
+      selected +
+      close +
+      this.form.text.slice(end);
     const cursor = start + open.length + selected.length + close.length;
     queueMicrotask(() => {
       textarea.focus();
@@ -158,7 +166,11 @@ export class CommentFormComponent {
         this.formError = textError;
         return;
       }
-      if (this.file?.name.toLowerCase().endsWith('.txt') && this.file.size > 100 * 1024) return;
+      if (
+        this.file?.name.toLowerCase().endsWith('.txt') &&
+        this.file.size > 100 * 1024
+      )
+        return;
       this.formError = '';
       this.openCaptcha();
       return;
@@ -172,10 +184,14 @@ export class CommentFormComponent {
     }
     this.isSubmitting = true;
     this.api
-      .createComment({ ...this.form, parentId: this.parentId }, this.captcha.id, this.file)
+      .createComment(
+        { ...this.form, parentId: this.parentId },
+        this.captcha.id,
+        this.file
+      )
       .pipe(finalize(() => (this.isSubmitting = false)))
       .subscribe(
-        (created) => {
+        created => {
           this.saveUserProfile();
           this.form = {
             userName: '',
@@ -200,7 +216,9 @@ export class CommentFormComponent {
               ? 'The attachment is too large. Please choose a smaller file.'
               : typeof error.error === 'string'
                 ? 'Could not submit comment.'
-                : error.error?.error || error.error?.title || 'Could not submit comment.';
+                : error.error?.error ||
+                  error.error?.title ||
+                  'Could not submit comment.';
           this.errorChanged.emit(message);
           this.formError = message;
           if (message.toLowerCase().includes('captcha')) {
@@ -210,7 +228,7 @@ export class CommentFormComponent {
           } else {
             this.showCaptcha = false;
           }
-        },
+        }
       );
   }
 
@@ -220,15 +238,19 @@ export class CommentFormComponent {
 
   private restoreUserProfile() {
     try {
-      const stored = localStorage.getItem(CommentFormComponent.profileStorageKey);
+      const stored = localStorage.getItem(
+        CommentFormComponent.profileStorageKey
+      );
       if (!stored) return;
 
       const profile = JSON.parse(stored) as Partial<
         Pick<CommentFormValue, 'userName' | 'email' | 'homePage'>
       >;
-      this.form.userName = typeof profile.userName === 'string' ? profile.userName : '';
+      this.form.userName =
+        typeof profile.userName === 'string' ? profile.userName : '';
       this.form.email = typeof profile.email === 'string' ? profile.email : '';
-      this.form.homePage = typeof profile.homePage === 'string' ? profile.homePage : '';
+      this.form.homePage =
+        typeof profile.homePage === 'string' ? profile.homePage : '';
     } catch {
       // Ignore unavailable or invalid browser storage.
     }
@@ -242,7 +264,7 @@ export class CommentFormComponent {
           userName: this.form.userName,
           email: this.form.email,
           homePage: this.form.homePage,
-        }),
+        })
       );
     } catch {
       // Ignore unavailable browser storage.

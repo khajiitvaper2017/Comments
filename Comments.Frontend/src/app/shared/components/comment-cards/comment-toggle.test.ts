@@ -99,15 +99,11 @@ describe('CommentCardsComponent reply switch', () => {
       current = current.replies[0];
     }
 
-    expect(nodes.map((node, depth) => component.shouldShowLoadMoreButton(node, depth))).toEqual([
-      true,
-      false,
-      false,
-      false,
-      false,
-      false,
-      true,
-    ]);
+    expect(
+      nodes.map((node, depth) =>
+        component.shouldShowLoadMoreButton(node, depth)
+      )
+    ).toEqual([true, false, false, false, false, false, true]);
   });
 
   it('only supplies a highlight term for selected fields and targets', () => {

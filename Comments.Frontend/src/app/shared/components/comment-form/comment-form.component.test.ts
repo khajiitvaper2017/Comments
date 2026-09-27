@@ -1,12 +1,15 @@
 import { provideHttpClient } from '@angular/common/http';
-import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import {
+  HttpTestingController,
+  provideHttpClientTesting,
+} from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { InMemoryCache } from '@apollo/client';
 import { provideApollo } from 'apollo-angular';
 import { HttpLink } from 'apollo-angular/http';
 import { NgForm } from '@angular/forms';
 import { By } from '@angular/platform-browser';
-import { describe, expect, it, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { CommentFormComponent } from './comment-form.component';
 
 describe('CommentFormComponent', () => {
@@ -39,7 +42,9 @@ describe('CommentFormComponent', () => {
   afterEach(() => http.verify());
 
   it('does not open CAPTCHA when the form is invalid', () => {
-    const form = fixture.debugElement.query(By.css('form')).injector.get(NgForm);
+    const form = fixture.debugElement
+      .query(By.css('form'))
+      .injector.get(NgForm);
 
     component.form.userName = 'bad name';
     component.form.email = 'invalid';
@@ -61,7 +66,10 @@ describe('CommentFormComponent', () => {
     component.submit(form);
 
     const request = http.expectOne('/api/captcha');
-    request.flush({ id: 'captcha-id', imageDataUrl: 'data:image/png;base64,test' });
+    request.flush({
+      id: 'captcha-id',
+      imageDataUrl: 'data:image/png;base64,test',
+    });
     expect(component.showCaptcha).toBe(true);
   });
 });

@@ -9,17 +9,25 @@ import {
   SimpleChanges,
 } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideDownload, lucideMinus, lucidePlus, lucideX } from '@ng-icons/lucide';
+import {
+  lucideDownload,
+  lucideMinus,
+  lucidePlus,
+  lucideX,
+} from '@ng-icons/lucide';
 
 @Component({
   selector: 'app-image-lightbox',
   standalone: true,
   imports: [CommonModule, NgIcon],
-  providers: [provideIcons({ lucideDownload, lucideMinus, lucidePlus, lucideX })],
+  providers: [
+    provideIcons({ lucideDownload, lucideMinus, lucidePlus, lucideX }),
+  ],
   templateUrl: './image-lightbox.component.html',
 })
 export class ImageLightboxComponent implements OnChanges {
-  @Input() image: { url: string; name: string; downloadName?: string } | null = null;
+  @Input() image: { url: string; name: string; downloadName?: string } | null =
+    null;
   @Output() readonly closed = new EventEmitter<void>();
   scale = 1;
   isClosing = false;

@@ -4,10 +4,9 @@
       <tr>
         <th scope="col">
           <button
-            [class.active]="sort === 'userName'"
-            type="button"
             (click)="sortChanged.emit('userName')"
-          >
+            [class.active]="sort === 'userName'"
+            type="button">
             User Name
             @if (sort === 'userName') {
               {{ descending ? '↓' : '↑' }}
@@ -16,10 +15,9 @@
         </th>
         <th scope="col">
           <button
-            [class.active]="sort === 'email'"
-            type="button"
             (click)="sortChanged.emit('email')"
-          >
+            [class.active]="sort === 'email'"
+            type="button">
             E-mail
             @if (sort === 'email') {
               {{ descending ? '↓' : '↑' }}
@@ -28,10 +26,9 @@
         </th>
         <th scope="col">
           <button
-            [class.active]="sort === 'createdAt'"
-            type="button"
             (click)="sortChanged.emit('createdAt')"
-          >
+            [class.active]="sort === 'createdAt'"
+            type="button">
             Date added
             @if (sort === 'createdAt') {
               {{ descending ? '↓' : '↑' }}
@@ -50,23 +47,25 @@
           <td class="comment-table-content">
             @if (comment.replyCount) {
               <span class="reply-count">
-                {{ comment.replyCount }} {{ comment.replyCount === 1 ? 'reply' : 'replies' }}
+                {{ comment.replyCount }}
+                {{ comment.replyCount === 1 ? 'reply' : 'replies' }}
               </span>
             }
             @if (comment.homePage) {
-              <a class="homepage" [href]="comment.homePage" target="_blank" rel="noopener">
+              <a
+                [href]="comment.homePage"
+                class="homepage"
+                rel="noopener"
+                target="_blank">
                 {{ comment.homePage | homePageLabel }}
               </a>
             }
-            <div class="comment-body" [innerHTML]="comment.text"></div>
+            <div [innerHTML]="comment.text" class="comment-body"></div>
             @if (comment.attachments.length) {
               <div class="attachments">
                 @for (attachment of comment.attachments; track attachment.id) {
                   @if (attachment.contentType.startsWith('image/')) {
                     <button
-                      class="image-attachment"
-                      type="button"
-                      [attr.aria-label]="'Open ' + attachment.fileName"
                       (click)="
                         imageRequested.emit({
                           id: attachment.id,
@@ -74,19 +73,24 @@
                           contentType: attachment.contentType,
                         })
                       "
-                    >
+                      [attr.aria-label]="'Open ' + attachment.fileName"
+                      class="image-attachment"
+                      type="button">
                       <img
-                        [src]="'/api/attachments/' + attachment.id"
                         [alt]="attachment.fileName"
-                        loading="lazy"
-                      />
+                        [src]="'/api/attachments/' + attachment.id"
+                        loading="lazy" />
                     </button>
                   } @else {
                     <button
+                      (click)="
+                        textRequested.emit({
+                          id: attachment.id,
+                          name: attachment.fileName,
+                        })
+                      "
                       class="text-attachment"
-                      type="button"
-                      (click)="textRequested.emit({ id: attachment.id, name: attachment.fileName })"
-                    >
+                      type="button">
                       📎 {{ attachment.fileName }}
                     </button>
                   }

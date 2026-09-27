@@ -1,7 +1,11 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideChevronDown, lucideGitBranch, lucideReply } from '@ng-icons/lucide';
+import {
+  lucideChevronDown,
+  lucideGitBranch,
+  lucideReply,
+} from '@ng-icons/lucide';
 import { Captcha, CommentItem } from '@app/core/models/comment.models';
 import { CommentFormComponent } from '@app/shared/components/comment-form/comment-form.component';
 import { HomePageLabelPipe } from '@app/shared/pipes/home-page-label.pipe';
@@ -10,8 +14,16 @@ import { HighlightSearchPipe } from '@app/shared/pipes/highlight-search.pipe';
 @Component({
   selector: 'app-comment-cards',
   standalone: true,
-  imports: [CommonModule, CommentFormComponent, HomePageLabelPipe, HighlightSearchPipe, NgIcon],
-  providers: [provideIcons({ lucideChevronDown, lucideGitBranch, lucideReply })],
+  imports: [
+    CommonModule,
+    CommentFormComponent,
+    HomePageLabelPipe,
+    HighlightSearchPipe,
+    NgIcon,
+  ],
+  providers: [
+    provideIcons({ lucideChevronDown, lucideGitBranch, lucideReply }),
+  ],
   templateUrl: './comment-cards.component.html',
 })
 export class CommentCardsComponent {
@@ -34,7 +46,10 @@ export class CommentCardsComponent {
     name: string;
     contentType: string;
   }>();
-  @Output() readonly textRequested = new EventEmitter<{ id: string; name: string }>();
+  @Output() readonly textRequested = new EventEmitter<{
+    id: string;
+    name: string;
+  }>();
   @Output() readonly captchaChanged = new EventEmitter<Captcha>();
   @Output() readonly errorChanged = new EventEmitter<string>();
   @Output() readonly submitted = new EventEmitter<CommentItem>();
@@ -42,7 +57,10 @@ export class CommentCardsComponent {
   protected readonly collapsedReplies = new Set<string>();
   private readonly loadedSearchReplies = new Set<string>();
 
-  protected toggleRepliesOrLoadMore(comment: CommentItem, depth = this.baseDepth) {
+  protected toggleRepliesOrLoadMore(
+    comment: CommentItem,
+    depth = this.baseDepth
+  ) {
     if (this.shouldShowLoadMoreButton(comment, depth)) {
       this.loadedSearchReplies.add(comment.id);
       this.collapsedReplies.delete(comment.id);
@@ -69,7 +87,10 @@ export class CommentCardsComponent {
     );
   }
 
-  protected shouldShowLoadMoreButton(comment: CommentItem, depth = this.baseDepth) {
+  protected shouldShowLoadMoreButton(
+    comment: CommentItem,
+    depth = this.baseDepth
+  ) {
     return (
       comment.replyCount > 0 &&
       (!comment.replies.length || this.hasUnloadedReplies(comment)) &&
@@ -78,12 +99,18 @@ export class CommentCardsComponent {
   }
 
   protected highlightTermFor(comment: CommentItem, field: 'text' | 'userName') {
-    const targetIsSelected = comment.parentId ? this.highlightReplies : this.highlightComments;
-    const fieldIsSelected = field === 'text' ? this.highlightText : this.highlightUserName;
+    const targetIsSelected = comment.parentId
+      ? this.highlightReplies
+      : this.highlightComments;
+    const fieldIsSelected =
+      field === 'text' ? this.highlightText : this.highlightUserName;
     return targetIsSelected && fieldIsSelected ? this.highlightTerm : '';
   }
 
   private countLoadedReplies(replies: CommentItem[]): number {
-    return replies.reduce((count, reply) => count + 1 + this.countLoadedReplies(reply.replies), 0);
+    return replies.reduce(
+      (count, reply) => count + 1 + this.countLoadedReplies(reply.replies),
+      0
+    );
   }
 }

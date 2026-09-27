@@ -12,7 +12,7 @@ export class HighlightSearchPipe implements PipeTransform {
       partial
         ? `(${escapeRegExp(phrase)})`
         : `(?<![\\p{L}\\p{N}_])(${escapeRegExp(phrase)})(?![\\p{L}\\p{N}_])`,
-      'giu',
+      'giu'
     );
     const nodes: Text[] = [];
     const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT);

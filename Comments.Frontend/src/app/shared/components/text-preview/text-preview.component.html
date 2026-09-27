@@ -1,22 +1,20 @@
 @if (text; as currentText) {
-  <div class="text-preview-modal" role="presentation" (click)="closed.emit()">
+  <div (click)="closed.emit()" class="text-preview-modal" role="presentation">
     <section
-      class="text-preview-dialog"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="text-preview-title"
       (click)="$event.stopPropagation()"
-    >
+      aria-labelledby="text-preview-title"
+      aria-modal="true"
+      class="text-preview-dialog"
+      role="dialog">
       <header class="text-preview-header">
         <h2 id="text-preview-title">{{ currentText.name }}</h2>
         <button
-          type="button"
+          (click)="closed.emit()"
+          aria-label="Close text preview"
           class="text-preview-close"
           title="Close text preview"
-          aria-label="Close text preview"
-          (click)="closed.emit()"
-        >
-          <ng-icon name="lucideX" size="1.2rem" aria-hidden="true" />
+          type="button">
+          <ng-icon aria-hidden="true" name="lucideX" size="1.2rem" />
         </button>
       </header>
       <pre>{{ currentText.content }}</pre>

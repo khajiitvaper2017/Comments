@@ -40,7 +40,9 @@ export const defaultCommentsQuery = (): CommentsQuery => ({
   cursor: null,
 });
 
-export function parseCommentsQuery(params: Pick<ParamMap, 'get'>): CommentsQuery {
+export function parseCommentsQuery(
+  params: Pick<ParamMap, 'get'>
+): CommentsQuery {
   const query = params.get('q')?.trim() ?? '';
   const search = query
     ? {
@@ -63,13 +65,17 @@ export function parseCommentsQuery(params: Pick<ParamMap, 'get'>): CommentsQuery
   return {
     search,
     sort: { field, descending: params.get('descending') !== 'false' },
-    viewMode: search ? 'cards' : params.get('view') === 'table' ? 'table' : 'cards',
+    viewMode: search
+      ? 'cards'
+      : params.get('view') === 'table'
+        ? 'table'
+        : 'cards',
     cursor: params.get('cursor'),
   };
 }
 
 export function toCommentsQueryParams(
-  query: CommentsQuery,
+  query: CommentsQuery
 ): Record<string, string | boolean | null> {
   const search = query.search;
   return {

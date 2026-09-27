@@ -21,7 +21,10 @@ import { CommentsPageStore } from './comments-page.store';
     TextPreviewComponent,
     NgIcon,
   ],
-  providers: [CommentsPageStore, provideIcons({ lucideMessageCirclePlus, lucideSearch })],
+  providers: [
+    CommentsPageStore,
+    provideIcons({ lucideMessageCirclePlus, lucideSearch }),
+  ],
   templateUrl: './comments-page.component.html',
 })
 export class CommentsPageComponent {
@@ -39,7 +42,7 @@ export class CommentsPageComponent {
 
   private scrollToComposer(
     behavior: ScrollBehavior = 'smooth',
-    block: ScrollLogicalPosition = 'end',
+    block: ScrollLogicalPosition = 'end'
   ) {
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {

@@ -9,7 +9,9 @@ export function validateUserName(value: string): string {
 }
 
 export function validateEmail(value: string): string {
-  return value.length <= 254 && emailPattern.test(value) ? '' : 'A valid e-mail is required.';
+  return value.length <= 254 && emailPattern.test(value)
+    ? ''
+    : 'A valid e-mail is required.';
 }
 
 export function validateHomePage(value: string): string {

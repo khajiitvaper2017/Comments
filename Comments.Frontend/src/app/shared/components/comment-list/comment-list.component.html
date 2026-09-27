@@ -1,35 +1,32 @@
-<section class="discussion" aria-labelledby="discussion-title">
+<section aria-labelledby="discussion-title" class="discussion">
   <div class="discussion-heading">
     <h2 id="discussion-title">Comments</h2>
     <div class="discussion-controls">
       @if (viewMode === 'cards' && !searchMode) {
-        <div class="sorter" aria-label="Sort comments">
+        <div aria-label="Sort comments" class="sorter">
           <span>Sort by</span>
           <button
-            type="button"
-            [class.active]="sort === 'createdAt'"
             (click)="sortChanged.emit('createdAt')"
-          >
+            [class.active]="sort === 'createdAt'"
+            type="button">
             Date
             @if (sort === 'createdAt') {
               {{ descending ? '↓' : '↑' }}
             }
           </button>
           <button
-            type="button"
-            [class.active]="sort === 'userName'"
             (click)="sortChanged.emit('userName')"
-          >
+            [class.active]="sort === 'userName'"
+            type="button">
             Name
             @if (sort === 'userName') {
               {{ descending ? '↓' : '↑' }}
             }
           </button>
           <button
-            type="button"
-            [class.active]="sort === 'email'"
             (click)="sortChanged.emit('email')"
-          >
+            [class.active]="sort === 'email'"
+            type="button">
             E-mail
             @if (sort === 'email') {
               {{ descending ? '↓' : '↑' }}
@@ -38,24 +35,22 @@
         </div>
       }
       @if (!searchMode) {
-        <div class="view-switch" role="group" aria-label="Comment view">
+        <div aria-label="Comment view" class="view-switch" role="group">
           <button
-            type="button"
-            title="Card view"
-            aria-label="Card view"
-            [class.active]="viewMode === 'cards'"
             (click)="setViewMode('cards')"
-          >
-            <ng-icon name="lucideList" size="1rem" aria-hidden="true" />
+            [class.active]="viewMode === 'cards'"
+            aria-label="Card view"
+            title="Card view"
+            type="button">
+            <ng-icon aria-hidden="true" name="lucideList" size="1rem" />
           </button>
           <button
-            type="button"
-            title="Table view"
-            aria-label="Table view"
-            [class.active]="viewMode === 'table'"
             (click)="setViewMode('table')"
-          >
-            <ng-icon name="lucideTable2" size="1rem" aria-hidden="true" />
+            [class.active]="viewMode === 'table'"
+            aria-label="Table view"
+            title="Table view"
+            type="button">
+            <ng-icon aria-hidden="true" name="lucideTable2" size="1rem" />
           </button>
         </div>
       }
@@ -63,51 +58,47 @@
   </div>
 
   <app-comment-pager
-    [nextCursor]="nextCursor"
-    [hasPreviousPage]="hasPreviousPage"
     (pageChanged)="pageChanged.emit($event)"
-  />
+    [hasPreviousPage]="hasPreviousPage"
+    [nextCursor]="nextCursor" />
 
   @if (!comments.length) {
     <p class="empty">No comments yet. Start the discussion below.</p>
   } @else if (viewMode === 'cards') {
     <app-comment-cards
-      [comments]="comments"
-      [searchMode]="searchMode"
-      [captcha]="captcha"
-      [replyParentId]="replyParentId"
-      [highlightTerm]="highlightTerm"
-      [partialSearch]="partialSearch"
-      [highlightText]="highlightText"
-      [highlightUserName]="highlightUserName"
-      [highlightComments]="highlightComments"
-      [highlightReplies]="highlightReplies"
-      (replyRequested)="replyRequested.emit($event)"
-      (loadRepliesRequested)="loadRepliesRequested.emit($event)"
-      (loadAncestorsRequested)="loadAncestorsRequested.emit($event)"
-      (imageRequested)="imageRequested.emit($event)"
-      (textRequested)="textRequested.emit($event)"
+      (cancelled)="cancelled.emit()"
       (captchaChanged)="captchaChanged.emit($event)"
       (errorChanged)="errorChanged.emit($event)"
+      (imageRequested)="imageRequested.emit($event)"
+      (loadAncestorsRequested)="loadAncestorsRequested.emit($event)"
+      (loadRepliesRequested)="loadRepliesRequested.emit($event)"
+      (replyRequested)="replyRequested.emit($event)"
       (submitted)="submitted.emit($event)"
-      (cancelled)="cancelled.emit()"
-    />
+      (textRequested)="textRequested.emit($event)"
+      [captcha]="captcha"
+      [comments]="comments"
+      [highlightComments]="highlightComments"
+      [highlightReplies]="highlightReplies"
+      [highlightTerm]="highlightTerm"
+      [highlightText]="highlightText"
+      [highlightUserName]="highlightUserName"
+      [partialSearch]="partialSearch"
+      [replyParentId]="replyParentId"
+      [searchMode]="searchMode" />
   } @else {
     <app-comment-table
-      [comments]="comments"
-      [sort]="sort"
-      [descending]="descending"
-      (sortChanged)="sortChanged.emit($event)"
       (imageRequested)="imageRequested.emit($event)"
+      (sortChanged)="sortChanged.emit($event)"
       (textRequested)="textRequested.emit($event)"
-    />
+      [comments]="comments"
+      [descending]="descending"
+      [sort]="sort" />
   }
 
   <div class="discussion-footer">
     <app-comment-pager
-      [nextCursor]="nextCursor"
-      [hasPreviousPage]="hasPreviousPage"
       (pageChanged)="pageChanged.emit($event)"
-    />
+      [hasPreviousPage]="hasPreviousPage"
+      [nextCursor]="nextCursor" />
   </div>
 </section>

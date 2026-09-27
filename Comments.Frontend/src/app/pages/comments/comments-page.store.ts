@@ -1,4 +1,10 @@
-import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
+import {
+  computed,
+  DestroyRef,
+  inject,
+  Injectable,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { finalize } from 'rxjs';
@@ -7,12 +13,12 @@ import { CommentApiService } from '@app/core/services/comment-api.service';
 import { imageDownloadName } from '@app/core/utils/attachment-naming';
 import {
   CommentSort,
-  CommentViewMode,
   CommentsQuery,
-  SearchCriteria,
+  CommentViewMode,
   defaultCommentsQuery,
   defaultSearchCriteria,
   parseCommentsQuery,
+  SearchCriteria,
   toCommentsQueryParams,
 } from '@app/core/utils/comments-query-params';
 import {
@@ -22,9 +28,13 @@ import {
   prependRootComment,
   replaceReplies,
 } from '@app/core/utils/comment-tree';
-import { CommentsPageRealtime, prependRealtimeComments } from './comments-page-realtime';
+import {
+  CommentsPageRealtime,
+  prependRealtimeComments,
+} from './comments-page-realtime';
 
-type ComposerState = { kind: 'closed' } | { kind: 'root' } | { kind: 'reply'; parentId: string };
+type ComposerState =
+  { kind: 'closed' } | { kind: 'root' } | { kind: 'reply'; parentId: string };
 type Preview =
   | { kind: 'image'; url: string; name: string; downloadName: string }
   | { kind: 'text'; name: string; content: string }
@@ -33,26 +43,6 @@ type Preview =
 @Injectable()
 export class CommentsPageStore {
   private static readonly autoLoadReplyLimit = 5;
-  private readonly api = inject(CommentApiService);
-  private readonly destroyRef = inject(DestroyRef);
-  private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
-  private readonly realtime = new CommentsPageRealtime(
-    () => this.isDefaultFirstPage(),
-    (pending) => this.comments.update((comments) => prependRealtimeComments(comments, pending)),
-  );
-  private readonly cursorHistory = signal<Array<string | null>>([]);
-  private readonly loadedReplies = new Map<string, CommentItem[]>();
-  private readonly loadingReplies = new Set<string>();
-  private readonly loadingAncestors = new Set<string>();
-  private pendingCursorNavigation: string | null | undefined;
-  private requestVersion = 0;
-
-  constructor() {
-    this.initialize();
-    this.destroyRef.onDestroy(() => this.destroy());
-  }
-
   readonly comments = signal<CommentItem[]>([]);
   readonly captcha = signal<Captcha | null>(null);
   readonly error = signal('');
@@ -67,9 +57,12 @@ export class CommentsPageStore {
   });
   readonly preview = signal<Preview>(null);
   readonly searchActive = computed(() => this.query().search !== null);
-  readonly searchLoading = computed(() => this.searchActive() && this.loading());
-  readonly commentsLoading = computed(() => !this.searchActive() && this.loading());
-  readonly hasPreviousPage = computed(() => this.cursorHistory().length > 0);
+  readonly searchLoading = computed(
+    () => this.searchActive() && this.loading()
+  );
+  readonly commentsLoading = computed(
+    () => !this.searchActive() && this.loading()
+  );
   readonly selectedImage = computed(() => {
     const preview = this.preview();
     return preview?.kind === 'image' ? preview : null;
@@ -78,35 +71,47 @@ export class CommentsPageStore {
     const preview = this.preview();
     return preview?.kind === 'text' ? preview : null;
   });
+  private readonly api = inject(CommentApiService);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly realtime = new CommentsPageRealtime(
+    () => this.isDefaultFirstPage(),
+    pending =>
+      this.comments.update(comments =>
+        prependRealtimeComments(comments, pending)
+      )
+  );
+  private readonly cursorHistory = signal<Array<string | null>>([]);
+  readonly hasPreviousPage = computed(() => this.cursorHistory().length > 0);
+  private readonly loadedReplies = new Map<string, CommentItem[]>();
+  private readonly loadingReplies = new Set<string>();
+  private readonly loadingAncestors = new Set<string>();
+  private pendingCursorNavigation: string | null | undefined;
+  private requestVersion = 0;
 
-  private initialize() {
-    this.realtime.start();
-    this.route.queryParamMap
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((params) => this.applyRouteQuery(parseCommentsQuery(params)));
-  }
-
-  private destroy() {
-    this.realtime.destroy();
+  constructor() {
+    this.initialize();
+    this.destroyRef.onDestroy(() => this.destroy());
   }
 
   setSearchQuery(query: string) {
-    this.searchDraft.update((draft) => ({ ...draft, query }));
+    this.searchDraft.update(draft => ({ ...draft, query }));
   }
 
   setPartialSearch(partial: boolean) {
-    this.searchDraft.update((draft) => ({ ...draft, partial }));
+    this.searchDraft.update(draft => ({ ...draft, partial }));
   }
 
   setSearchField(field: keyof SearchCriteria['fields'], enabled: boolean) {
-    this.searchDraft.update((draft) => ({
+    this.searchDraft.update(draft => ({
       ...draft,
       fields: { ...draft.fields, [field]: enabled },
     }));
   }
 
   setSearchTarget(target: keyof SearchCriteria['targets'], enabled: boolean) {
-    this.searchDraft.update((draft) => ({
+    this.searchDraft.update(draft => ({
       ...draft,
       targets: { ...draft.targets, [target]: enabled },
     }));
@@ -120,14 +125,20 @@ export class CommentsPageStore {
       (!search.targets.comments && !search.targets.replies)
     )
       return;
-    this.navigate(this.resetPagination({ ...this.query(), search, viewMode: 'cards' }));
+    this.navigate(
+      this.resetPagination({ ...this.query(), search, viewMode: 'cards' })
+    );
   }
 
   changeSort(field: CommentSort) {
     const current = this.query();
     const descending =
-      current.sort.field === field ? !current.sort.descending : field === 'createdAt';
-    this.navigate(this.resetPagination({ ...current, sort: { field, descending } }));
+      current.sort.field === field
+        ? !current.sort.descending
+        : field === 'createdAt';
+    this.navigate(
+      this.resetPagination({ ...current, sort: { field, descending } })
+    );
   }
 
   changeViewMode(viewMode: CommentViewMode) {
@@ -139,7 +150,7 @@ export class CommentsPageStore {
     if (direction === 'next') {
       const next = this.nextCursor();
       if (!next) return;
-      this.cursorHistory.update((history) => [...history, current.cursor]);
+      this.cursorHistory.update(history => [...history, current.cursor]);
       this.pendingCursorNavigation = next;
       this.navigate({ ...current, cursor: next });
       return;
@@ -172,10 +183,12 @@ export class CommentsPageStore {
       .getReplies(parentId)
       .pipe(finalize(() => this.loadingReplies.delete(parentId)))
       .subscribe({
-        next: (replies) => {
+        next: replies => {
           if (!findComment(this.comments(), parentId)) return;
           this.loadedReplies.set(parentId, replies);
-          this.comments.update((comments) => replaceReplies(comments, parentId, replies));
+          this.comments.update(comments =>
+            replaceReplies(comments, parentId, replies)
+          );
           this.autoLoadSmallReplyTrees(replies);
         },
         error: () => this.error.set('Could not load replies.'),
@@ -193,10 +206,10 @@ export class CommentsPageStore {
       .getAncestors(ids)
       .pipe(finalize(() => this.loadingAncestors.delete(commentId)))
       .subscribe({
-        next: (ancestors) => {
+        next: ancestors => {
           const path = attachAncestorPath(comment, ancestors);
-          this.comments.update((comments) =>
-            comments.map((item) => (item.id === commentId ? path : item)),
+          this.comments.update(comments =>
+            comments.map(item => (item.id === commentId ? path : item))
           );
         },
         error: () => this.error.set('Could not load comment ancestors.'),
@@ -208,12 +221,12 @@ export class CommentsPageStore {
     this.closeComposer();
     if (composer.kind === 'reply') {
       if (findComment(this.comments(), composer.parentId)) {
-        this.comments.update((comments) => prependReply(comments, created));
+        this.comments.update(comments => prependReply(comments, created));
       } else {
         this.loadReplies(composer.parentId);
       }
     } else if (composer.kind === 'root' && this.isDefaultFirstPage()) {
-      this.comments.update((comments) => prependRootComment(comments, created));
+      this.comments.update(comments => prependRootComment(comments, created));
     }
   }
 
@@ -228,13 +241,25 @@ export class CommentsPageStore {
 
   openText(text: { id: string; name: string }) {
     this.api.getAttachmentText(text.id).subscribe({
-      next: (content) => this.preview.set({ kind: 'text', name: text.name, content }),
+      next: content =>
+        this.preview.set({ kind: 'text', name: text.name, content }),
       error: () => this.error.set('Could not preview text attachment.'),
     });
   }
 
   closePreview() {
     this.preview.set(null);
+  }
+
+  private initialize() {
+    this.realtime.start();
+    this.route.queryParamMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(params => this.applyRouteQuery(parseCommentsQuery(params)));
+  }
+
+  private destroy() {
+    this.realtime.destroy();
   }
 
   private applyRouteQuery(query: CommentsQuery) {
@@ -271,14 +296,22 @@ export class CommentsPageStore {
           query.search.fields.userName,
           query.search.targets.comments,
           query.search.targets.replies,
-          query.cursor,
+          query.cursor
         )
-      : this.api.getComments(query.sort.field, query.sort.descending, query.cursor);
+      : this.api.getComments(
+          query.sort.field,
+          query.sort.descending,
+          query.cursor
+        );
 
     request
-      .pipe(finalize(() => version === this.requestVersion && this.loading.set(false)))
+      .pipe(
+        finalize(
+          () => version === this.requestVersion && this.loading.set(false)
+        )
+      )
       .subscribe({
-        next: (result) => {
+        next: result => {
           if (version !== this.requestVersion) return;
           const items = this.restoreLoadedReplies(result.items);
           this.comments.set(items);
@@ -288,7 +321,9 @@ export class CommentsPageStore {
         error: () => {
           if (version === this.requestVersion) {
             this.error.set(
-              query.search ? 'Search is currently unavailable.' : 'Could not load comments.',
+              query.search
+                ? 'Search is currently unavailable.'
+                : 'Could not load comments.'
             );
           }
         },
@@ -311,25 +346,38 @@ export class CommentsPageStore {
   }
 
   private restoreLoadedReplies(comments: CommentItem[]): CommentItem[] {
-    return comments.map((comment) => {
+    return comments.map(comment => {
       const serverReplies = comment.replies ?? [];
       const loaded = this.loadedReplies.get(comment.id);
-      const replies = loaded ? this.mergeReplies(serverReplies, loaded) : serverReplies;
+      const replies = loaded
+        ? this.mergeReplies(serverReplies, loaded)
+        : serverReplies;
       return { ...comment, replies: this.restoreLoadedReplies(replies) };
     });
   }
 
-  private mergeReplies(serverReplies: CommentItem[], loadedReplies: CommentItem[]): CommentItem[] {
-    const loadedById = new Map(loadedReplies.map((reply) => [reply.id, reply]));
-    const merged = serverReplies.map((reply) => loadedById.get(reply.id) ?? reply);
-    const serverIds = new Set(serverReplies.map((reply) => reply.id));
-    return [...merged, ...loadedReplies.filter((reply) => !serverIds.has(reply.id))];
+  private mergeReplies(
+    serverReplies: CommentItem[],
+    loadedReplies: CommentItem[]
+  ): CommentItem[] {
+    const loadedById = new Map(loadedReplies.map(reply => [reply.id, reply]));
+    const merged = serverReplies.map(
+      reply => loadedById.get(reply.id) ?? reply
+    );
+    const serverIds = new Set(serverReplies.map(reply => reply.id));
+    return [
+      ...merged,
+      ...loadedReplies.filter(reply => !serverIds.has(reply.id)),
+    ];
   }
 
   private isDefaultFirstPage() {
     const query = this.query();
     return (
-      !query.search && !query.cursor && query.sort.field === 'createdAt' && query.sort.descending
+      !query.search &&
+      !query.cursor &&
+      query.sort.field === 'createdAt' &&
+      query.sort.descending
     );
   }
 

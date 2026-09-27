@@ -20,9 +20,12 @@ export class CommentTableComponent {
     name: string;
     contentType: string;
   }>();
-  @Output() readonly textRequested = new EventEmitter<{ id: string; name: string }>();
+  @Output() readonly textRequested = new EventEmitter<{
+    id: string;
+    name: string;
+  }>();
 
   protected get rootComments(): CommentItem[] {
-    return this.comments.filter((comment) => comment.parentId == null);
+    return this.comments.filter(comment => comment.parentId == null);
   }
 }

@@ -10,7 +10,12 @@ import { CommentTableComponent } from '@app/shared/components/comment-table/comm
 @Component({
   selector: 'app-comment-list',
   standalone: true,
-  imports: [CommentCardsComponent, CommentPagerComponent, CommentTableComponent, NgIcon],
+  imports: [
+    CommentCardsComponent,
+    CommentPagerComponent,
+    CommentTableComponent,
+    NgIcon,
+  ],
   providers: [provideIcons({ lucideList, lucideTable2 })],
   templateUrl: './comment-list.component.html',
 })
@@ -41,7 +46,10 @@ export class CommentListComponent {
     name: string;
     contentType: string;
   }>();
-  @Output() readonly textRequested = new EventEmitter<{ id: string; name: string }>();
+  @Output() readonly textRequested = new EventEmitter<{
+    id: string;
+    name: string;
+  }>();
   @Output() readonly captchaChanged = new EventEmitter<Captcha>();
   @Output() readonly errorChanged = new EventEmitter<string>();
   @Output() readonly submitted = new EventEmitter<CommentItem>();

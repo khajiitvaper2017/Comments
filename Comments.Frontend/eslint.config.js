@@ -1,6 +1,7 @@
 const angular = require('angular-eslint');
+const prettierRecommended = require('eslint-plugin-prettier/recommended');
 
-const withFiles = (configs, files) => configs.map((config) => ({ ...config, files }));
+const withFiles = (configs, files) => configs.map(config => ({ ...config, files }));
 
 module.exports = [
   {
@@ -19,6 +20,13 @@ module.exports = [
     files: ['**/*.html'],
     rules: {
       '@angular-eslint/template/prefer-control-flow': 'off',
+    },
+  },
+  ...withFiles([prettierRecommended], ['**/*.ts', '**/*.html']),
+  {
+    files: ['**/*.html'],
+    rules: {
+      'prettier/prettier': ['error', { parser: 'angular' }],
     },
   },
 ];

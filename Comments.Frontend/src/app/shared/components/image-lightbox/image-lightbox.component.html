@@ -1,66 +1,59 @@
 @if (image; as currentImage) {
   <div
-    class="lightbox"
-    [class.is-closing]="isClosing"
     (click)="close()"
     (wheel)="onWheel($event)"
-    tabindex="-1"
-    role="dialog"
-    aria-modal="true"
     [attr.aria-label]="currentImage.name"
-  >
+    [class.is-closing]="isClosing"
+    aria-modal="true"
+    class="lightbox"
+    role="dialog"
+    tabindex="-1">
     <div
-      class="lightbox-toolbar"
       (click)="$event.stopPropagation()"
       (wheel)="$event.stopPropagation()"
-    >
+      class="lightbox-toolbar">
       <button
-        class="icon-button"
-        type="button"
-        title="Zoom out"
-        aria-label="Zoom out"
         (click)="zoom(-0.25)"
         [disabled]="scale === 0.25"
-      >
-        <ng-icon name="lucideMinus" size="1.1rem" aria-hidden="true" />
+        aria-label="Zoom out"
+        class="icon-button"
+        title="Zoom out"
+        type="button">
+        <ng-icon aria-hidden="true" name="lucideMinus" size="1.1rem" />
       </button>
       <span>{{ scale * 100 | number: '1.0-0' }}%</span>
       <button
-        class="icon-button"
-        type="button"
-        title="Zoom in"
-        aria-label="Zoom in"
         (click)="zoom(0.25)"
         [disabled]="scale === 3"
-      >
-        <ng-icon name="lucidePlus" size="1.1rem" aria-hidden="true" />
+        aria-label="Zoom in"
+        class="icon-button"
+        title="Zoom in"
+        type="button">
+        <ng-icon aria-hidden="true" name="lucidePlus" size="1.1rem" />
       </button>
       <a
-        class="lightbox-download"
-        [href]="currentImage.url"
-        [download]="currentImage.downloadName || currentImage.name"
-        title="Download image"
-        aria-label="Download image"
         (click)="$event.stopPropagation()"
-      >
-        <ng-icon name="lucideDownload" size="1rem" aria-hidden="true" />
+        [download]="currentImage.downloadName || currentImage.name"
+        [href]="currentImage.url"
+        aria-label="Download image"
+        class="lightbox-download"
+        title="Download image">
+        <ng-icon aria-hidden="true" name="lucideDownload" size="1rem" />
       </a>
       <button
-        class="icon-button close-button"
-        type="button"
-        title="Close image"
-        aria-label="Close image"
         (click)="close()"
-      >
-        <ng-icon name="lucideX" size="1.35rem" aria-hidden="true" />
+        aria-label="Close image"
+        class="icon-button close-button"
+        title="Close image"
+        type="button">
+        <ng-icon aria-hidden="true" name="lucideX" size="1.35rem" />
       </button>
     </div>
     <img
-      [src]="currentImage.url"
-      [alt]="currentImage.name"
-      [style.transform]="'scale(' + scale + ')'"
       (click)="$event.stopPropagation()"
       (wheel)="onWheel($event)"
-    />
+      [alt]="currentImage.name"
+      [src]="currentImage.url"
+      [style.transform]="'scale(' + scale + ')'" />
   </div>
 }

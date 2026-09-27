@@ -1,14 +1,17 @@
 @if (hasPreviousPage || nextCursor) {
   <div class="pager">
     @if (hasPreviousPage) {
-      <button type="button" (click)="pageChanged.emit('previous')">
-        <ng-icon name="lucideChevronLeft" size="1rem" aria-hidden="true" />
+      <button (click)="pageChanged.emit('previous')" type="button">
+        <ng-icon aria-hidden="true" name="lucideChevronLeft" size="1rem" />
         Previous Page
       </button>
     }
-    <button type="button" [disabled]="!nextCursor" (click)="pageChanged.emit('next')">
+    <button
+      (click)="pageChanged.emit('next')"
+      [disabled]="!nextCursor"
+      type="button">
       Next Page
-      <ng-icon name="lucideChevronRight" size="1rem" aria-hidden="true" />
+      <ng-icon aria-hidden="true" name="lucideChevronRight" size="1rem" />
     </button>
   </div>
 }

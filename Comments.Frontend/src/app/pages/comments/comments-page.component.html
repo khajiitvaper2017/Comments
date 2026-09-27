@@ -5,141 +5,139 @@
         <a routerLink="/">Community discussion</a>
       </p>
     </div>
-    <button class="leave-comment-button" type="button" (click)="openComposer()">
-      <ng-icon name="lucideMessageCirclePlus" size="1rem" aria-hidden="true" />
+    <button (click)="openComposer()" class="leave-comment-button" type="button">
+      <ng-icon aria-hidden="true" name="lucideMessageCirclePlus" size="1rem" />
       Leave comment
     </button>
   </header>
-  <form class="search-bar" (ngSubmit)="store.submitSearch()">
+  <form (ngSubmit)="store.submitSearch()" class="search-bar">
     <div class="search-input-row">
       <label class="search-query-label" for="comment-search">
         <span>Search</span>
         <input
+          (ngModelChange)="store.setSearchQuery($event)"
+          [ngModel]="store.searchDraft().query"
           id="comment-search"
           name="searchQuery"
-          [ngModel]="store.searchDraft().query"
-          (ngModelChange)="store.setSearchQuery($event)"
-          placeholder="Search text or user name"
-        />
+          placeholder="Search text or user name" />
       </label>
       <button
-        class="submit-button"
-        type="submit"
         [disabled]="
           store.searchLoading() ||
           !store.searchDraft().query.trim() ||
-          (!store.searchDraft().fields.text && !store.searchDraft().fields.userName) ||
-          (!store.searchDraft().targets.comments && !store.searchDraft().targets.replies)
+          (!store.searchDraft().fields.text &&
+            !store.searchDraft().fields.userName) ||
+          (!store.searchDraft().targets.comments &&
+            !store.searchDraft().targets.replies)
         "
-      >
-        <ng-icon name="lucideSearch" size="1rem" aria-hidden="true" />
+        class="submit-button"
+        type="submit">
+        <ng-icon aria-hidden="true" name="lucideSearch" size="1rem" />
         {{ store.searchLoading() ? 'Searching...' : 'Search' }}
       </button>
     </div>
     <div class="search-options">
       <span class="partial-search-option">
         <input
+          (ngModelChange)="store.setPartialSearch($event)"
+          [ngModel]="store.searchDraft().partial"
           id="partial-search"
           name="partialSearch"
-          type="checkbox"
-          [ngModel]="store.searchDraft().partial"
-          (ngModelChange)="store.setPartialSearch($event)"
-        />
+          type="checkbox" />
         <span>Match partial words</span>
       </span>
       <span class="search-fields">
         <span class="search-field-option">
           <input
-            type="checkbox"
-            name="searchText"
-            aria-label="Search comment text"
-            [ngModel]="store.searchDraft().fields.text"
             (ngModelChange)="store.setSearchField('text', $event)"
-          />
+            [ngModel]="store.searchDraft().fields.text"
+            aria-label="Search comment text"
+            name="searchText"
+            type="checkbox" />
           <span>Search text</span>
         </span>
         <span class="search-field-option">
           <input
-            type="checkbox"
-            name="searchUserName"
-            aria-label="Search usernames"
-            [ngModel]="store.searchDraft().fields.userName"
             (ngModelChange)="store.setSearchField('userName', $event)"
-          />
+            [ngModel]="store.searchDraft().fields.userName"
+            aria-label="Search usernames"
+            name="searchUserName"
+            type="checkbox" />
           <span>Search usernames</span>
         </span>
       </span>
       <span class="search-fields">
         <span class="search-field-option">
           <input
-            type="checkbox"
-            name="searchComments"
-            aria-label="Search comments"
-            [ngModel]="store.searchDraft().targets.comments"
             (ngModelChange)="store.setSearchTarget('comments', $event)"
-          />
+            [ngModel]="store.searchDraft().targets.comments"
+            aria-label="Search comments"
+            name="searchComments"
+            type="checkbox" />
           <span>Search comments</span>
         </span>
         <span class="search-field-option">
           <input
-            type="checkbox"
-            name="searchReplies"
-            aria-label="Search replies"
-            [ngModel]="store.searchDraft().targets.replies"
             (ngModelChange)="store.setSearchTarget('replies', $event)"
-          />
+            [ngModel]="store.searchDraft().targets.replies"
+            aria-label="Search replies"
+            name="searchReplies"
+            type="checkbox" />
           <span>Search replies</span>
         </span>
       </span>
     </div>
   </form>
   @if (store.commentsLoading()) {
-    <div class="loading-state" role="status" aria-live="polite">
-      <span class="loading-spinner" aria-hidden="true"></span><span>Loading comments...</span>
+    <div aria-live="polite" class="loading-state" role="status">
+      <span aria-hidden="true" class="loading-spinner"></span
+      ><span>Loading comments...</span>
     </div>
   }
   @if (store.composer().kind === 'root') {
     <app-comment-form
-      [captcha]="store.captcha()"
-      parentId=""
+      (cancelled)="store.closeComposer()"
       (captchaChanged)="store.captcha.set($event)"
       (errorChanged)="store.error.set($event)"
       (submitted)="store.applyCreatedComment($event)"
-      (cancelled)="store.closeComposer()"
-    />
+      [captcha]="store.captcha()"
+      parentId="" />
   }
   <app-comment-list
-    [comments]="store.comments()"
-    [nextCursor]="store.nextCursor()"
-    [hasPreviousPage]="store.hasPreviousPage()"
-    [sort]="store.query().sort.field"
-    [descending]="store.query().sort.descending"
-    [searchMode]="store.searchActive()"
-    [highlightTerm]="store.query().search?.query ?? ''"
-    [partialSearch]="store.query().search?.partial ?? false"
-    [highlightText]="store.query().search?.fields?.text ?? false"
-    [highlightUserName]="store.query().search?.fields?.userName ?? false"
-    [highlightComments]="store.query().search?.targets?.comments ?? false"
-    [highlightReplies]="store.query().search?.targets?.replies ?? false"
-    [viewMode]="store.query().viewMode"
-    [captcha]="store.captcha()"
-    [replyParentId]="store.replyParentId()"
-    (sortChanged)="store.changeSort($event)"
-    (pageChanged)="store.changePage($event)"
-    (viewModeChanged)="store.changeViewMode($event)"
-    (replyRequested)="setReplyParent($event)"
-    (loadRepliesRequested)="store.loadReplies($event)"
-    (loadAncestorsRequested)="store.loadAncestors($event)"
-    (imageRequested)="store.openImage($event)"
-    (textRequested)="store.openText($event)"
+    (cancelled)="store.closeComposer()"
     (captchaChanged)="store.captcha.set($event)"
     (errorChanged)="store.error.set($event)"
+    (imageRequested)="store.openImage($event)"
+    (loadAncestorsRequested)="store.loadAncestors($event)"
+    (loadRepliesRequested)="store.loadReplies($event)"
+    (pageChanged)="store.changePage($event)"
+    (replyRequested)="setReplyParent($event)"
+    (sortChanged)="store.changeSort($event)"
     (submitted)="store.applyCreatedComment($event)"
-    (cancelled)="store.closeComposer()"
-  />
+    (textRequested)="store.openText($event)"
+    (viewModeChanged)="store.changeViewMode($event)"
+    [captcha]="store.captcha()"
+    [comments]="store.comments()"
+    [descending]="store.query().sort.descending"
+    [hasPreviousPage]="store.hasPreviousPage()"
+    [highlightComments]="store.query().search?.targets?.comments ?? false"
+    [highlightReplies]="store.query().search?.targets?.replies ?? false"
+    [highlightTerm]="store.query().search?.query ?? ''"
+    [highlightText]="store.query().search?.fields?.text ?? false"
+    [highlightUserName]="store.query().search?.fields?.userName ?? false"
+    [nextCursor]="store.nextCursor()"
+    [partialSearch]="store.query().search?.partial ?? false"
+    [replyParentId]="store.replyParentId()"
+    [searchMode]="store.searchActive()"
+    [sort]="store.query().sort.field"
+    [viewMode]="store.query().viewMode" />
   @if (store.error()) {
     <p class="error" role="alert">{{ store.error() }}</p>
   }
 </main>
-<app-image-lightbox [image]="store.selectedImage()" (closed)="store.closePreview()" />
-<app-text-preview [text]="store.selectedText()" (closed)="store.closePreview()" />
+<app-image-lightbox
+  (closed)="store.closePreview()"
+  [image]="store.selectedImage()" />
+<app-text-preview
+  (closed)="store.closePreview()"
+  [text]="store.selectedText()" />
