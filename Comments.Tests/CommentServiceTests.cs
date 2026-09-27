@@ -216,7 +216,6 @@ public sealed class CommentServiceTests
     private sealed class FakeCaptcha : ICaptchaService
     {
         public bool Result { get; init; } = true;
-        public bool WasVerified { get; private set; }
 
         public CaptchaDto Create()
         {
@@ -225,7 +224,6 @@ public sealed class CommentServiceTests
 
         public bool Verify(string id, string answer)
         {
-            WasVerified = true;
             return Result;
         }
     }
