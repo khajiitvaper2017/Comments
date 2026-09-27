@@ -44,7 +44,7 @@ public sealed class CommentService(
             .ToListAsync(ct);
 
         var smallReplyIds = replies
-            .Where(x => x.ReplyCount > 0 && x.ReplyCount < AutoLoadReplyLimit)
+            .Where(x => x.ReplyCount is > 0 and < AutoLoadReplyLimit)
             .Select(x => x.Id)
             .ToArray();
         var descendants = smallReplyIds.Length == 0
@@ -52,8 +52,11 @@ public sealed class CommentService(
             : await LoadDescendantsAsync(smallReplyIds, ct);
         var all = replies.Concat(descendants).ToList();
 
+        // Group by parent once so recursive mapping only visits a comment's replies.
+        var childrenByParent = all.Where(x => x.ParentId.HasValue).ToLookup(x => x.ParentId!.Value);
+
         return replies
-            .Select(x => Map(x, all))
+            .Select(x => Map(x, childrenByParent))
             .ToList();
     }
 
@@ -64,7 +67,7 @@ public sealed class CommentService(
         if (requestedIds.Length == 0) return [];
 
         var comments = await db.Comments.AsNoTracking()
-            .Where(x => requestedIds.Contains(x.Id))
+            .Where(x => Enumerable.Contains(requestedIds, x.Id))
             .Include(x => x.Attachments)
             .ToListAsync(ct);
         var byId = comments.ToDictionary(x => x.Id);
@@ -83,13 +86,8 @@ public sealed class CommentService(
         if (cached is not null) return cached;
         var query = db.Comments.AsNoTracking().Where(x => x.ParentId == null);
         var position = DecodeCursor(cursor);
-        if (position is not null)
-        {
-            if (position.Sort != sort || position.Descending != descending)
-                position = null;
-            else
-                query = ApplyCursor(query, sort, descending, position);
-        }
+        if (position is not null && position.Sort == sort && position.Descending == descending)
+            query = ApplyCursor(query, sort, descending, position);
 
         query = sort switch
         {
@@ -107,15 +105,17 @@ public sealed class CommentService(
         var hasMore = roots.Count > RootPageSize;
         if (hasMore) roots.RemoveAt(RootPageSize);
         var smallRootIds = roots
-            .Where(x => x.ReplyCount > 0 && x.ReplyCount < AutoLoadReplyLimit)
+            .Where(x => x.ReplyCount is > 0 and < AutoLoadReplyLimit)
             .Select(x => x.Id)
             .ToArray();
         // A small root thread is bounded by ReplyCount, so its complete tree can be read
         // by RootId in one query instead of issuing one query per reply depth.
         var descendants = await LoadSmallRootDescendantsAsync(smallRootIds, ct);
         var all = roots.Concat(descendants).ToList();
+        // Group by parent once so recursive mapping only visits a comment's replies.
+        var childrenByParent = all.Where(x => x.ParentId.HasValue).ToLookup(x => x.ParentId!.Value);
         var result = new CommentPageDto(
-            roots.Select(x => Map(x, all)).ToList(),
+            roots.Select(x => Map(x, childrenByParent)).ToList(),
             hasMore ? EncodeCursor(roots[^1], sort, descending) : null,
             sort,
             descending);
@@ -153,17 +153,20 @@ public sealed class CommentService(
         db.Comments.Add(comment);
         if (parent is not null)
         {
+            // A reply contributes to every ancestor's total reply count.
             var ancestorId = parent.Id;
             var visited = new HashSet<Guid>();
+            // Guard against a malformed parent cycle so this walk cannot run forever.
             while (ancestorId != Guid.Empty && visited.Add(ancestorId))
             {
+                var currentAncestorId = ancestorId;
                 await db.Comments
-                    .Where(x => x.Id == ancestorId)
+                    .Where(x => x.Id == currentAncestorId)
                     .ExecuteUpdateAsync(setters => setters
                         .SetProperty(x => x.ReplyCount, x => x.ReplyCount + 1), ct);
 
-                ancestorId = await db.Comments.AsNoTracking()
-                    .Where(x => x.Id == ancestorId)
+                ancestorId = await db.Comments
+                    .Where(x => x.Id == currentAncestorId)
                     .Select(x => x.ParentId ?? Guid.Empty)
                     .SingleAsync(ct);
             }
@@ -190,14 +193,15 @@ public sealed class CommentService(
 
         while (frontier.Length > 0)
         {
+            var currentFrontier = frontier;
             var children = await db.Comments.AsNoTracking()
-                .Where(x => x.ParentId.HasValue && frontier.Contains(x.ParentId.Value))
+                .Where(x => x.ParentId.HasValue && Enumerable.Contains(currentFrontier, x.ParentId.Value))
                 .Include(x => x.Attachments)
                 .OrderBy(x => x.CreatedAtUtc)
                 .ToListAsync(ct);
 
             descendants.AddRange(children);
-            frontier = children.Select(x => x.Id).ToArray();
+            frontier = [.. children.Select(x => x.Id)];
         }
 
         return descendants;
@@ -232,11 +236,12 @@ public sealed class CommentService(
 
     private static string EncodeCursor(Comment comment, string sort, bool descending)
     {
-        var value = sort == "createdAt"
-            ? comment.CreatedAtUtc.ToString("O")
-            : sort == "userName"
-                ? comment.UserName
-                : comment.Email;
+        var value = sort switch
+        {
+            "createdAt" => comment.CreatedAtUtc.ToString("O"),
+            "userName" => comment.UserName,
+            _ => comment.Email
+        };
         var json = JsonSerializer.Serialize(new CursorPosition(sort, descending, value, comment.Id));
         return Convert.ToBase64String(Encoding.UTF8.GetBytes(json))
             .TrimEnd('=').Replace('+', '-').Replace('/', '_');
@@ -267,7 +272,7 @@ public sealed class CommentService(
         if (rootIds.Length == 0) return [];
 
         return await db.Comments.AsNoTracking()
-            .Where(x => x.ParentId.HasValue && rootIds.Contains(x.RootId))
+            .Where(x => x.ParentId.HasValue && Enumerable.Contains(rootIds, x.RootId))
             .Include(x => x.Attachments)
             .OrderBy(x => x.CreatedAtUtc)
             .ToListAsync(ct);
@@ -283,29 +288,26 @@ public sealed class CommentService(
         });
     }
 
-    private static CommentDto Map(Comment comment, IReadOnlyList<Comment> all)
+    private static CommentDto Map(Comment comment, ILookup<Guid, Comment> childrenByParent)
     {
         var replyCount = comment.ReplyCount;
         if (replyCount >= AutoLoadReplyLimit)
             return ToDto(comment, [], replyCount);
 
-        var replies = all.Where(x => x.ParentId == comment.Id)
+        var replies = childrenByParent[comment.Id]
             .OrderBy(x => x.CreatedAtUtc)
-            .Select(x => Map(x, all))
+            .Select(x => Map(x, childrenByParent))
             .ToList();
         return ToDto(comment, replies, replyCount);
     }
 
 
-    private static CommentDto ToDto(
-        Comment comment,
-        IReadOnlyList<CommentDto> replies,
-        int replyCount)
+    private static CommentDto ToDto(Comment comment, IReadOnlyList<CommentDto> replies, int replyCount)
     {
+        var attachments = comment.Attachments.Select(a => new AttachmentDto(a.Id, a.OriginalName, a.ContentType, a.Size,
+            a.Width, a.Height)).ToList();
         return new CommentDto(comment.Id, comment.ParentId, comment.UserName, comment.Email, comment.HomePage,
-            comment.Text, comment.CreatedAtUtc,
-            comment.Attachments.Select(a => new AttachmentDto(a.Id, a.OriginalName, a.ContentType, a.Size,
-                a.Width, a.Height)).ToList(), replies, replyCount);
+            comment.Text, comment.CreatedAtUtc, attachments, replies, replyCount);
     }
 
     private sealed record CursorPosition(string Sort, bool Descending, string Value, Guid Id);
