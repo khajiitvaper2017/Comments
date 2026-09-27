@@ -230,6 +230,7 @@ NBomberRunner
 Console.WriteLine($"SignalR commentChanged events received: {hubEventsReceived.Read()}");
 foreach (var connection in hubConnections)
     await connection.DisposeAsync();
+return;
 
 async Task<IResponse> SendComment(long invocationNumber, Guid? parentId)
 {
@@ -254,13 +255,13 @@ async Task<IResponse> SendComment(long invocationNumber, Guid? parentId)
         form.Add(new StringContent(parent.ToString()), "parentId");
 
     // Attachments represent one tenth of submitted messages.
-    if (invocationNumber % AttachmentEveryNMessages == 0)
-    {
-        var testAttachment = testAttachments[invocationNumber % testAttachments.Length];
-        var attachment = new ByteArrayContent(testAttachment.Content);
-        attachment.Headers.ContentType = new MediaTypeHeaderValue(testAttachment.ContentType);
-        form.Add(attachment, "attachments", testAttachment.FileName);
-    }
+    if (invocationNumber % AttachmentEveryNMessages != 0)
+        return await Http.Send(httpClient, Http.CreateRequest("POST", "/api/comments").WithBody(form));
+
+    var testAttachment = testAttachments[invocationNumber % testAttachments.Length];
+    var attachment = new ByteArrayContent(testAttachment.Content);
+    attachment.Headers.ContentType = new MediaTypeHeaderValue(testAttachment.ContentType);
+    form.Add(attachment, "attachments", testAttachment.FileName);
 
     return await Http.Send(httpClient, Http.CreateRequest("POST", "/api/comments").WithBody(form));
 }
@@ -300,12 +301,10 @@ static void AddRootContinuation(
     string sort,
     bool descending)
 {
-    if (!response.IsError && response.Payload.IsSome())
-    {
-        var nextCursor = response.Payload.Value.Data.NextCursor;
-        if (!string.IsNullOrWhiteSpace(nextCursor))
-            target.Add(new RootContinuation(nextCursor, sort, descending));
-    }
+    if (response.IsError || !response.Payload.IsSome()) return;
+    var nextCursor = response.Payload.Value.Data.NextCursor;
+    if (!string.IsNullOrWhiteSpace(nextCursor))
+        target.Add(new RootContinuation(nextCursor, sort, descending));
 }
 
 static string GetContentType(string path)
@@ -384,7 +383,7 @@ internal readonly record struct SearchVariant(bool Partial, bool SearchText, boo
 
 internal sealed record RootContinuation(string Cursor, string Sort, bool Descending);
 
-internal sealed record CursorPageResponse(string? NextCursor);
+internal abstract record CursorPageResponse(string? NextCursor);
 
 internal sealed record LoadTestSeed(
     Guid[] ParentIds,
