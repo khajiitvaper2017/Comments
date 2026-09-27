@@ -8,8 +8,8 @@ namespace Comments.Infrastructure.Search;
 ///     Provides maintenance operations for the Elasticsearch comment index,
 ///     including rebuilding the index after crashes or data inconsistencies.
 /// </summary>
-/// <param name="elasticService"></param>
-/// <param name="db"></param>
+/// <param name="elasticService">The Elasticsearch client used to manage and populate the index.</param>
+/// <param name="db">The database context used to read comments for rebuilding.</param>
 public sealed class ElasticsearchIndexMaintenance(
     IElasticService elasticService,
     CommentsDbContext db) : ICommentIndexMaintenance
@@ -52,8 +52,9 @@ public sealed class ElasticsearchIndexMaintenance(
         CancellationToken ct)
     {
         var query = db.Comments.AsNoTracking();
+
         if (lastId is Guid id)
-            query = query.Where(x => x.Id.CompareTo(id) > 0);
+            query = query.Where(x => x.Id > id);
 
         var comments = await query
             .OrderBy(x => x.Id)
