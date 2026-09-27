@@ -190,8 +190,8 @@ export class CommentFormComponent {
         this.file
       )
       .pipe(finalize(() => (this.isSubmitting = false)))
-      .subscribe(
-        created => {
+      .subscribe({
+        next: created => {
           this.saveUserProfile();
           this.form = {
             userName: '',
@@ -210,7 +210,7 @@ export class CommentFormComponent {
           this.homePageError = '';
           this.submitted.emit(created);
         },
-        (error: HttpErrorResponse) => {
+        error: (error: HttpErrorResponse) => {
           const message =
             error.status === 413
               ? 'The attachment is too large. Please choose a smaller file.'
@@ -228,8 +228,8 @@ export class CommentFormComponent {
           } else {
             this.showCaptcha = false;
           }
-        }
-      );
+        },
+      });
   }
 
   private getHomePageError(value: string) {
