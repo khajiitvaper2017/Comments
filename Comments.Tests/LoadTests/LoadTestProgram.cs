@@ -59,7 +59,7 @@ var searchVariants = new[]
 var rootContinuations = new ConcurrentBag<RootContinuation>();
 var searchContinuations = new ConcurrentDictionary<string, ConcurrentBag<string>>();
 var hubConnections = new ConcurrentBag<HubConnection>();
-var hubEventsReceived = 0L;
+var hubEventsReceived = new HubEventCounter();
 var testAttachments = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, "TestAttachments"))
     .Select(path => new
     {
@@ -158,8 +158,7 @@ var connectDiscussionHubs = Scenario.Create("connect_discussion_hubs", async _ =
             .WithUrl($"{BaseUrl}/hubs/discussions")
             .WithAutomaticReconnect()
             .Build();
-        connection.On<JsonElement>("commentChanged", _ =>
-            Interlocked.Increment(ref hubEventsReceived));
+        connection.On<JsonElement>("commentChanged", _ => hubEventsReceived.Increment());
 
         try
         {
@@ -228,7 +227,7 @@ NBomberRunner
     .WithReportFileName("comments-load-test")
     .Run();
 
-Console.WriteLine($"SignalR commentChanged events received: {Interlocked.Read(ref hubEventsReceived)}");
+Console.WriteLine($"SignalR commentChanged events received: {hubEventsReceived.Read()}");
 foreach (var connection in hubConnections)
     await connection.DisposeAsync();
 
@@ -391,3 +390,18 @@ internal sealed record LoadTestSeed(
     Guid[] ParentIds,
     Guid[] AttachmentIds,
     Guid[] AncestorIds);
+
+internal sealed class HubEventCounter
+{
+    private long count;
+
+    public void Increment()
+    {
+        Interlocked.Increment(ref count);
+    }
+
+    public long Read()
+    {
+        return Interlocked.Read(ref count);
+    }
+}
