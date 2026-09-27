@@ -3,30 +3,14 @@ using Comments.Domain.Entities;
 
 namespace Comments.Infrastructure.Search;
 
-public sealed class CommentSearchDocument
+[method: SetsRequiredMembers]
+public sealed class CommentSearchDocument(Comment comment, IReadOnlyList<Guid> ancestors)
 {
-    [SetsRequiredMembers]
-    public CommentSearchDocument()
-    {
-    }
-
-    [SetsRequiredMembers]
-    public CommentSearchDocument(Comment comment, IReadOnlyList<Guid> ancestors)
-    {
-        Id = comment.Id;
-        ParentId = comment.ParentId;
-        RootId = comment.RootId;
-        AncestorIds = ancestors;
-        UserName = comment.UserName;
-        Text = comment.Text;
-        CreatedAtUtc = comment.CreatedAtUtc;
-    }
-
-    public Guid Id { get; init; }
-    public Guid? ParentId { get; init; }
-    public Guid RootId { get; init; }
-    public IReadOnlyList<Guid> AncestorIds { get; init; } = [];
-    public required string UserName { get; init; } = string.Empty;
-    public required string Text { get; init; } = string.Empty;
-    public DateTime CreatedAtUtc { get; init; }
+    public Guid Id { get; init; } = comment.Id;
+    public Guid? ParentId { get; init; } = comment.ParentId;
+    public Guid RootId { get; init; } = comment.RootId;
+    public IReadOnlyList<Guid> AncestorIds { get; init; } = ancestors;
+    public required string UserName { get; init; } = comment.UserName;
+    public required string Text { get; init; } = comment.Text;
+    public DateTime CreatedAtUtc { get; init; } = comment.CreatedAtUtc;
 }
