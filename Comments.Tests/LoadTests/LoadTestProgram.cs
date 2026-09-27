@@ -17,7 +17,7 @@ const int ReplyReadRatePerSecond = 20;
 const int SearchRatePerSecond = 10;
 const int WarmUpSeconds = 5;
 const int ReplyWriteRatePerSecond = 2; // 2 replies per second
-const int rootWriteRatePerSecond = 10; // 10 root comments per second
+const int RootWriteRatePerSecond = 10; // 10 root comments per second
 const int AttachmentEveryNMessages = 10;
 const int AncestorReadRatePerSecond = 5;
 const int AttachmentReadRatePerSecond = 5;
@@ -72,7 +72,7 @@ var testAttachments = Directory.GetFiles(Path.Combine(AppContext.BaseDirectory, 
 if (testAttachments.Length == 0)
     throw new InvalidOperationException("No load-test attachments were found.");
 
-using var httpClient = Http.CreateDefaultClient();
+var httpClient = Http.CreateDefaultClient();
 httpClient.BaseAddress = new Uri(BaseUrl);
 var seed = await LoadSeedData(httpClient, searchTerms);
 var reportFolder = Path.Combine(
@@ -118,7 +118,7 @@ var searchComments = Scenario.Create("search_comments", async context =>
         var term = searchTerms[context.InvocationNumber % searchTerms.Length];
         var variant = searchVariants[context.InvocationNumber % searchVariants.Length];
         var searchKey = $"{term}:{variant.Partial}:{variant.SearchText}:{variant.SearchUserName}";
-        var cursorPool = searchContinuations.GetOrAdd(searchKey, _ => new ConcurrentBag<string>());
+        var cursorPool = searchContinuations.GetOrAdd(searchKey, _ => []);
         var cursor = TakeRandomLimited(cursorPool, 5);
         var cursorQuery = cursor is null
             ? string.Empty
@@ -142,7 +142,7 @@ var searchComments = Scenario.Create("search_comments", async context =>
 var writeComments = Scenario.Create("write_root_comments", async context =>
         await SendComment(context.InvocationNumber, null))
     .WithWarmUpDuration(TimeSpan.FromSeconds(WarmUpSeconds))
-    .WithLoadSimulations(Inject(rootWriteRatePerSecond));
+    .WithLoadSimulations(Inject(RootWriteRatePerSecond));
 
 var writeReplies = Scenario.Create("write_replies", async context =>
     {
@@ -221,7 +221,7 @@ else
 }
 
 NBomberRunner
-    .RegisterScenarios(scenarios.ToArray())
+    .RegisterScenarios([.. scenarios])
     .WithTestSuite("Comments API")
     .WithTestName("one-million-messages-per-day")
     .WithReportFolder(reportFolder)
@@ -234,7 +234,7 @@ foreach (var connection in hubConnections)
 
 async Task<IResponse> SendComment(long invocationNumber, Guid? parentId)
 {
-    var captcha = await Http.Send<CaptchaResponse>(
+    var captcha = await Http.Send(
         httpClient,
         Http.CreateRequest("GET", "/api/captcha"));
     if (captcha.IsError) return captcha;
@@ -244,14 +244,12 @@ async Task<IResponse> SendComment(long invocationNumber, Guid? parentId)
     var text = parentId is null
         ? $"Load test comment {invocationNumber}."
         : $"Load test reply {invocationNumber}.";
-    using var form = new MultipartFormDataContent
-    {
-        { new StringContent(userName), "userName" },
-        { new StringContent($"{userName}@loadtest.example"), "email" },
-        { new StringContent(text), "text" },
-        { new StringContent("load-test"), "captchaId" },
-        { new StringContent("bypass"), "captchaAnswer" }
-    };
+    using var form = new MultipartFormDataContent();
+    form.Add(new StringContent(userName), "userName");
+    form.Add(new StringContent($"{userName}@loadtest.example"), "email");
+    form.Add(new StringContent(text), "text");
+    form.Add(new StringContent("load-test"), "captchaId");
+    form.Add(new StringContent("bypass"), "captchaAnswer");
 
     if (parentId is Guid parent)
         form.Add(new StringContent(parent.ToString()), "parentId");
@@ -290,12 +288,11 @@ static void AddContinuation(
     ConcurrentBag<string> target,
     int maximum)
 {
-    if (!response.IsError && response.Payload.IsSome())
-    {
-        var nextCursor = response.Payload.Value.Data.NextCursor;
-        if (!string.IsNullOrWhiteSpace(nextCursor) && target.Count < maximum)
-            target.Add(nextCursor);
-    }
+    if (response.IsError || !response.Payload.IsSome()) return;
+
+    var nextCursor = response.Payload.Value.Data.NextCursor;
+    if (!string.IsNullOrWhiteSpace(nextCursor) && target.Count < maximum)
+        target.Add(nextCursor);
 }
 
 static void AddRootContinuation(
@@ -343,8 +340,8 @@ static async Task<LoadTestSeed> LoadSeedData(HttpClient client, IReadOnlyList<st
 
     var ancestorIds = await FindAncestorIds(client, searchTerms);
     return new LoadTestSeed(
-        parentIds.ToArray(),
-        attachmentIds.ToArray(),
+        [.. parentIds],
+        [.. attachmentIds],
         ancestorIds);
 }
 
@@ -389,8 +386,6 @@ internal readonly record struct SearchVariant(bool Partial, bool SearchText, boo
 internal sealed record RootContinuation(string Cursor, string Sort, bool Descending);
 
 internal sealed record CursorPageResponse(string? NextCursor);
-
-internal sealed record CaptchaResponse(string Id, string Image);
 
 internal sealed record LoadTestSeed(
     Guid[] ParentIds,
