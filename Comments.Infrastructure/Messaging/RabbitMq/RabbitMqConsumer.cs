@@ -85,11 +85,11 @@ public sealed class RabbitMqConsumer(
     private static async Task DeclareQueueAsync(IChannel channel, string queue, CancellationToken ct)
     {
         await RabbitMqPublisher.DeclareExchangeAsync(channel, ct);
-        var deadExchange = $"{RabbitMqTopology.Exchange}.dead";
-        await channel.ExchangeDeclareAsync(deadExchange, ExchangeType.Direct, true, cancellationToken: ct);
+        const string DeadExchange = $"{RabbitMqTopology.Exchange}.dead";
+        await channel.ExchangeDeclareAsync(DeadExchange, ExchangeType.Direct, true, cancellationToken: ct);
         await channel.QueueDeclareAsync($"{queue}.dead", true, false, false, cancellationToken: ct);
         await channel.QueueDeclareAsync(queue, true, false, false,
-            new Dictionary<string, object?> { ["x-dead-letter-exchange"] = deadExchange }, cancellationToken: ct);
+            new Dictionary<string, object?> { ["x-dead-letter-exchange"] = DeadExchange }, cancellationToken: ct);
         var bindings = queue switch
         {
             RabbitMqTopology.CacheQueue => ["CommentCreated", "ReplyCreated"],
@@ -101,7 +101,7 @@ public sealed class RabbitMqConsumer(
         foreach (var type in bindings)
         {
             await channel.QueueBindAsync(queue, RabbitMqTopology.Exchange, type, cancellationToken: ct);
-            await channel.QueueBindAsync($"{queue}.dead", deadExchange, type, cancellationToken: ct);
+            await channel.QueueBindAsync($"{queue}.dead", DeadExchange, type, cancellationToken: ct);
         }
     }
 
